@@ -959,7 +959,7 @@ DIBUJAR_ENTIDAD:
     SBC HL,BC                        ; 7BFB: ed42
     LD (HL),A                        ; 7BFD: 77
     JP $7CC4                         ; 7BFE: c3c47c
-    LD IY,$8999                      ; 7C01: fd219989
+    LD IY,LOSETA_PISADAS_VERTICAL_1   ; 7C01: fd219989
     LD A,$08                         ; 7C05: 3e08
     LD ($7CC6),A                     ; 7C07: 32c67c
     ADD A,D                          ; 7C0A: 82
@@ -974,7 +974,7 @@ DIBUJAR_ENTIDAD:
     XOR $01                          ; 7C19: ee01
     LD ($8158),A                     ; 7C1B: 325881
     JP Z,$7CC4                       ; 7C1E: cac47c
-    LD IY,$89B9                      ; 7C21: fd21b989
+    LD IY,LOSETA_PISADAS_VERTICAL_2   ; 7C21: fd21b989
     LD A,$02                         ; 7C25: 3e02
     LD (HL),A                        ; 7C27: 77
     LD A,$20                         ; 7C28: 3e20
@@ -1662,8 +1662,25 @@ TABLAS_SPRITE_CASILLA:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8969
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8979
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8989
+; ---- LOSETA_PISADAS_VERTICAL_1 / LOSETA_PISADAS_VERTICAL_2 ---- 2
+; sprites de 32 bytes (4x8, 16x8 px en Modo 1), CONFIRMADOS por
+; DIBUJAR_ENTIDAD: la rama de tipo 'T' ($7B65) con ($8157)<2 hace
+; "LD IY,$8999" (fija outer=8 via automodificacion de $7CC6) y su
+; pareja de alternancia "LD IY,$89B9" (flag $8158). Esta misma rama
+; escribe $01/$02 en dos celdas del mapa devueltas por
+; CONSULTAR_CASILLA_MAPA -- consistente con marcar una casilla como
+; "cavada" en dos posiciones verticales. Identidad visual confirmada
+; por el usuario probando recursos/sprites.html (Modo 1, 4x16, offset
+; 124, salto 64): "loseta que dibuja en el suelo pisadas en
+; vertical" -- el patron de puntos alternos de las 2 mitades de 32
+; bytes, vistas juntas, forma un rastro de pisadas verticales.
+; Confianza alta en estructura, media-alta en identidad (encaja con
+; la hipotesis de rastro de excavacion del jugador). Ver FINDINGS.md
+; Sesion 8.
+LOSETA_PISADAS_VERTICAL_1:
     DB $F0,$87,$F0,$F0,$F0,$87,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 8999
     DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 89A9
+LOSETA_PISADAS_VERTICAL_2:
     DB $F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0 ; 89B9
     DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 89C9
     DB $F0,$87,$F0,$87,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0 ; 89D9

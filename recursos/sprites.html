@@ -362,6 +362,7 @@ entre ellas.</p>
     <button class="preset" id="preset-g-8a79">Casilla #7 ($8A79, 2x8)</button>
     <button class="preset" id="preset-g-8a89">Casilla #8 ($8A89, 2x8)</button>
     <button class="preset" id="preset-g-8aa9">Casilla #9 ($8AA9, 2x8)</button>
+    <button class="preset" id="preset-g-pisadas">CONFIRMADO: LOSETA_PISADAS_VERTICAL ($8999+$89B9, 4x16 juntas)</button>
     <button class="preset" id="preset-g-reset">Ver el tramo completo (offset 0, salto 16)</button>
   </div>
   <p class="status" id="status-line-g"></p>
@@ -637,6 +638,13 @@ Object.keys(CASILLA_ADDRS).forEach((id) => {
     explorerCasillas.setPreset(ancho, alto, addr - SPRITE_DATA_START_ADDR, ancho * alto, 1));
 });
 document.getElementById("preset-g-reset").addEventListener("click", () => explorerCasillas.setPreset(2, 8, 0, 16, 26));
+
+// LOSETA_PISADAS_VERTICAL_1/_2 ($8999/$89B9, ver FINDINGS.md Sesion 8):
+// identificada por el usuario viendo las dos mitades de 32 bytes
+// juntas como una sola imagen de 4x16 -- offset 124 = 4 bytes antes
+// de $8999, para que las dos mitades queden centradas en la vista.
+document.getElementById("preset-g-pisadas").addEventListener("click", () =>
+  explorerCasillas.setPreset(4, 16, 0x8999 - SPRITE_DATA_START_ADDR - 4, 64, 1));
 
 explorerCasillas.render();
 

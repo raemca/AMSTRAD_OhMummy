@@ -1548,3 +1548,52 @@ duplicar código ni mezclar el estado de los dos paneles).
 - Extraer a fichero también las casillas de `DIBUJAR_CASILLA_MAPA` en
   cuanto se decida su formato definitivo (2x8 confirmado por el código
   que las usa, contenido visual sin confirmar todavía).
+
+## Sesión 8 (continuación 4) — 2026-09-01: `LOSETA_PISADAS_VERTICAL_1`/`_2` — primer sprite nombrado de la rama `'T'`
+
+Usando el nuevo explorador dedicado a `TABLAS_SPRITE_CASILLA`, el
+usuario identifica en offset 124 (Modo 1, ancho 4, alto 16, salto 64,
+dirección `$8995`) una loseta que dibuja en el suelo pisadas en
+vertical.
+
+Contrastado contra el código: `$8995` en sí no es un punto de entrada
+real — cae 4 bytes antes del primer punto de entrada confirmado de la
+rama `'T'` de `DIBUJAR_ENTIDAD` (`$7B65`, la que aún no tenía ningún
+sprite nombrado). Cuando `($8157) < 2`, esa rama salta a **`$8999`**
+(fija el contador de filas a 8 mediante código automodificable sobre
+`$7CC6`, ancho por defecto 4 → 32 bytes, 16x8 px) y alterna con
+**`$89B9`** (mismo tamaño, seleccionado por el flag `$8158`) —
+perfectamente contiguos entre sí (`$8999`-`$89D8`). La vista de 64
+bytes que encontró el usuario (offset 124 = `$8999` menos 4 bytes)
+junta visualmente ambas mitades de 32 bytes en una sola imagen de
+4x16, que es donde se aprecia el patrón de puntos alternos como
+pisadas verticales — aunque el juego en sí dibuja cada mitad por
+separado (una u otra según el flag de animación, nunca las dos a la
+vez).
+
+Encaja además con una hipótesis ya apuntada en esta misma sesión: esa
+misma rama `'T'` escribe `$01`/`$02` en dos celdas del mapa devueltas
+por `CONSULTAR_CASILLA_MAPA` justo antes de dibujar — coherente con
+marcar una casilla como "cavada"/con huella al pasar el jugador por
+ella. Nombrados en `mummy1_body.asm`: `LOSETA_PISADAS_VERTICAL_1`
+(`$8999`) y `LOSETA_PISADAS_VERTICAL_2` (`$89B9`), y renombrados los 2
+`LD IY,` que las usan. Confianza alta en la estructura (32 bytes
+exactos, contiguos, confirmados por el código), media-alta en la
+identidad visual (coincide con la hipótesis temática de rastro de
+excavación, pero sin confirmar en emulador).
+
+### Verificación
+
+`py tools/build_all.py` y `py tools/dsk_build.py`: **0 diferencias**.
+
+`recursos/sprites.html`: nuevo botón "CONFIRMADO: LOSETA_PISADAS_VERTICAL"
+en el explorador dedicado, que reproduce exactamente la vista que usó
+el usuario para encontrarla (offset 124, 4x16, salto 64).
+
+### Pendiente
+
+- El resto de la rama `'T'` (`($8157)==2`→`$89F9`/`$8A09` 2x16;
+  `==3`→`$8A29`/`$8A49` 4x8; por defecto→`$8A89`/`$8A99` 2x16) sigue
+  sin nombrar — mismo patrón de escritura en el mapa, probablemente
+  las otras 3 orientaciones de la misma "pisada" (horizontal y
+  diagonales, o las 4 direcciones del tablero).
