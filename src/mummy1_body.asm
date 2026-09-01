@@ -862,6 +862,14 @@ PREPARAR_DIBUJAR_ENTIDAD:
     LD (IX+2),D                      ; 7B31: dd7202
     LD (IX+3),E                      ; 7B34: dd7303
     LD A,$4F                         ; 7B37: 3e4f
+; Sesion 8: confirmado el despacho por tipo de entidad (byte en A al
+; entrar): ' '($20)->IY=$8959, 'T'($54)->sub-dispatch en ($8157) con
+; anchos/altos variables (32-64 bytes, pendiente de nombrar), 'A'($41)
+; y 'O'($4F)->sub-dispatch en ($8157)/($8159) respectivamente hacia 8
+; sprites de 64 bytes cada uno (SPRITE_JUGADOR_G1_F1.. / SPRITE_MOMIA_
+; G1_F1.., ver mas abajo), cualquier otro caracter (por defecto,
+; incluido fallthrough)->IY=TABLAS_SPRITE_CASILLA ($8919). Ver
+; FINDINGS.md Sesion 8.
 DIBUJAR_ENTIDAD:
     PUSH AF                          ; 7B39: f5
     LD A,$10                         ; 7B3A: 3e10
@@ -979,29 +987,29 @@ DIBUJAR_ENTIDAD:
     JR Z,$7C5C                       ; 7C36: 2824
     CP $03                           ; 7C38: fe03
     JR Z,$7C4C                       ; 7C3A: 2810
-    LD IY,$8C39                      ; 7C3C: fd21398c
+    LD IY,SPRITE_JUGADOR_G4_F1        ; 7C3C: fd21398c
     LD A,($8158)                     ; 7C40: 3a5881
     OR A                             ; 7C43: b7
     JR Z,$7CC4                       ; 7C44: 287e
-    LD IY,$8C79                      ; 7C46: fd21798c
+    LD IY,SPRITE_JUGADOR_G4_F2        ; 7C46: fd21798c
     JR $7CC4                         ; 7C4A: 1878
-    LD IY,$8BB9                      ; 7C4C: fd21b98b
+    LD IY,SPRITE_JUGADOR_G3_F1        ; 7C4C: fd21b98b
     LD A,($8158)                     ; 7C50: 3a5881
     OR A                             ; 7C53: b7
     JR Z,$7CC4                       ; 7C54: 286e
-    LD IY,$8BF9                      ; 7C56: fd21f98b
+    LD IY,SPRITE_JUGADOR_G3_F2        ; 7C56: fd21f98b
     JR $7CC4                         ; 7C5A: 1868
-    LD IY,$8B39                      ; 7C5C: fd21398b
+    LD IY,SPRITE_JUGADOR_G2_F1        ; 7C5C: fd21398b
     LD A,($8158)                     ; 7C60: 3a5881
     OR A                             ; 7C63: b7
     JR Z,$7CC4                       ; 7C64: 285e
-    LD IY,$8B79                      ; 7C66: fd21798b
+    LD IY,SPRITE_JUGADOR_G2_F2        ; 7C66: fd21798b
     JR $7CC4                         ; 7C6A: 1858
-    LD IY,$8AB9                      ; 7C6C: fd21b98a
+    LD IY,SPRITE_JUGADOR_G1_F1        ; 7C6C: fd21b98a
     LD A,($8158)                     ; 7C70: 3a5881
     OR A                             ; 7C73: b7
     JR Z,$7CC4                       ; 7C74: 284e
-    LD IY,$8AF9                      ; 7C76: fd21f98a
+    LD IY,SPRITE_JUGADOR_G1_F2        ; 7C76: fd21f98a
     JR $7CC4                         ; 7C7A: 1848
     LD A,(IX+4)                      ; 7C7C: dd7e04
     XOR $01                          ; 7C7F: ee01
@@ -1014,24 +1022,24 @@ DIBUJAR_ENTIDAD:
     CP $03                           ; 7C8E: fe03
     JR Z,$7C9F                       ; 7C90: 280d
     POP AF                           ; 7C92: f1
-    LD IY,$8E39                      ; 7C93: fd21398e
+    LD IY,SPRITE_MOMIA_G4_F1          ; 7C93: fd21398e
     JR Z,$7CC4                       ; 7C97: 282b
-    LD IY,$8E79                      ; 7C99: fd21798e
+    LD IY,SPRITE_MOMIA_G4_F2          ; 7C99: fd21798e
     JR $7CC4                         ; 7C9D: 1825
     POP AF                           ; 7C9F: f1
-    LD IY,$8DB9                      ; 7CA0: fd21b98d
+    LD IY,SPRITE_MOMIA_G3_F1          ; 7CA0: fd21b98d
     JR Z,$7CC4                       ; 7CA4: 281e
-    LD IY,$8DF9                      ; 7CA6: fd21f98d
+    LD IY,SPRITE_MOMIA_G3_F2          ; 7CA6: fd21f98d
     JR $7CC4                         ; 7CAA: 1818
     POP AF                           ; 7CAC: f1
-    LD IY,$8D39                      ; 7CAD: fd21398d
+    LD IY,SPRITE_MOMIA_G2_F1          ; 7CAD: fd21398d
     JR Z,$7CC4                       ; 7CB1: 2811
-    LD IY,$8D79                      ; 7CB3: fd21798d
+    LD IY,SPRITE_MOMIA_G2_F2          ; 7CB3: fd21798d
     JR $7CC4                         ; 7CB7: 180b
     POP AF                           ; 7CB9: f1
-    LD IY,$8CB9                      ; 7CBA: fd21b98c
+    LD IY,SPRITE_MOMIA_G1_F1          ; 7CBA: fd21b98c
     JR Z,$7CC4                       ; 7CBE: 2804
-    LD IY,$8CF9                      ; 7CC0: fd21f98c
+    LD IY,SPRITE_MOMIA_G1_F2          ; 7CC0: fd21f98c
     PUSH DE                          ; 7CC4: d5
     LD B,$10                         ; 7CC5: 0610
     EX DE,HL                         ; 7CC7: eb
@@ -1672,66 +1680,95 @@ TABLAS_SPRITE_CASILLA:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$0F,$96,$0F,$96,$3C,$F0 ; 8A89
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A99
     DB $3C,$F0,$0F,$96,$0F,$96,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8AA9
+; ---- SPRITE_JUGADOR_G1_F1..SPRITE_JUGADOR_G4_F2 / SPRITE_MOMIA_G1_F1..
+; SPRITE_MOMIA_G4_F2 ---- 16 sprites de 64 bytes (4x16, 16x16 px en
+; Modo 1), CONFIRMADOS por DIBUJAR_ENTIDAD: las ramas de tipo 'A'
+; ($7C2F) y 'O' ($7C7C) hacen "LD IY,$8AB9/$8AF9/.../$8E79" -- 8
+; direcciones (agrupadas en 4 grupos: <2, ==2, ==3, >=4 segun
+; ($8157) para 'A' y ($8159) para 'O') x 2 fotogramas de animacion
+; cada una (alternados via XOR $01 de un flag). Confirmado ademas por
+; el usuario probando el explorador de recursos/sprites.html (Modo 1,
+; 4x16, offset $8AB9): el grupo 'A' se ve como el personaje jugable y
+; el grupo 'O' como un enemigo (momia) -- hipotesis de identidad
+; visual, confianza media; la estructura (16 sprites de 64 bytes
+; perfectamente contiguos) esta confirmada al 100% por el codigo.
+; Ver FINDINGS.md Sesion 8.
+SPRITE_JUGADOR_G1_F1:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AB9
     DB $F0,$0C,$03,$F0,$F0,$86,$16,$78,$E0,$77,$CC,$70,$C0,$77,$CC,$70 ; 8AC9
     DB $C0,$77,$EE,$70,$C0,$77,$FF,$F0,$C3,$FE,$FF,$F0,$F1,$FE,$FF,$F0 ; 8AD9
     DB $E1,$1E,$FF,$F0,$F0,$1E,$EF,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$1E,$F0 ; 8AE9
+SPRITE_JUGADOR_G1_F2:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AF9
     DB $F0,$0C,$03,$F0,$E1,$86,$16,$F0,$E0,$33,$EE,$70,$E0,$33,$EE,$30 ; 8B09
     DB $E0,$77,$EE,$30,$F0,$FF,$EE,$30,$F0,$FF,$F7,$3C,$F0,$FF,$F7,$F8 ; 8B19
     DB $F0,$FF,$87,$78,$F0,$7F,$87,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0,$F0 ; 8B29
+SPRITE_JUGADOR_G2_F1:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B39
     DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$F0,$00,$FE,$F0 ; 8B49
     DB $F0,$88,$00,$3C,$F0,$CC,$00,$3C,$F1,$FF,$FB,$F0,$F3,$FF,$F7,$F8 ; 8B59
     DB $D3,$FE,$FF,$F8,$87,$FC,$F7,$FC,$C3,$78,$C3,$3C,$E1,$3C,$C3,$1E ; 8B69
+SPRITE_JUGADOR_G2_F2:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B79
     DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$E0,$33,$FE,$F0 ; 8B89
     DB $E0,$00,$6F,$F0,$F0,$89,$2F,$F0,$F0,$FF,$7E,$F0,$F0,$F7,$FC,$F0 ; 8B99
     DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$C3,$1E,$F0 ; 8BA9
+SPRITE_JUGADOR_G3_F1:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BB9
     DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$F0,$03,$2E,$70,$E0,$67,$6E,$30 ; 8BC9
     DB $E0,$77,$EE,$33,$E1,$FF,$EF,$30,$F0,$FF,$E7,$78,$F0,$FF,$F7,$F8 ; 8BD9
     DB $F0,$FF,$87,$78,$F0,$EF,$C3,$78,$F0,$0F,$F0,$F0,$F0,$1E,$F0,$F0 ; 8BE9
+SPRITE_JUGADOR_G3_F2:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BF9
     DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$E0,$47,$0C,$F0,$C0,$67,$6E,$70 ; 8C09
     DB $C0,$77,$EE,$70,$C0,$7F,$FF,$78,$E1,$7E,$FF,$F0,$F1,$FE,$FF,$F0 ; 8C19
     DB $E1,$1E,$FF,$F0,$E1,$3C,$7F,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0 ; 8C29
+SPRITE_JUGADOR_G4_F1:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C39
     DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$00,$F0 ; 8C49
     DB $C3,$00,$11,$F0,$C3,$00,$33,$F0,$F0,$FD,$FF,$F8,$F1,$FE,$FF,$FC ; 8C59
     DB $F1,$FF,$F7,$BC,$F3,$FE,$F3,$1E,$C3,$3C,$E1,$3C,$87,$3C,$C3,$78 ; 8C69
+SPRITE_JUGADOR_G4_F2:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C79
     DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$CC,$70 ; 8C89
     DB $F0,$6F,$00,$70,$F0,$4F,$19,$F0,$F0,$E7,$FF,$F0,$F0,$F3,$FE,$F0 ; 8C99
     DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$87,$3C,$F0 ; 8CA9
+SPRITE_MOMIA_G1_F1:
     DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CB9
     DB $E0,$20,$40,$70,$E0,$00,$00,$F0,$F0,$00,$00,$F0,$F0,$00,$10,$F0 ; 8CC9
     DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8CD9
     DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8CE9
+SPRITE_MOMIA_G1_F2:
     DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CF9
     DB $E0,$20,$40,$70,$F0,$00,$00,$70,$F0,$00,$00,$F0,$F0,$80,$00,$F0 ; 8D09
     DB $F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8D19
     DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8D29
+SPRITE_MOMIA_G2_F1:
     DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D39
     DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$70,$F0,$A0,$00,$30 ; 8D49
     DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0 ; 8D59
     DB $F0,$10,$10,$F0,$E0,$30,$10,$F0,$E0,$30,$80,$F0,$E0,$10,$80,$70 ; 8D69
+SPRITE_MOMIA_G2_F2:
     DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D79
     DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$F0,$F0,$A0,$00,$30 ; 8D89
     DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D99
     DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$10,$F0 ; 8DA9
+SPRITE_MOMIA_G3_F1:
     DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DB9
     DB $F0,$C0,$30,$F0,$F0,$00,$10,$F0,$E0,$00,$00,$F0,$E0,$00,$00,$F0 ; 8DC9
     DB $C0,$40,$40,$70,$C0,$80,$20,$70,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8DD9
     DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8DE9
+SPRITE_MOMIA_G3_F2:
     DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DF9
     DB $F0,$C0,$30,$F0,$F0,$80,$00,$F0,$F0,$00,$00,$70,$F0,$00,$00,$70 ; 8E09
     DB $E0,$20,$20,$30,$E0,$40,$10,$30,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8E19
     DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8E29
+SPRITE_MOMIA_G4_F1:
     DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E39
     DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E49
     DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0 ; 8E59
     DB $F0,$80,$80,$F0,$F0,$80,$C0,$70,$F0,$10,$C0,$70,$E0,$10,$80,$70 ; 8E69
+SPRITE_MOMIA_G4_F2:
     DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E79
     DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E89
     DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E99

@@ -161,24 +161,28 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
 
 <div class="note pending">
-  <strong>Explorador interactivo -- formato de sprite SIN CONFIRMAR.</strong>
-  La Sesion 8 localizo y acoto con precision <code>TABLAS_SPRITE_CASILLA</code>
-  (<code>$8919</code>-<code>$8EC9</code>, 1457 bytes en
-  <code>src/mummy1_body.asm</code>) -- confirmado que es aqui donde
-  <code>DIBUJAR_ENTIDAD</code> e indirectamente <code>DIBUJAR_CASILLA_MAPA</code>
-  buscan sus graficos, pero <strong>no</strong> como se decodifica cada
-  byte a pixeles (modo de pantalla, ancho/alto real de cada sprite, ni
-  donde empieza cada tabla individual). La hipotesis de trabajo (Sesiones
-  3-6) es <strong>Modo 1 CPC</strong> (4 pixeles/byte, 4 colores), con
-  ~20 sprites de personaje de 4x16 bytes (16x16 pixeles) seguidos de 9
-  casillas de mapa de 2x8 bytes (8x8 pixeles) -- los dos botones de
-  "preset" de abajo cargan esa hipotesis tal cual. Cambia los campos
-  para ir probando combinaciones hasta que aparezcan formas reconocibles
-  (el jugador, las momias, el hipopotamo, el avion... ver
-  <code>recursos/ohmummy_referencia_binario.html</code> para la lista de
-  personajes esperada) -- <strong>ninguna combinacion esta confirmada
-  todavia</strong>, y la paleta de color es inventada (el binario no
-  guarda que color de tinta va con cada indice de pixel). Ver
+  <strong>Actualizado Sesion 8 (continuacion) -- ya hay DOS tablas de
+  sprite CONFIRMADAS por el codigo.</strong> Probando este mismo
+  explorador (Modo 1, 4x16 bytes, salto 64, offset 0) se detecto un
+  "corte" vertical: cada sprite mostraba mitad de un personaje y mitad
+  del siguiente. Revisando <code>DIBUJAR_ENTIDAD</code> se confirmo por
+  que: <strong>no es un array lineal</strong>, es un despacho por tipo
+  de entidad (byte en A) -- los tipos <code>'A'</code> (0x41) y
+  <code>'O'</code> (0x4F) saltan a 8 direcciones/fotogramas cada uno,
+  perfectamente contiguos: <code>SPRITE_JUGADOR_G1_F1</code> en
+  <code>$8AB9</code> (8 sprites, 512 bytes) seguido inmediatamente por
+  <code>SPRITE_MOMIA_G1_F1</code> en <code>$8CB9</code> (8 sprites, 512
+  bytes) -- offset 416 y 928 respectivamente desde el inicio de
+  <code>TABLAS_SPRITE_CASILLA</code> ($8919), <strong>no</strong> desde
+  offset 0. Los botones de preset de abajo saltan directo a estas dos
+  zonas ya confirmadas por el codigo (estructura alta, identidad visual
+  "jugador"/"momia" solo hipotesis media). El resto del bloque (tipos
+  <code>' '</code>/<code>'T'</code>/por defecto, y las 9 tablas de
+  <code>DIBUJAR_CASILLA_MAPA</code>) usa direcciones dispersas con
+  anchos variables (16 a 64 bytes) -- <strong>todavia no tiene sentido
+  escanearlo con un salto fijo</strong>, sigue pendiente nombrarlas una
+  a una. La paleta de color sigue siendo inventada (el binario no
+  guarda que tinta va con cada indice de pixel). Ver
   <code>FINDINGS.md</code> Sesion 8.
 </div>
 
@@ -210,6 +214,11 @@
       <span class="hint" id="hint-offset-addr">= $8919</span>
     </div>
     <div class="field">
+      <label for="f-vdesp">Desplazamiento vertical (bytes, +/-)</label>
+      <input type="number" id="f-vdesp" min="-256" max="256" value="0">
+      <span class="hint" id="hint-vdesp-filas">= 0 filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente</span>
+    </div>
+    <div class="field">
       <label for="f-stride">Salto entre sprites (bytes)</label>
       <input type="number" id="f-stride" min="1" max="4096" value="64">
       <span class="hint">por defecto ancho x alto (sin huecos)</span>
@@ -232,8 +241,9 @@
     </div>
   </div>
   <div class="presets">
-    <button class="preset" id="preset-personajes">Preset: personajes (Modo 1, 4x16 bytes = 16x16 px)</button>
-    <button class="preset" id="preset-casillas">Preset: casillas de mapa (Modo 1, 2x8 bytes = 8x8 px)</button>
+    <button class="preset" id="preset-jugador">CONFIRMADO: SPRITE_JUGADOR_G1_F1.. ($8AB9, 8 sprites)</button>
+    <button class="preset" id="preset-momia">CONFIRMADO: SPRITE_MOMIA_G1_F1.. ($8CB9, 8 sprites)</button>
+    <button class="preset" id="preset-casillas">CONFIRMADO: 1 casilla suelta en $8959 (2x8 bytes) -- las otras 8 no son contiguas</button>
     <button class="preset" id="preset-reset">Volver al offset 0</button>
   </div>
   <p class="status" id="status-line"></p>
@@ -359,6 +369,7 @@ function readParams() {
     ancho: Math.max(1, parseInt(document.getElementById("f-ancho").value, 10) || 1),
     alto: Math.max(1, parseInt(document.getElementById("f-alto").value, 10) || 1),
     offset: Math.max(0, parseInt(document.getElementById("f-offset").value, 10) || 0),
+    vdesp: parseInt(document.getElementById("f-vdesp").value, 10) || 0,
     stride: Math.max(1, parseInt(document.getElementById("f-stride").value, 10) || 1),
     frames: Math.max(1, parseInt(document.getElementById("f-frames").value, 10) || 1),
     zoom: Math.max(1, parseInt(document.getElementById("f-zoom").value, 10) || 1),
@@ -371,6 +382,10 @@ function render() {
   const pxPerByte = MODE_PX_PER_BYTE[p.modo];
   document.getElementById("hint-ancho-px").textContent = "= " + (p.ancho * pxPerByte) + " px en este modo";
   document.getElementById("hint-offset-addr").textContent = "= " + hexAddr(SPRITE_DATA_START_ADDR + p.offset);
+  const vdespFilas = p.vdesp / p.ancho;
+  document.getElementById("hint-vdesp-filas").textContent =
+    "= " + (Number.isInteger(vdespFilas) ? vdespFilas : vdespFilas.toFixed(2)) +
+    " filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente";
 
   const grid = document.getElementById("grid-sprites");
   grid.innerHTML = "";
@@ -379,7 +394,7 @@ function render() {
   const spriteBytes = p.ancho * p.alto;
   let outCount = 0;
   for (let i = 0; i < p.frames; i++) {
-    const off = p.offset + i * p.stride;
+    const off = p.offset + p.vdesp + i * p.stride;
     const decoded = decodeSprite(off, p.ancho, p.alto, p.modo);
 
     const card = document.createElement("div");
@@ -411,23 +426,34 @@ function render() {
     (outCount > 0 ? " -- " + outCount + " se salen del rango de datos disponible (atenuados)." : ".");
 }
 
-function setPreset(ancho, alto, offset, stride) {
+function setPreset(ancho, alto, offset, stride, frames) {
   document.getElementById("f-modo").value = "1";
   document.getElementById("f-ancho").value = ancho;
   document.getElementById("f-alto").value = alto;
   document.getElementById("f-offset").value = offset;
+  document.getElementById("f-vdesp").value = 0;
   document.getElementById("f-stride").value = stride;
+  if (frames) document.getElementById("f-frames").value = frames;
   render();
 }
 
-document.getElementById("preset-personajes").addEventListener("click", () => setPreset(4, 16, 0, 4 * 16));
-document.getElementById("preset-casillas").addEventListener("click", () => setPreset(2, 8, 20 * 4 * 16, 2 * 8));
+// Direcciones CONFIRMADAS por DIBUJAR_ENTIDAD (Sesion 8, ver
+// FINDINGS.md): SPRITE_JUGADOR_G1_F1 en $8AB9 y SPRITE_MOMIA_G1_F1 en
+// $8CB9, cada uno 8 sprites de 64 bytes perfectamente contiguos.
+const ADDR_JUGADOR = 0x8AB9 - SPRITE_DATA_START_ADDR; // 416
+const ADDR_MOMIA = 0x8CB9 - SPRITE_DATA_START_ADDR;   // 928
+const ADDR_CASILLA_8959 = 0x8959 - SPRITE_DATA_START_ADDR; // 64
+
+document.getElementById("preset-jugador").addEventListener("click", () => setPreset(4, 16, ADDR_JUGADOR, 64, 8));
+document.getElementById("preset-momia").addEventListener("click", () => setPreset(4, 16, ADDR_MOMIA, 64, 8));
+document.getElementById("preset-casillas").addEventListener("click", () => setPreset(2, 8, ADDR_CASILLA_8959, 16, 1));
 document.getElementById("preset-reset").addEventListener("click", () => {
   document.getElementById("f-offset").value = 0;
+  document.getElementById("f-vdesp").value = 0;
   render();
 });
 
-["f-modo", "f-ancho", "f-alto", "f-offset", "f-stride", "f-frames", "f-zoom", "f-paleta"].forEach((id) => {
+["f-modo", "f-ancho", "f-alto", "f-offset", "f-vdesp", "f-stride", "f-frames", "f-zoom", "f-paleta"].forEach((id) => {
   document.getElementById(id).addEventListener("input", render);
   document.getElementById(id).addEventListener("change", render);
 });

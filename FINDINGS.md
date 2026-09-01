@@ -1419,3 +1419,84 @@ independiente). Sin impacto en `mummy1_body.asm` — no requiere
 - Una vez confirmado el formato, extraer los sprites individuales a
   `src/data/img/sprites/*.spr` y sustituir el placeholder de esta
   página por el array `SPRITES` ya poblado.
+
+## Sesión 8 (continuación 2) — 2026-09-01: `DIBUJAR_ENTIDAD` no es un array lineal — despacho por tipo con 16 sprites confirmados (`SPRITE_JUGADOR_*` / `SPRITE_MOMIA_*`)
+
+Usando el explorador de `recursos/sprites.html` (Modo 1, 4x16 bytes,
+salto 64, offset 0) el usuario detectó un efecto muy concreto: cada
+sprite mostrado aparecía "partido" verticalmente — la mitad inferior
+de una figura y la mitad superior de la siguiente, encadenadas todas
+igual, con 6 sprites iniciales sin forma reconocible, luego 8 con
+pinta de personaje jugable, luego 8 con pinta de enemigo (momia), y
+de nuevo ruido al final.
+
+Verificado matemáticamente (Python, misma decodificación Modo 1 que la
+página): desplazando el offset en ±32 bytes (la mitad exacta de un
+sprite de 64 bytes) el "corte" desaparece y las figuras salen
+completas y coherentes de arriba abajo. Pero la causa real no es un
+simple desajuste de offset: **revisando el código real de
+`DIBUJAR_ENTIDAD` se confirma que la región no se recorre linealmente
+en absoluto** — es una tabla de despacho por el carácter de tipo de
+entidad (registro A al entrar):
+
+- `' '` (`$20`) → `IY=$8959` (un solo sprite).
+- `'T'` (`$54`) → sub-despacho en `($8157)` con anchos/altos que
+  cambian según la rama (32 o 64 bytes) — sin nombrar todavía, pendiente.
+- `'A'` (`$41`) → sub-despacho en `($8157)` (`<2`/`==2`/`==3`/`>=4`)
+  hacia 4 pares `(IY, IY+64)` — 8 sprites de 64 bytes, **perfectamente
+  contiguos**: `$8AB9`-`$8CB8`.
+- `'O'` (`$4F`) → mismo patrón con `($8159)`, otros 8 sprites de 64
+  bytes, **contiguos e inmediatamente después de los de `'A'`**:
+  `$8CB9`-`$8EB8`.
+- Cualquier otro carácter (caso por defecto/fallthrough) → `IY=$8919`
+  (`TABLAS_SPRITE_CASILLA`, el principio de todo el bloque).
+
+Los 16 sprites de `'A'`/`'O'` quedan nombrados en `mummy1_body.asm`:
+`SPRITE_JUGADOR_G1_F1`..`SPRITE_JUGADOR_G4_F2` (`$8AB9`-`$8CB8`) y
+`SPRITE_MOMIA_G1_F1`..`SPRITE_MOMIA_G4_F2` (`$8CB9`-`$8EB8`) — G1-G4
+son los 4 grupos de dirección que distingue el `CP`/`JR` (`<2`, `==2`,
+`==3`, `>=4`; no se sabe todavía a qué dirección compás corresponde
+cada uno), F1/F2 los 2 fotogramas de animación que alterna un flag
+(`XOR $01`). **Confianza alta en la estructura** (16 sprites de 64
+bytes exactos, contiguos, confirmados por 16 instrucciones `LD IY,`
+reales) y **media en la identidad visual** ("jugador"/"momia" es la
+lectura del usuario probando el explorador con estos offsets exactos,
+no confirmada contra una captura de pantalla real).
+
+Esto explica por qué escanear linealmente con salto fijo de 64 bytes
+desde el offset 0 (como hacía el preset inicial de `sprites.html`)
+producía basura en algunos tramos y figuras "medio bien" en otros: la
+región mezcla sprites de 64 bytes con casillas de 16 bytes y huecos de
+tamaño variable en un orden que **no es secuencial** — el offset ±32
+que "arreglaba" el corte era una coincidencia de alineación dentro del
+tramo `'A'`/`'O'` (que sí es contiguo), no una propiedad general de
+todo el bloque.
+
+### `recursos/sprites.html` actualizado
+
+Los botones de preset ahora saltan directo a las direcciones
+confirmadas (`$8AB9` para `SPRITE_JUGADOR_G1_F1`, `$8CB9` para
+`SPRITE_MOMIA_G1_F1`, `$8959` para la única casilla suelta también
+confirmada) en vez de escanear a ciegas desde el offset 0.
+
+### Verificación
+
+`py tools/build_all.py` y `py tools/dsk_build.py`: **0 diferencias**
+— los 16 nuevos labels y las 16 llamadas `LD IY,` renombradas
+compilan a los mismos bytes exactos.
+
+### Pendiente
+
+- Nombrar el resto de `TABLAS_SPRITE_CASILLA`: la rama `'T'` (anchos
+  variables, con efectos secundarios de escritura en el mapa — posible
+  "rastro" de excavación, sin confirmar), el caso por defecto/`' '`, y
+  las 9 direcciones de `DIBUJAR_CASILLA_MAPA` (`$8959`, `$89D9`,
+  `$89E9`, `$89F9`, `$8A19`, `$8A69`, `$8A79`, `$8A89`, `$8AA9` — no
+  son contiguas, mezcladas con las tablas de `'T'`).
+- Confirmar contra una captura de pantalla real en emulador si `'A'`
+  es de verdad el jugador y `'O'` la momia (o al revés), y qué grupo
+  (G1-G4) corresponde a qué dirección real.
+- Investigar si `'T'` es el rastro/trayecto de excavación del jugador
+  (encaja con el tema del juego y con las escrituras a mapa vistas en
+  su código) — hipótesis nueva, sin evidencia todavía más allá de la
+  coincidencia temática.
