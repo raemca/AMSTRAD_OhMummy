@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- pantalla de carga</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --stroke: #2a2621;
+    --canvas-bg: #0b0b12;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --stroke: #ece6da;
+      --canvas-bg: #0b0b12;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .viewer {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  #lienzo {
+    background: var(--canvas-bg);
+    border-radius: 4px;
+    image-rendering: pixelated;
+    max-width: 100%;
+  }
+  .controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 0.8rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .empty-state {
+    color: var(--muted);
+    font-style: italic;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- pantalla de carga</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
+
+<div class="note">
+  <strong>Plantilla de Sesion 1 -- sin detokenizar todavia.</strong>
+  <code>MUMMY.BAS</code> (el cargador, 3072 bytes con cabecera AMSDOS)
+  dibuja la pantalla de carga a mano en BASIC: un vistazo rapido a las
+  cadenas visibles sin detokenizar ya deja ver el titulo
+  <code>"Oh Mummy"</code>, el mensaje <code>"Please Wait..."</code>, y
+  listas largas de coordenadas relativas -- muy probablemente el logo
+  <code>"AMSOFT"</code> dibujado con <code>PLOT</code>/<code>DRAW</code>
+  relativos, letra a letra, como hacen muchos cargadores de la epoca.
+  Pendiente: detokenizar el programa completo (tabla de tokens de
+  Locomotive BASIC del Amstrad, distinta de la del ZX Spectrum) para
+  extraer esas listas de coordenadas como datos reales en vez de
+  cadenas ASCII sueltas.
+</div>
+
+<h2>Visor</h2>
+<div class="viewer">
+  <div id="contenedor-lienzo"></div>
+</div>
+<div class="controls" id="controles"></div>
+
+<footer>
+  Cuando existan, las rutas se extraeran de <code>MUMMY.BAS</code>
+  detokenizado (ver <code>src/load_disk/</code>) y se listaran aqui
+  como trazos vectoriales (no como bitmap -- este cargador dibuja con
+  instrucciones BASIC, no con un <code>.scr</code> de pantalla
+  precalculada).
+</footer>
+
+<script>
+// ============================================================
+// TRAZOS DE LA PANTALLA DE CARGA -- ir anadiendo aqui una vez
+// detokenizado MUMMY.BAS. Cada trazo es una polilinea de puntos
+// ABSOLUTOS ya resueltos (aunque el BASIC original use PLOT/DRAW
+// relativos) para que el render aqui sea trivial.
+// Cada entrada: { puntos: [[x,y], ...], color, etiqueta }
+// Resolucion de referencia: 640x400 (Mode 2) a confirmar -- placeholder.
+// ============================================================
+const TRAZOS = [
+  // ejemplo, coordenadas y modo aun sin confirmar:
+  // { puntos: [[100,50],[120,50],[120,80]], color: "#e0c060", etiqueta: "logo AMSOFT, letra A" },
+];
+
+const ANCHO = 640;
+const ALTO = 400;
+
+const contenedor = document.getElementById("contenedor-lienzo");
+if (TRAZOS.length === 0) {
+  contenedor.innerHTML = '<div class="empty-state">Sin trazos extraidos todavia -- ver la nota de arriba.<br>Pendiente: detokenizar <code>MUMMY.BAS</code>.</div>';
+} else {
+  const canvas = document.createElement("canvas");
+  canvas.id = "lienzo";
+  canvas.width = ANCHO;
+  canvas.height = ALTO;
+  contenedor.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--canvas-bg").trim();
+  ctx.fillRect(0, 0, ANCHO, ALTO);
+  TRAZOS.forEach((t) => {
+    ctx.strokeStyle = t.color || "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    t.puntos.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.stroke();
+  });
+}
+</script>
+
+</body>
+</html>

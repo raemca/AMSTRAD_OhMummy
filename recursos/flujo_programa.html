@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- inventario de rutinas</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-ok: #7fae6a;
+    --accent-pendiente: #b08a3e;
+    --accent-subsistema: #6a86ae;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-ok: #8fc27a;
+      --accent-pendiente: #cf9f4e;
+      --accent-subsistema: #7f9bc4;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin: 1rem 0 1.5rem 0;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    min-width: 140px;
+  }
+  .stat .num { font-size: 1.6rem; font-weight: 700; }
+  .stat .lbl { font-size: 0.8rem; color: var(--muted); }
+  .filtros {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin: 0.8rem 0;
+  }
+  .filtros input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--fg);
+    font-size: 0.9rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; cursor: default; }
+  td.dir, td code { font-family: "SFMono-Regular", Consolas, monospace; }
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    color: white;
+  }
+  .badge.ok { background: var(--accent-ok); }
+  .badge.pendiente { background: var(--accent-pendiente); }
+  .empty-state {
+    color: var(--muted);
+    font-style: italic;
+    padding: 2rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- inventario de rutinas</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
+
+<div class="note">
+  <strong>Plantilla de Sesion 1 -- sin desensamblar todavia.</strong>
+  <code>MUMMY1.BIN</code> (14336 bytes crudos, cabecera AMSDOS incluida)
+  no tiene ni una sola rutina identificada. Esta pagina es el
+  equivalente al <code>flujo_programa.html</code> de los proyectos
+  hermanos (regenerado ahi con <code>tools/gen_inventory.py</code>) --
+  cuando exista fuente ensamblador real, se decidira si esta version
+  se regenera igual con una herramienta o se mantiene a mano mientras
+  el proyecto es pequeño.
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">rutinas listadas</div></div>
+  <div class="stat"><div class="num" id="stat-ok">0</div><div class="lbl">con analisis completo</div></div>
+  <div class="stat"><div class="num" id="stat-pendiente">0</div><div class="lbl">pendientes</div></div>
+</div>
+
+<div class="filtros">
+  <input type="text" id="buscador" placeholder="Filtrar por nombre, subsistema o direccion..." disabled>
+</div>
+
+<table id="tabla-rutinas">
+  <thead>
+    <tr><th>Direccion</th><th>Nombre</th><th>Subsistema</th><th>Estado</th><th>Notas</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<footer>
+  Fuente prevista: <code>src/*.asm</code> (aun no existe). Ver
+  <code>FINDINGS.md</code> para el diario de como se va identificando
+  cada rutina.
+</footer>
+
+<script>
+// ============================================================
+// RUTINAS -- ir anadiendo aqui conforme se identifiquen en el
+// desensamblado. Cada entrada: { addr, nombre, subsistema, estado, notas }
+//   addr        = direccion hex, p.ej. "$8600"
+//   estado      = "ok" | "pendiente"
+// ============================================================
+const RUTINAS = [
+  // ejemplo:
+  // { addr: "$8600", nombre: "MOTOR_PRINCIPAL", subsistema: "arranque", estado: "pendiente", notas: "punto de entrada, sin confirmar" },
+];
+
+const tbody = document.querySelector("#tabla-rutinas tbody");
+const buscador = document.getElementById("buscador");
+
+function render(filtro) {
+  const f = (filtro || "").toLowerCase();
+  const filtradas = RUTINAS.filter((r) =>
+    !f || r.addr.toLowerCase().includes(f) || r.nombre.toLowerCase().includes(f) || r.subsistema.toLowerCase().includes(f)
+  );
+  tbody.innerHTML = "";
+  if (RUTINAS.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Sin rutinas identificadas todavia -- ver la nota de arriba.</div></td></tr>';
+  } else if (filtradas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">Ningun resultado para ese filtro.</div></td></tr>';
+  } else {
+    filtradas.forEach((r) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="dir">${r.addr}</td><td><code>${r.nombre}</code></td><td>${r.subsistema}</td><td><span class="badge ${r.estado}">${r.estado === "ok" ? "completo" : "pendiente"}</span></td><td>${r.notas || ""}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById("stat-total").textContent = RUTINAS.length;
+  document.getElementById("stat-ok").textContent = RUTINAS.filter((r) => r.estado === "ok").length;
+  document.getElementById("stat-pendiente").textContent = RUTINAS.filter((r) => r.estado === "pendiente").length;
+}
+
+if (RUTINAS.length > 0) {
+  buscador.disabled = false;
+  buscador.addEventListener("input", () => render(buscador.value));
+}
+render("");
+</script>
+
+</body>
+</html>

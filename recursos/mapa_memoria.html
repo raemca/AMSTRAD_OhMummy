@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- mapa de memoria</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-basic: #6a86ae;
+    --accent-codigo: #ae6a8f;
+    --accent-graficos: #7fae6a;
+    --accent-sonido: #cf9f4e;
+    --accent-niveles: #4ea6cf;
+    --accent-unknown: #b3aa9c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-basic: #7f9bc4;
+      --accent-codigo: #c47fa4;
+      --accent-graficos: #8fc27a;
+      --accent-sonido: #dfae5e;
+      --accent-niveles: #5eb6df;
+      --accent-unknown: #4a453d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-unknown);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .note.pending { border-left-color: var(--muted); }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+  }
+  .legend span.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+  .bar {
+    display: flex;
+    width: 100%;
+    height: 2.4rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--accent-unknown);
+  }
+  .bar .seg {
+    height: 100%;
+    position: relative;
+    border-right: 1px solid rgba(0,0,0,0.15);
+  }
+  .bar-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; }
+  td.dir, td code { font-family: "SFMono-Regular", Consolas, monospace; }
+  tr.unknown td { color: var(--muted); font-style: italic; }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- mapa de memoria</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
+
+<div class="note pending" id="estado-nota">
+  <strong>Plantilla de Sesion 1 -- sin regiones confirmadas todavia.</strong>
+  Sabemos por el catalogo AMSDOS que <code>MUMMY.BAS</code> ocupa 3
+  bloques (3072 bytes) y <code>MUMMY1.BIN</code> 14 bloques (14336
+  bytes), pero deliberadamente <strong>no</strong> se ha dado por
+  buena ninguna direccion de carga/ejecucion leida de la cabecera
+  AMSDOS sin verificar (ver <code>FINDINGS.md</code>, Sesion 1) -- se
+  confirmara detokenizando <code>MUMMY.BAS</code> y contrastando
+  contra el propio desensamblado. Esta pagina se ira rellenando con
+  regiones reales a medida que se confirmen.
+</div>
+
+<h2>Espacio de direcciones (0000-FFFF)</h2>
+<div class="bar" id="bar"></div>
+<div class="bar-ticks">
+  <span>$0000</span><span>$4000</span><span>$8000</span><span>$C000</span><span>$FFFF</span>
+</div>
+
+<div class="legend">
+  <span><span class="swatch" style="background:var(--accent-basic)"></span>cargador BASIC</span>
+  <span><span class="swatch" style="background:var(--accent-codigo)"></span>codigo (motor)</span>
+  <span><span class="swatch" style="background:var(--accent-graficos)"></span>datos: graficos</span>
+  <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
+  <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
+  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin mapear todavia</span>
+</div>
+
+<h2>Regiones identificadas</h2>
+<table id="tabla-regiones">
+  <thead>
+    <tr><th>Inicio</th><th>Fin</th><th>Tamaño</th><th>Region</th><th>Fuente</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<footer>
+  Datos de partida: catalogo AMSDOS de <code>FISICO/Oh Mummy
+  (1984)(Amsoft).dsk</code> (<code>py tools/dsk_catalog.py</code>).
+  Ninguna direccion de memoria real confirmada todavia -- ver
+  "Pendiente para proximas sesiones" en <code>FINDINGS.md</code>.
+</footer>
+
+<script>
+// ============================================================
+// REGIONES DE MEMORIA -- ir anadiendo aqui conforme se confirmen
+// direcciones reales (verificadas, no solo leidas de una cabecera
+// sin contrastar). Cada entrada: {start, end, label, kind, fuente}
+// direcciones en hexadecimal (numeros JS), end es EXCLUSIVO.
+// kind: "basic" | "codigo" | "graficos" | "sonido" | "niveles" | "unknown"
+// ============================================================
+const REGIONS = [
+  // ejemplo (NO confirmado, no incluir hasta verificarlo):
+  // { start: 0x8600, end: 0x8600 + 13190, label: "MUMMY1.BIN (motor)", kind: "codigo", fuente: "FINDINGS.md Sesion 2" },
+];
+
+const ADDR_MAX = 0x10000;
+const KIND_VAR = {
+  basic: "--accent-basic",
+  codigo: "--accent-codigo",
+  graficos: "--accent-graficos",
+  sonido: "--accent-sonido",
+  niveles: "--accent-niveles",
+  unknown: "--accent-unknown",
+};
+
+const bar = document.getElementById("bar");
+if (REGIONS.length === 0) {
+  const seg = document.createElement("div");
+  seg.className = "seg";
+  seg.style.width = "100%";
+  seg.style.background = "var(--accent-unknown)";
+  seg.title = "Sin regiones confirmadas todavia";
+  bar.appendChild(seg);
+} else {
+  REGIONS.slice().sort((a, b) => a.start - b.start).forEach((r) => {
+    const seg = document.createElement("div");
+    seg.className = "seg";
+    seg.style.width = (100 * (r.end - r.start) / ADDR_MAX) + "%";
+    seg.style.background = "var(" + (KIND_VAR[r.kind] || KIND_VAR.unknown) + ")";
+    seg.title = r.label + " ($" + r.start.toString(16).toUpperCase() + "-$" + (r.end - 1).toString(16).toUpperCase() + ")";
+    bar.appendChild(seg);
+  });
+}
+
+const tbody = document.querySelector("#tabla-regiones tbody");
+if (REGIONS.length === 0) {
+  const tr = document.createElement("tr");
+  tr.className = "unknown";
+  tr.innerHTML = "<td colspan=\"5\">(todavia no hay ninguna region confirmada)</td>";
+  tbody.appendChild(tr);
+} else {
+  REGIONS.slice().sort((a, b) => a.start - b.start).forEach((r) => {
+    const tr = document.createElement("tr");
+    const hex = (n) => "$" + n.toString(16).toUpperCase().padStart(4, "0");
+    tr.innerHTML = `<td class="dir">${hex(r.start)}</td><td class="dir">${hex(r.end - 1)}</td><td>${r.end - r.start} bytes</td><td>${r.label}</td><td>${r.fuente || ""}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+</script>
+
+</body>
+</html>

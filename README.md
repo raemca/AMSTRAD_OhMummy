@@ -92,8 +92,12 @@ Estructura del repositorio
   (listar catálogo), `dsk_extract.py` (extraer ficheros crudos).
 - `manuales/` — manuales técnicos de referencia, uno por subsistema,
   redactados al cerrar cada pieza (aún sin contenido).
-- `recursos/` — páginas HTML autocontenidas (visores/inventarios), se
-  irán añadiendo a medida que haya algo que mostrar.
+- `recursos/` — páginas HTML autocontenidas (visores/inventarios):
+  `mapa_memoria.html`, `graficos.html` (losetas), `sprites.html`,
+  `portada.html` (pantalla de carga), `flujo_programa.html`
+  (inventario de rutinas) y `flujo_secuencial.html` (orden de
+  ejecución). Por ahora son plantillas sin datos — cada una lo dice
+  explícitamente y se va rellenando sesión a sesión.
 - `dump/` — volcados de memoria/pantalla de un emulador real, usados
   como evidencia al verificar hallazgos (aún por crear).
 

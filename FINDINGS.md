@@ -114,6 +114,24 @@ resultado. `FISICO/` completo está en `.gitignore` (material con
 copyright, ver `AVISO-LEGAL.md`), así que esto se reproduce localmente
 con `py tools/dsk_extract.py`, no se versiona.
 
+### Plantillas de `recursos/`
+
+Se crearon las 6 páginas HTML previstas (`mapa_memoria.html`,
+`graficos.html`, `sprites.html`, `portada.html`,
+`flujo_programa.html`, `flujo_secuencial.html`), con el mismo lenguaje
+visual que las de los proyectos hermanos (autocontenidas, sin red,
+tema claro/oscuro automático) pero **sin ningún dato real todavía** —
+cada una lo indica explícitamente y expone un array JS vacío
+(`TILES`, `SPRITES`, `TRAZOS`, `RUTINAS`, `REGIONS`) listo para
+rellenarse a medida que avancen las próximas sesiones, en vez de
+reconstruir de golpe las versiones completas (20-77 KB) de *Mad Mix
+Game*, que además usan un formato gráfico (bitmap monocromo ULA) que
+no aplica tal cual al Amstrad CPC. `flujo_secuencial.html` sí lleva ya
+6 fases de contenido, marcadas cada una con su nivel de confianza real
+(confirmado por catálogo / hipótesis sin verificar / pendiente) — es
+la única página con algo más que el esqueleto, porque ya sabíamos algo
+concreto que decir tras esta sesión.
+
 ### Nota sobre el repositorio git
 
 Este directorio reutiliza el historial git de `SPECTRUM_MadMixGame`

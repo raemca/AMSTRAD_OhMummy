@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- visor de graficos (losetas)</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-floor: #7fae6a;
+    --accent-wall: #6a86ae;
+    --accent-unknown: #b08a3e;
+    --accent-item: #ae6a8f;
+    --pixel-off: #f5f3ef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-floor: #8fc27a;
+      --accent-wall: #7f9bc4;
+      --accent-unknown: #cf9f4e;
+      --accent-item: #c47fa4;
+      --pixel-off: #262320;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-unknown);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .note.pending { border-left-color: var(--muted); }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+  }
+  .legend span.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 0.6rem;
+  }
+  .tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 0.72rem;
+  }
+  .tile canvas {
+    image-rendering: pixelated;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--pixel-off);
+    border-radius: 3px;
+    display: block;
+  }
+  .tile .idx { font-family: "SFMono-Regular", Consolas, monospace; color: var(--muted); margin-top: 0.3rem; }
+  .tile .label { font-weight: 600; min-height: 1.4em; }
+  .tile .label.unknown { color: var(--muted); font-weight: 400; font-style: italic; }
+  .tile .bar { height: 4px; border-radius: 2px; margin-bottom: 0.35rem; }
+  .empty-state {
+    color: var(--muted);
+    font-style: italic;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- visor de losetas</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
+
+<div class="note pending">
+  <strong>Plantilla de Sesion 1 -- sin losetas extraidas todavia.</strong>
+  Ni el modo de pantalla (Mode 0/1/2) ni el formato de codificacion de
+  pixel del Amstrad CPC (empaquetado distinto al bitmap monocromo del
+  ZX Spectrum) se han confirmado aun -- eso hace falta saberlo antes
+  de poder decodificar ninguna loseta correctamente. Cuando se
+  identifiquen en <code>MUMMY1.BIN</code> y se extraigan a
+  <code>src/data/img/tiles/*.til</code>, se rellenara aqui el array
+  <code>TILES</code> del script de abajo (hex + etiqueta) y esta
+  pagina las mostrara solas.
+</div>
+
+<h2>Losetas del laberinto</h2>
+<div class="legend">
+  <span><span class="swatch" style="background:var(--accent-wall)"></span>muro</span>
+  <span><span class="swatch" style="background:var(--accent-floor)"></span>suelo</span>
+  <span><span class="swatch" style="background:var(--accent-item)"></span>especial (item, puerta, decoracion...)</span>
+  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin identificar</span>
+</div>
+<div id="grid-tiles"></div>
+
+<footer>
+  Cuando existan, los datos se extraeran a ficheros individuales en
+  <code>src/data/img/tiles/*.til</code>, incluidos en la fuente
+  reconstruida via <code>INCBIN</code>. Todavia no hay ningun fichero
+  ahi.
+</footer>
+
+<script>
+// ============================================================
+// LOSETAS -- ir anadiendo aqui conforme se extraigan e identifiquen.
+// Cada entrada: { hex, label, kind, modo }
+//   hex   = bytes crudos de la loseta en hexadecimal
+//   label = "" si no esta identificada todavia
+//   kind  = "wall" | "floor" | "item" | "unknown"
+//   modo  = modo de pantalla CPC bajo el que se decodifica (0/1/2),
+//           solo informativo hasta que decodeTile() lo use de verdad
+// ============================================================
+const TILES = [
+  // ejemplo, formato aun sin decidir:
+  // { hex: "....", label: "muro ladrillo", kind: "wall", modo: 1 },
+];
+
+const KIND_VAR = { wall: "--accent-wall", floor: "--accent-floor", item: "--accent-item", unknown: "--accent-unknown" };
+
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) out[i / 2] = parseInt(hex.substr(i, 2), 16);
+  return out;
+}
+
+// TODO: decodificar de verdad segun el modo de pantalla CPC real una
+// vez confirmado (Mode 0 = 16 col/2px por byte, Mode 1 = 4 col/4px
+// por byte, Mode 2 = 2 col/8px por byte). De momento solo pinta un
+// aviso "sin decodificar" en el propio canvas.
+function drawTilePlaceholder(canvas) {
+  canvas.width = 16;
+  canvas.height = 16;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "var(--pixel-off)";
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pixel-off").trim();
+  ctx.fillRect(0, 0, 16, 16);
+}
+
+function buildTileCard(t, i) {
+  const card = document.createElement("div");
+  card.className = "tile";
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.style.background = "var(" + (KIND_VAR[t.kind] || KIND_VAR.unknown) + ")";
+  card.appendChild(bar);
+
+  const canvas = document.createElement("canvas");
+  drawTilePlaceholder(canvas);
+  card.appendChild(canvas);
+
+  const labelDiv = document.createElement("div");
+  labelDiv.className = "label" + (t.label ? "" : " unknown");
+  labelDiv.textContent = t.label || "sin identificar";
+  card.appendChild(labelDiv);
+
+  const idx = document.createElement("div");
+  idx.className = "idx";
+  idx.textContent = "#" + i;
+  card.appendChild(idx);
+
+  return card;
+}
+
+const gridTiles = document.getElementById("grid-tiles");
+if (TILES.length === 0) {
+  gridTiles.innerHTML = '<div class="empty-state">Sin losetas extraidas todavia -- ver la nota de arriba.</div>';
+} else {
+  gridTiles.className = "grid";
+  TILES.forEach((t, i) => gridTiles.appendChild(buildTileCard(t, i)));
+}
+</script>
+
+</body>
+</html>

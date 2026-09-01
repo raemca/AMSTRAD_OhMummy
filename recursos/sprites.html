@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- visor de sprites</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-jugador: #6a86ae;
+    --accent-enemigo: #ae6a6a;
+    --accent-item: #7fae6a;
+    --accent-unknown: #b08a3e;
+    --pixel-off: #f5f3ef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-jugador: #7f9bc4;
+      --accent-enemigo: #c47f7f;
+      --accent-item: #8fc27a;
+      --accent-unknown: #cf9f4e;
+      --pixel-off: #262320;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-unknown);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .note.pending { border-left-color: var(--muted); }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+  }
+  .legend span.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 0.6rem;
+  }
+  .tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 0.72rem;
+  }
+  .tile canvas {
+    image-rendering: pixelated;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--pixel-off);
+    border-radius: 3px;
+    display: block;
+  }
+  .tile .idx { font-family: "SFMono-Regular", Consolas, monospace; color: var(--muted); margin-top: 0.3rem; }
+  .tile .label { font-weight: 600; min-height: 1.4em; }
+  .tile .label.unknown { color: var(--muted); font-weight: 400; font-style: italic; }
+  .tile .bar { height: 4px; border-radius: 2px; margin-bottom: 0.35rem; }
+  .empty-state {
+    color: var(--muted);
+    font-style: italic;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- visor de sprites</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
+
+<div class="note pending">
+  <strong>Plantilla de Sesion 1 -- sin sprites extraidos todavia.</strong>
+  Ni siquiera se ha confirmado si el motor usa sprites por software
+  (mascaras AND/OR, como los proyectos hermanos de MSX/Spectrum) o si
+  el Amstrad CPC de este binario dibuja los personajes de otra forma.
+  Cuando se identifiquen en <code>MUMMY1.BIN</code> y se extraigan a
+  <code>src/data/img/sprites/*.spr</code>, se rellenara aqui el array
+  <code>SPRITES</code> del script de abajo.
+</div>
+
+<h2>Personajes (jugador, momias, items...)</h2>
+<div class="legend">
+  <span><span class="swatch" style="background:var(--accent-jugador)"></span>jugador</span>
+  <span><span class="swatch" style="background:var(--accent-enemigo)"></span>enemigo (momia)</span>
+  <span><span class="swatch" style="background:var(--accent-item)"></span>item / puntuacion</span>
+  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin identificar</span>
+</div>
+<div id="grid-sprites"></div>
+
+<footer>
+  Cuando existan, los datos se extraeran a ficheros individuales en
+  <code>src/data/img/sprites/*.spr</code>, incluidos en la fuente
+  reconstruida via <code>INCBIN</code>. Todavia no hay ningun fichero
+  ahi.
+</footer>
+
+<script>
+// ============================================================
+// SPRITES -- ir anadiendo aqui conforme se extraigan e identifiquen.
+// Cada entrada: { hex, label, kind, ancho, alto }
+//   hex   = bytes crudos del sprite en hexadecimal
+//   label = "" si no esta identificado todavia
+//   kind  = "jugador" | "enemigo" | "item" | "unknown"
+// ============================================================
+const SPRITES = [
+  // ejemplo, formato aun sin decidir:
+  // { hex: "....", label: "jugador mirando derecha", kind: "jugador", ancho: 16, alto: 16 },
+];
+
+const KIND_VAR = { jugador: "--accent-jugador", enemigo: "--accent-enemigo", item: "--accent-item", unknown: "--accent-unknown" };
+
+function drawSpritePlaceholder(canvas) {
+  canvas.width = 16;
+  canvas.height = 16;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pixel-off").trim();
+  ctx.fillRect(0, 0, 16, 16);
+}
+
+function buildSpriteCard(s, i) {
+  const card = document.createElement("div");
+  card.className = "tile";
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  bar.style.background = "var(" + (KIND_VAR[s.kind] || KIND_VAR.unknown) + ")";
+  card.appendChild(bar);
+
+  const canvas = document.createElement("canvas");
+  drawSpritePlaceholder(canvas);
+  card.appendChild(canvas);
+
+  const labelDiv = document.createElement("div");
+  labelDiv.className = "label" + (s.label ? "" : " unknown");
+  labelDiv.textContent = s.label || "sin identificar";
+  card.appendChild(labelDiv);
+
+  const idx = document.createElement("div");
+  idx.className = "idx";
+  idx.textContent = "#" + i;
+  card.appendChild(idx);
+
+  return card;
+}
+
+const gridSprites = document.getElementById("grid-sprites");
+if (SPRITES.length === 0) {
+  gridSprites.innerHTML = '<div class="empty-state">Sin sprites extraidos todavia -- ver la nota de arriba.</div>';
+} else {
+  gridSprites.className = "grid";
+  SPRITES.forEach((s, i) => gridSprites.appendChild(buildSpriteCard(s, i)));
+}
+</script>
+
+</body>
+</html>

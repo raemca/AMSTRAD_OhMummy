@@ -92,8 +92,12 @@ Repository structure
   catalogue), `dsk_extract.py` (extract raw files).
 - `manuales/` — technical reference manuals, one per subsystem,
   written as each piece is closed out (no content yet).
-- `recursos/` — self-contained HTML pages (viewers/inventories), to
-  be added once there is something to show.
+- `recursos/` — self-contained HTML pages (viewers/inventories):
+  `mapa_memoria.html`, `graficos.html` (tiles), `sprites.html`,
+  `portada.html` (loading screen), `flujo_programa.html` (routine
+  inventory) and `flujo_secuencial.html` (execution order). For now
+  they are data-free templates — each one says so explicitly — filled
+  in progressively session by session.
 - `dump/` — memory/screen dumps from a real emulator, used as
   evidence when verifying findings (yet to be created).
 

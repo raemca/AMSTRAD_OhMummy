@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Oh Mummy (Amstrad CPC) -- flujo secuencial de ejecucion</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-confirmado: #7fae6a;
+    --accent-hipotesis: #cf9f4e;
+    --accent-pendiente: #b3aa9c;
+    --line: #ddd6cc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-confirmado: #8fc27a;
+      --accent-hipotesis: #dfae5e;
+      --accent-pendiente: #4a453d;
+      --line: #3a352e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+  }
+  .legend span.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+  .timeline {
+    position: relative;
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 0.55rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: var(--line);
+  }
+  .fase {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1rem;
+  }
+  .fase::before {
+    content: "";
+    position: absolute;
+    left: -1.72rem;
+    top: 1.1rem;
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 50%;
+    border: 2px solid var(--panel);
+  }
+  .fase.confirmado::before { background: var(--accent-confirmado); }
+  .fase.hipotesis::before { background: var(--accent-hipotesis); }
+  .fase.pendiente::before { background: var(--accent-pendiente); }
+  .fase h3 { margin: 0 0 0.3rem 0; font-size: 1rem; }
+  .fase p { margin: 0.3rem 0 0 0; color: var(--muted); font-size: 0.9rem; }
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    color: white;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+  .badge.confirmado { background: var(--accent-confirmado); }
+  .badge.hipotesis { background: var(--accent-hipotesis); color: #2a2621; }
+  .badge.pendiente { background: var(--accent-pendiente); color: #2a2621; }
+  footer {
+    margin-top: 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- flujo secuencial de ejecucion</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">Amstrad CPC, version de disco -- orden real de ejecucion, arranque a partida. Ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
+
+<div class="note">
+  <strong>Plantilla de Sesion 1.</strong> Las fases de abajo son la
+  mejor hipotesis de trabajo a partir de lo unico que sabemos con
+  certeza hoy -- el catalogo AMSDOS del disco (2 ficheros: un cargador
+  BASIC y un binario) -- y de lo que muestran a simple vista las
+  cadenas ASCII del BASIC sin detokenizar todavia. Nada de esto esta
+  verificado contra el desensamblado real. Cada fase lleva su propio
+  nivel de confianza (ver leyenda) y se ira actualizando sesion a
+  sesion.
+</div>
+
+<div class="legend">
+  <span><span class="swatch" style="background:var(--accent-confirmado)"></span>confirmado (catalogo/checksum)</span>
+  <span><span class="swatch" style="background:var(--accent-hipotesis)"></span>hipotesis razonable, sin verificar</span>
+  <span><span class="swatch" style="background:var(--accent-pendiente)"></span>totalmente pendiente</span>
+</div>
+
+<div class="timeline" id="timeline"></div>
+
+<footer>
+  Ver <code>FINDINGS.md</code> Sesion 1 para el detalle de como se
+  obtuvo cada dato de esta pagina, y el apartado "Pendiente para
+  proximas sesiones" para lo que falta por confirmar.
+</footer>
+
+<script>
+// ============================================================
+// FASES -- ir actualizando el "estado" de cada una (y anadiendo
+// fases nuevas segun haga falta) conforme el desensamblado avance.
+// estado: "confirmado" | "hipotesis" | "pendiente"
+// ============================================================
+const FASES = [
+  {
+    estado: "confirmado",
+    titulo: "AMSDOS carga MUMMY.BAS",
+    detalle: "El catalogo del disco (FISICO/Oh Mummy (1984)(Amsoft).dsk) solo tiene 2 ficheros; MUMMY.BAS (3072 bytes, cabecera AMSDOS con checksum valido) es el unico candidato razonable a programa de arranque del disco.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "MUMMY.BAS dibuja la pantalla de carga",
+    detalle: "Cadenas ASCII visibles sin detokenizar todavia muestran el titulo \"Oh Mummy\", el texto \"Please Wait...\" y largas listas de coordenadas relativas -- consistente con dibujar a mano, con PLOT/DRAW, el logo \"AMSOFT\" y el titulo del juego mientras carga el binario.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "MUMMY.BAS carga y lanza MUMMY1.BIN",
+    detalle: "MUMMY1.BIN (14336 bytes, cabecera AMSDOS con checksum valido) es el unico otro fichero del disco -- el candidato natural a motor de juego en codigo maquina. Falta encontrar la linea BASIC exacta que hace el LOAD/CALL real (pendiente detokenizar MUMMY.BAS).",
+  },
+  {
+    estado: "pendiente",
+    titulo: "Inicializacion del motor",
+    detalle: "Configuracion de pantalla (modo CPC), paleta, interrupciones, sonido... nada identificado todavia.",
+  },
+  {
+    estado: "pendiente",
+    titulo: "Menu / pantalla de titulo del motor",
+    detalle: "Si existe una pantalla de titulo propia del binario (mas alla de la de carga en BASIC), sin identificar.",
+  },
+  {
+    estado: "pendiente",
+    titulo: "Bucle de juego (frame a frame)",
+    detalle: "Motor de movimiento/colision, IA de enemigos, dibujado del laberinto, marcador -- nada identificado todavia.",
+  },
+];
+
+const ESTADO_LABEL = { confirmado: "confirmado", hipotesis: "hipotesis", pendiente: "pendiente" };
+
+const timeline = document.getElementById("timeline");
+FASES.forEach((f) => {
+  const div = document.createElement("div");
+  div.className = "fase " + f.estado;
+  div.innerHTML = `<h3>${f.titulo}<span class="badge ${f.estado}">${ESTADO_LABEL[f.estado]}</span></h3><p>${f.detalle}</p>`;
+  timeline.appendChild(div);
+});
+</script>
+
+</body>
+</html>
