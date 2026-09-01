@@ -127,14 +127,18 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Plantilla de Sesion 1 -- sin desensamblar todavia.</strong>
-  <code>MUMMY1.BIN</code> (14336 bytes crudos, cabecera AMSDOS incluida)
-  no tiene ni una sola rutina identificada. Esta pagina es el
-  equivalente al <code>flujo_programa.html</code> de los proyectos
-  hermanos (regenerado ahi con <code>tools/gen_inventory.py</code>) --
-  cuando exista fuente ensamblador real, se decidira si esta version
-  se regenera igual con una herramienta o se mantiene a mano mientras
-  el proyecto es pequeño.
+  <strong>Actualizado Sesion 3.</strong> El bloque <code>$6000</code>-
+  <code>$6400</code> del motor esta desensamblado y verificado (ver
+  <code>src/mummy1_body.asm</code>). Las 12 rutinas de firmware que
+  llama estan confirmadas contra el manual oficial (badge "completo").
+  Las ~19 subrutinas internas propias que llama estan desensambladas
+  y tienen una <strong>hipotesis</strong> de funcion cada una, con su
+  nivel de confianza en la columna de notas -- ninguna verificada en
+  emulador todavia, por eso aparecen como "pendiente" pese a ya tener
+  nombre provisional. El resto del motor (<code>$6401</code>-
+  <code>$9385</code>) sigue sin ninguna rutina identificada. Ver
+  <code>FINDINGS.md</code> Sesion 3 para el detalle y el mapa de
+  llamadas completo.
 </div>
 
 <div class="stats">
@@ -155,7 +159,8 @@
 </table>
 
 <footer>
-  Fuente prevista: <code>src/*.asm</code> (aun no existe). Ver
+  Fuente: <code>src/mummy1_body.asm</code> (bloque <code>$6000</code>-
+  <code>$6400</code>, verificado byte a byte). Ver
   <code>FINDINGS.md</code> para el diario de como se va identificando
   cada rutina.
 </footer>
@@ -168,8 +173,40 @@
 //   estado      = "ok" | "pendiente"
 // ============================================================
 const RUTINAS = [
-  // ejemplo:
-  // { addr: "$8600", nombre: "MOTOR_PRINCIPAL", subsistema: "arranque", estado: "pendiente", notas: "punto de entrada, sin confirmar" },
+  { addr: "$6000", nombre: "ENTRADA_MOTOR", subsistema: "arranque", estado: "ok", notas: "Punto de entrada real, confirmado por CALL &6000 de mummy_bas.bas (Sesion 2)" },
+  // -- Firmware CPC, confirmado contra el manual oficial (Sesion 3) --
+  { addr: "$BB09", nombre: "FIRM_KM_READ_CHAR", subsistema: "firmware/teclado", estado: "ok", notas: "KM READ CHAR" },
+  { addr: "$BB1E", nombre: "FIRM_KM_TEST_KEY", subsistema: "firmware/teclado", estado: "ok", notas: "KM TEST KEY" },
+  { addr: "$BB5A", nombre: "FIRM_TXT_OUTPUT", subsistema: "firmware/texto", estado: "ok", notas: "TXT OUTPUT" },
+  { addr: "$BB66", nombre: "FIRM_TXT_WIN_ENABLE", subsistema: "firmware/texto", estado: "ok", notas: "TXT WIN ENABLE" },
+  { addr: "$BB6C", nombre: "FIRM_TXT_CLEAR_WINDOW", subsistema: "firmware/texto", estado: "ok", notas: "TXT CLEAR WINDOW" },
+  { addr: "$BB75", nombre: "FIRM_TXT_SET_CURSOR", subsistema: "firmware/texto", estado: "ok", notas: "TXT SET CURSOR" },
+  { addr: "$BB96", nombre: "FIRM_TXT_SET_PAPER", subsistema: "firmware/texto", estado: "ok", notas: "TXT SET PAPER" },
+  { addr: "$BC1D", nombre: "FIRM_SCR_DOT_POSITION", subsistema: "firmware/pantalla", estado: "ok", notas: "SCR DOT POSITION" },
+  { addr: "$BCA7", nombre: "FIRM_SOUND_RESET", subsistema: "firmware/sonido", estado: "ok", notas: "SOUND RESET" },
+  { addr: "$BCBC", nombre: "FIRM_SOUND_AMPL_ENV", subsistema: "firmware/sonido", estado: "ok", notas: "SOUND AMPL ENVELOPE" },
+  { addr: "$BCBF", nombre: "FIRM_SOUND_TONE_ENV", subsistema: "firmware/sonido", estado: "ok", notas: "SOUND TONE ENVELOPE" },
+  { addr: "$BD0D", nombre: "FIRM_KL_TIME_PLEASE", subsistema: "firmware/kernel", estado: "ok", notas: "KL TIME PLEASE" },
+  // -- Internas propias, desensambladas hasta su RET, con hipotesis (Sesion 3) --
+  { addr: "$78D1", nombre: "?", subsistema: "sonido (hipotesis)", estado: "pendiente", notas: "Confianza media. Bombea una cola/guion de sonido ($905A-$937D, paso de 9 bytes); llamada decenas de veces" },
+  { addr: "$7EAB", nombre: "?", subsistema: "arranque/estado (hipotesis)", estado: "pendiente", notas: "Confianza alta. Borra a 0 un bloque de 1182 bytes en $8172 (LDIR origen=destino-1)" },
+  { addr: "$7EF4", nombre: "?", subsistema: "texto/HUD (hipotesis)", estado: "pendiente", notas: "Confianza alta. Repite un caracter N veces via TXT OUTPUT (formato: cuenta+caracter)" },
+  { addr: "$7EB9", nombre: "?", subsistema: "pantalla/texto (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Borra un rectangulo de una tabla en $81D8 (paso 40 bytes/fila)" },
+  { addr: "$7D85", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $877D y llama a $7E73" },
+  { addr: "$7D9D", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $87C5 y llama a $7E73" },
+  { addr: "$7DB5", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $880D y llama a $7E73" },
+  { addr: "$7DCD", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $8855 y llama a $7E73" },
+  { addr: "$7DFC", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 1 de 6 de mascara AND/OR, cae en $7E30" },
+  { addr: "$7E05", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 2 de 6 de mascara AND/OR, cae en $7E30" },
+  { addr: "$7E0E", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 3 de 6 de mascara AND/OR, cae en $7E30" },
+  { addr: "$7E17", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 4 de 6 de mascara AND/OR, cae en $7E30" },
+  { addr: "$7E29", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 6 de 6 de mascara AND/OR, cae en $7E30" },
+  { addr: "$786C", nombre: "?", subsistema: "HUD/marcador (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Imprime HL como 4 digitos decimales via TXT OUTPUT (resta repetida + $30)" },
+  { addr: "$7893", nombre: "?", subsistema: "entrada/teclado (hipotesis)", estado: "pendiente", notas: "Confianza alta. Espera una tecla concreta con antirrebote (pulsacion + liberacion)" },
+  { addr: "$78B7", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible animacion/temporizado de la opcion de menu resaltada" },
+  { addr: "$78F7", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible posicionado del indicador de opcion activa" },
+  { addr: "$7B39", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible dibujado del indicador de seleccion" },
+  { addr: "$794F", nombre: "?", subsistema: "sin resolver", estado: "pendiente", notas: "Confianza muy baja. Llama a $795B en bucle (contador en $8169)" },
 ];
 
 const tbody = document.querySelector("#tabla-rutinas tbody");

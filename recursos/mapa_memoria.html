@@ -123,16 +123,19 @@
 <p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
-<div class="note pending" id="estado-nota">
-  <strong>Plantilla de Sesion 1 -- sin regiones confirmadas todavia.</strong>
-  Sabemos por el catalogo AMSDOS que <code>MUMMY.BAS</code> ocupa 3
-  bloques (3072 bytes) y <code>MUMMY1.BIN</code> 14 bloques (14336
-  bytes), pero deliberadamente <strong>no</strong> se ha dado por
-  buena ninguna direccion de carga/ejecucion leida de la cabecera
-  AMSDOS sin verificar (ver <code>FINDINGS.md</code>, Sesion 1) -- se
-  confirmara detokenizando <code>MUMMY.BAS</code> y contrastando
-  contra el propio desensamblado. Esta pagina se ira rellenando con
-  regiones reales a medida que se confirmen.
+<div class="note" id="estado-nota">
+  <strong>Actualizado Sesion 3.</strong> La direccion de carga y
+  ejecucion del motor (<code>$6000</code>) esta confirmada desde
+  Sesion 2 contra el propio <code>CALL &amp;6000</code> de
+  <code>mummy_bas.bas</code>, no desde la cabecera AMSDOS (que resulto
+  ambigua). El tramo <code>$6000</code>-<code>$6400</code> esta
+  desensamblado y verificado (compila byte a byte identico). Dentro
+  del resto todavia sin analizar (<code>$6401</code>-<code>$9385</code>,
+  incluido tal cual con <code>INCBIN</code>) ya se han localizado por
+  llamada varias subregiones de datos -- ver la segunda tabla mas
+  abajo -- pero son <strong>hipotesis sin verificar en emulador</strong>,
+  no direcciones confirmadas, asi que no aparecen en la barra de
+  arriba (solo lo confirmado ocupa un segmento propio).
 </div>
 
 <h2>Espacio de direcciones (0000-FFFF)</h2>
@@ -158,11 +161,24 @@
   <tbody></tbody>
 </table>
 
+<h2>Subregiones dentro del motor (hipotesis, dentro de la zona INCBIN)</h2>
+<p class="subtitle">No forman parte de la barra de arriba (siguen dentro del
+tramo <code>$6401</code>-<code>$9385</code> sin desensamblar) -- son
+referencias localizadas por lo que las llama desde el bloque ya
+verificado. Ninguna confirmada en emulador. Ver <code>FINDINGS.md</code>
+Sesion 3.</p>
+<table id="tabla-subregiones">
+  <thead>
+    <tr><th>Rango aproximado</th><th>Contenido probable</th><th>Usado por</th><th>Confianza</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
 <footer>
   Datos de partida: catalogo AMSDOS de <code>FISICO/Oh Mummy
-  (1984)(Amsoft).dsk</code> (<code>py tools/dsk_catalog.py</code>).
-  Ninguna direccion de memoria real confirmada todavia -- ver
-  "Pendiente para proximas sesiones" en <code>FINDINGS.md</code>.
+  (1984)(Amsoft).dsk</code> (<code>py tools/dsk_catalog.py</code>) y el
+  desensamblado manual de <code>$6000</code>-<code>$6400</code> (Sesiones
+  2 y 3, ver <code>FINDINGS.md</code>).
 </footer>
 
 <script>
@@ -174,8 +190,28 @@
 // kind: "basic" | "codigo" | "graficos" | "sonido" | "niveles" | "unknown"
 // ============================================================
 const REGIONS = [
-  // ejemplo (NO confirmado, no incluir hasta verificarlo):
-  // { start: 0x8600, end: 0x8600 + 13190, label: "MUMMY1.BIN (motor)", kind: "codigo", fuente: "FINDINGS.md Sesion 2" },
+  { start: 0x0170, end: 0x0170 + 2436, label: "MUMMY.BAS (cargador, tokenizado en RAM)", kind: "basic", fuente: "FINDINGS.md Sesion 2 (confirmado)" },
+  { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
+  { start: 0x6401, end: 0x6000 + 13190, label: "MUMMY1.BIN: resto del motor -- INCBIN, contiene codigo y datos sin separar todavia", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+];
+
+// ============================================================
+// SUBREGIONES -- estructuras localizadas POR REFERENCIA desde el
+// bloque ya verificado ($6000-$6400), pero cuyo contenido real sigue
+// dentro de la zona INCBIN de arriba (no se han extraido a fichero
+// propio ni verificado en emulador). Cada entrada:
+// {start, end, contenido, usado_por, confianza: "media"|"media-alta"|"baja"}
+// ============================================================
+const SUBREGIONES = [
+  { start: 0x7FCA, end: 0x7FE5, contenido: "Envolventes de amplitud 1/2/3 (datos para SOUND AMPL ENVELOPE)", usado_por: "$6000-$6030", confianza: "alta" },
+  { start: 0x7FE5, end: 0x7FFE, contenido: "Envolventes de tono 1/2/3 (datos para SOUND TONE ENVELOPE)", usado_por: "$6000-$6030", confianza: "alta" },
+  { start: 0x8172, end: 0x8172 + 1182, contenido: "Bloque de estado borrado a 0 al arrancar (hipotesis: variables de partida)", usado_por: "$7EAB", confianza: "media" },
+  { start: 0x81D8, end: 0x81D8 + 1000, contenido: "Tabla/buffer de texto o atributos (paso de 40 bytes/fila = ancho de pantalla)", usado_por: "$7EB9", confianza: "media" },
+  { start: 0x8736, end: 0x873E, contenido: "Tabla de 4 valores de 16 bits (posicional, para imprimir un numero en decimal)", usado_por: "$786C", confianza: "media-alta" },
+  { start: 0x877D, end: 0x8855 + 0x30, contenido: "3-4 tablas de offset para tramos del marco decorativo", usado_por: "$7D85/$7D9D/$7DB5/$7DCD", confianza: "media" },
+  { start: 0x8919, end: 0x8A89 + 0x40, contenido: "Tablas usadas por el indicador de seleccion de menu", usado_por: "$7B39", confianza: "baja" },
+  { start: 0x8ECA, end: 0x905A, contenido: "Tabla de 200 direcciones de pantalla por fila (SE CONSTRUYE en tiempo de ejecucion, no es dato estatico del binario)", usado_por: "bucle $607E-$6093", confianza: "alta" },
+  { start: 0x905A, end: 0x937D, contenido: "Cola/guion de eventos de sonido (hipotesis), registros de 9 bytes", usado_por: "$78D1", confianza: "media" },
 ];
 
 const ADDR_MAX = 0x10000;
@@ -219,6 +255,21 @@ if (REGIONS.length === 0) {
     const hex = (n) => "$" + n.toString(16).toUpperCase().padStart(4, "0");
     tr.innerHTML = `<td class="dir">${hex(r.start)}</td><td class="dir">${hex(r.end - 1)}</td><td>${r.end - r.start} bytes</td><td>${r.label}</td><td>${r.fuente || ""}</td>`;
     tbody.appendChild(tr);
+  });
+}
+
+const tbodySub = document.querySelector("#tabla-subregiones tbody");
+if (SUBREGIONES.length === 0) {
+  const tr = document.createElement("tr");
+  tr.className = "unknown";
+  tr.innerHTML = "<td colspan=\"4\">(ninguna localizada todavia)</td>";
+  tbodySub.appendChild(tr);
+} else {
+  SUBREGIONES.slice().sort((a, b) => a.start - b.start).forEach((r) => {
+    const tr = document.createElement("tr");
+    const hex = (n) => "$" + n.toString(16).toUpperCase().padStart(4, "0");
+    tr.innerHTML = `<td class="dir">${hex(r.start)}-${hex(r.end - 1)}</td><td>${r.contenido}</td><td><code>${r.usado_por}</code></td><td>${r.confianza}</td>`;
+    tbodySub.appendChild(tr);
   });
 }
 </script>

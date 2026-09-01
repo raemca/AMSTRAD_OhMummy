@@ -540,3 +540,40 @@ $6000 (entrada real)
   solo ha esbozado.
 - La hipótesis de pantalla de introducción de texto en
   `$6217`-`$63FE` (Sesión 2) sigue sin confirmar.
+
+### Pase complementario: documentación (mismo día, `prompts/sesion_03_complementaria_documentacion.md`)
+
+Sesión dedicada exclusivamente a propagar los hallazgos de arriba al
+resto de la documentación del proyecto (sin desensamblar nada nuevo):
+
+- `README.md`/`README.en.md`: "Estado actual" actualizado a Sesión 3
+  (firmware identificado, subsistemas con hipótesis).
+- `src/README.md`: nueva sección "Subsistemas con hipótesis" con el
+  resumen por area (sonido, pantalla/HUD, marco decorativo, menú).
+- `recursos/flujo_programa.html`: las 12 rutinas de firmware
+  (`estado: "ok"`) y las ~19 internas con hipótesis (`estado:
+  "pendiente"`, nivel de confianza en la columna de notas).
+- `recursos/flujo_secuencial.html`: fases reescritas con el detalle
+  real de Sesión 2-3 — 5 fases pasan a `"confirmado"` (antes eran
+  hipótesis o no existían: dibujado de la portada, carga del motor,
+  envolventes de sonido, tabla de direcciones de pantalla), 3 quedan
+  como `"hipotesis"` con su justificación.
+- `recursos/mapa_memoria.html`: 3 regiones confirmadas (BASIC, cabecera
+  del motor, resto sin analizar) en la barra principal, más una
+  segunda tabla nueva de 9 "subregiones" (hipótesis localizadas por
+  referencia, sin verificar) que no forman parte de la barra para no
+  mezclar lo confirmado con lo hipotético visualmente.
+- `recursos/portada.html`: el logo "AMSOFT" completo (191 trazos) ya
+  se renderiza de verdad, calculado a partir de las coordenadas
+  relativas reales de `mummy_bas.bas` (dato de Sesión 2 que no se
+  había volcado aquí todavía).
+- `recursos/graficos.html` y `recursos/sprites.html`: **sin cambios,
+  deliberadamente** — ninguna sesión ha extraído todavía un gráfico de
+  tiles o sprites en bruto (el marco decorativo se construye por
+  código con máscaras AND/OR y tablas de offset, no es un recurso de
+  bitmap); no hay nada que mostrar en estas dos páginas sin inventar
+  contenido.
+
+Todos los ficheros HTML tocados se comprobaron con un script de
+balanceo de llaves/paréntesis antes de darlos por buenos (mismo método
+que en la Sesión 1).

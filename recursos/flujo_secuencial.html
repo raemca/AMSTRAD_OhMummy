@@ -132,14 +132,14 @@
 <p class="subtitle">Amstrad CPC, version de disco -- orden real de ejecucion, arranque a partida. Ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
 
 <div class="note">
-  <strong>Plantilla de Sesion 1.</strong> Las fases de abajo son la
-  mejor hipotesis de trabajo a partir de lo unico que sabemos con
-  certeza hoy -- el catalogo AMSDOS del disco (2 ficheros: un cargador
-  BASIC y un binario) -- y de lo que muestran a simple vista las
-  cadenas ASCII del BASIC sin detokenizar todavia. Nada de esto esta
-  verificado contra el desensamblado real. Cada fase lleva su propio
-  nivel de confianza (ver leyenda) y se ira actualizando sesion a
-  sesion.
+  <strong>Actualizado Sesion 3.</strong> El cargador BASIC completo y
+  el bloque <code>$6000</code>-<code>$6400</code> del motor estan
+  desensamblados y verificados byte a byte -- esas fases aparecen como
+  "confirmado". El resto de fases del arranque del motor son
+  hipotesis derivadas de desensamblar cada subrutina llamada, sin
+  verificacion en emulador todavia. Cada fase lleva su propio nivel de
+  confianza (ver leyenda); el detalle completo, con direcciones y
+  evidencia, esta en <code>FINDINGS.md</code> Sesiones 2 y 3.
 </div>
 
 <div class="legend">
@@ -151,7 +151,7 @@
 <div class="timeline" id="timeline"></div>
 
 <footer>
-  Ver <code>FINDINGS.md</code> Sesion 1 para el detalle de como se
+  Ver <code>FINDINGS.md</code> Sesiones 1-3 para el detalle de como se
   obtuvo cada dato de esta pagina, y el apartado "Pendiente para
   proximas sesiones" para lo que falta por confirmar.
 </footer>
@@ -166,32 +166,52 @@ const FASES = [
   {
     estado: "confirmado",
     titulo: "AMSDOS carga MUMMY.BAS",
-    detalle: "El catalogo del disco (FISICO/Oh Mummy (1984)(Amsoft).dsk) solo tiene 2 ficheros; MUMMY.BAS (3072 bytes, cabecera AMSDOS con checksum valido) es el unico candidato razonable a programa de arranque del disco.",
+    detalle: "El catalogo del disco (FISICO/Oh Mummy (1984)(Amsoft).dsk) solo tiene 2 ficheros; MUMMY.BAS (3072 bytes, cabecera AMSDOS con checksum valido) es el cargador del disco.",
   },
   {
-    estado: "hipotesis",
+    estado: "confirmado",
     titulo: "MUMMY.BAS dibuja la pantalla de carga",
-    detalle: "Cadenas ASCII visibles sin detokenizar todavia muestran el titulo \"Oh Mummy\", el texto \"Please Wait...\" y largas listas de coordenadas relativas -- consistente con dibujar a mano, con PLOT/DRAW, el logo \"AMSOFT\" y el titulo del juego mientras carga el binario.",
+    detalle: "Detokenizado completo y verificado byte a byte (Sesion 2, src/load_disk/mummy_bas.bas). Dibuja el logo \"AMSOFT\" con 191 trazos DRAWR/MOVER relativos en dos pasadas de color (ver recursos/portada.html), el titulo \"Oh Mummy\" con un efecto de particulas via TEST(), el credito \"PRESENTS 1984 GEM SOFTWARE\" (autoria real del juego) y \"LOADING ......\".",
+  },
+  {
+    estado: "confirmado",
+    titulo: "MUMMY.BAS carga y lanza MUMMY1.BIN en $6000",
+    detalle: "Lineas 560-580: MEMORY 15000:LOAD\"!mummy1\",&6000:CALL &6000. Direccion de carga Y de ejecucion confirmadas desde el propio codigo BASIC (la cabecera AMSDOS del .BIN resulto ambigua en ese campo, ver FINDINGS.md Sesion 1-2).",
+  },
+  {
+    estado: "confirmado",
+    titulo: "Inicializacion de sonido: 3 envolventes",
+    detalle: "$6000-$6033: SOUND RESET + 3x (SOUND AMPL ENVELOPE, SOUND TONE ENVELOPE) con datos en $7FCA-$7FFE. Bloque desensamblado y verificado byte a byte (Sesion 2-3).",
   },
   {
     estado: "hipotesis",
-    titulo: "MUMMY.BAS carga y lanza MUMMY1.BIN",
-    detalle: "MUMMY1.BIN (14336 bytes, cabecera AMSDOS con checksum valido) es el unico otro fichero del disco -- el candidato natural a motor de juego en codigo maquina. Falta encontrar la linea BASIC exacta que hace el LOAD/CALL real (pendiente detokenizar MUMMY.BAS).",
+    titulo: "Semilla aleatoria y borrado de estado inicial",
+    detalle: "$6033-$6051: lee el reloj del sistema (KL TIME PLEASE) y lo guarda en $8151 (hipotesis: semilla de aleatoriedad); llama a una rutina que borra 1182 bytes en $8172 (hipotesis: bloque de variables de partida). Confianza media -- ver FINDINGS.md Sesion 3.",
+  },
+  {
+    estado: "confirmado",
+    titulo: "Construccion de la tabla de direcciones de pantalla",
+    detalle: "$6078-$6093: bucle de 200 iteraciones que usa SCR DOT POSITION del firmware para precalcular la direccion de pantalla de cada fila, guardandolas en una tabla de 400 bytes ($8ECA-$905A). Tecnica estandar en juegos de CPC. Bloque desensamblado y verificado byte a byte.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "Borrado de paneles de HUD y dibujado del marco decorativo",
+    detalle: "$60AD-$61E5: borra 14 rectangulos de una tabla de texto/atributos ($81D8) en distintas posiciones, luego dibuja el marco decorativo del motor con 4+6 subrutinas que combinan tablas de offset y 6 variantes de mascara AND/OR. Confianza media -- equivalente funcional al \"marco_decorativo\" de los proyectos hermanos, ver FINDINGS.md Sesion 3.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "Menu de seleccion (1 o 2 jugadores)",
+    detalle: "$6201-$6221: bucle que lee el teclado (KM READ CHAR/KM TEST KEY), alterna entre las opciones B=1 y B=2, con temporizado/animacion y un indicador de posicion. Confianza baja-media -- no se ha podido confirmar el mapa de teclas del firmware para identificar la tecla de confirmar. Ver FINDINGS.md Sesion 3.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "Posible pantalla de introduccion de nombre/iniciales",
+    detalle: "$6217-$63FE: patron de espera de tecla + CP $0D (Enter) + CP $7F (Delete) + escritura caracter a caracter en un buffer ($7FC8) -- consistente con una pantalla de alta puntuacion o nombre de jugador, pero sin confirmar (Sesion 2).",
   },
   {
     estado: "pendiente",
-    titulo: "Inicializacion del motor",
-    detalle: "Configuracion de pantalla (modo CPC), paleta, interrupciones, sonido... nada identificado todavia.",
-  },
-  {
-    estado: "pendiente",
-    titulo: "Menu / pantalla de titulo del motor",
-    detalle: "Si existe una pantalla de titulo propia del binario (mas alla de la de carga en BASIC), sin identificar.",
-  },
-  {
-    estado: "pendiente",
-    titulo: "Bucle de juego (frame a frame)",
-    detalle: "Motor de movimiento/colision, IA de enemigos, dibujado del laberinto, marcador -- nada identificado todavia.",
+    titulo: "Resto de la inicializacion y bucle de juego",
+    detalle: "Mas alla de $6400: generacion/carga de nivel, motor de movimiento y colision, IA de enemigos (momias), dibujado del laberinto, marcador de puntuacion -- nada identificado todavia. 12165 bytes siguen como INCBIN sin analizar.",
   },
 ];
 

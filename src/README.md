@@ -38,6 +38,24 @@ dirección de carga y ejecución real del motor.
   completo byte a byte mientras se va desensamblando de verdad, sesión
   a sesión.
 
+### Subsistemas con hipótesis (Sesión 3, ninguno verificado en emulador)
+
+- Sonido: inicialización de 3 envolventes y una posible cola/guión de
+  eventos (`$78D1`).
+- Pantalla/HUD: tabla de 200 direcciones de pantalla por fila
+  (confirmada, se construye en tiempo de ejecución), borrado de
+  rectángulos de texto, e impresión de un número de 4 dígitos
+  (posible marcador).
+- Marco decorativo: dibujado por tramos con 6 variantes de máscara
+  AND/OR, equivalente funcional al `marco_decorativo` de los
+  proyectos hermanos.
+- Menú: un bucle de selección 1/2 jugadores, con lectura de teclado y
+  un indicador de opción activa.
+
+Ver `recursos/flujo_programa.html` para el inventario completo por
+dirección y `../FINDINGS.md` (Sesión 3) para la evidencia y el mapa de
+llamadas.
+
 ## Compilar y verificar
 
 ```
@@ -78,4 +96,4 @@ los dos**.
   varias interpretaciones, se verifica contra el código que lo usa de
   verdad (p. ej. el `CALL &6000` de `mummy_bas.bas`) antes de darlo
   por bueno — no se confía en una tabla recordada de memoria sin
-  contrastar (ver `../FINDINGS.md`, Sesión 1 y 2).
+  contrastar (ver `../FINDINGS.md`, Sesiones 1-3).

@@ -25,10 +25,10 @@ notice.
 
 Current status
 ---------------
-**Session 2 — build pipeline working, disassembly started.** The
-disk's AMSDOS catalogue (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816
-bytes, standard CPCEMU format, 40 tracks x 1 side, 9x512 data format,
-sector IDs `C1`-`C9`) only has **2 files**:
+**Session 3 — firmware identified, first semantic hypotheses for the
+engine.** The disk's AMSDOS catalogue (`FISICO/Oh Mummy
+(1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU format, 40 tracks x
+1 side, 9x512 data format, sector IDs `C1`-`C9`) only has **2 files**:
 
 | File | Allocated blocks | Status |
 |---|---|---|
@@ -36,19 +36,29 @@ sector IDs `C1`-`C9`) only has **2 files**:
 | `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled and verified**, rest (12165 bytes) pending |
 
 `MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
-the "AMSOFT" logo, the "Oh Mummy" title with a particle effect, the
-credit **"PRESENTS 1984 GEM SOFTWARE"** (the studio that developed the
-game — see `AVISO-LEGAL.md`) and "LOADING......", then ends with
+the "AMSOFT" logo (191 strokes, now rendered in
+`recursos/portada.html`), the "Oh Mummy" title with a particle effect,
+the credit **"PRESENTS 1984 GEM SOFTWARE"** (the studio that developed
+the game — see `AVISO-LEGAL.md`) and "LOADING......", then ends with
 `MEMORY 15000:LOAD"!mummy1",&6000:CALL &6000` — that's where the
 engine's confirmed load **and** execution address comes from (`$6000`),
 verified against the BASIC itself rather than the AMSDOS header, which
-turned out ambiguous. The engine's first stretch ($6000-$6400) is
-already hand-disassembled — it repeatedly calls fixed CPC firmware ROM
-routines (`$BBxx`/`$BCxx`/`$BDxx`) and its own internal subroutines,
-not yet identified; the rest (`$6401`-`$9385`) is included as-is via
-`INCBIN` while it gets analyzed session by session — see
-`FINDINGS.md` for the full detail and the mechanical disassembly
-methodology used.
+turned out ambiguous.
+
+The engine's first stretch (`$6000`-`$6400`) is disassembled and
+byte-verified. The **12 firmware routines** it calls are identified
+against the official CPC manual (named `EQU`s in
+`src/mummy1_body.asm`: sound, text, screen management...). The
+**~19 internal subroutines** it calls (outside the compiled stretch,
+in the `INCBIN` zone) are disassembled down to their `RET` and each
+has a first function hypothesis with a confidence level — sound
+initialization, clearing state blocks, a 200-entry screen row address
+table, clearing HUD rectangles, drawing the decorative frame (6 mask
+variants), a possible score-printing routine (4 decimal digits), and a
+1/2-player selection menu — none verified in an emulator yet. The rest
+(`$6401`-`$9385`) is still included as-is via `INCBIN` while it gets
+analyzed session by session — see `FINDINGS.md` for the full call map,
+the per-routine confidence table, and the methodology used.
 
 Building
 --------
@@ -103,11 +113,14 @@ Repository structure
 - `manuales/` — technical reference manuals, one per subsystem,
   written as each piece is closed out (no content yet).
 - `recursos/` — self-contained HTML pages (viewers/inventories):
-  `mapa_memoria.html`, `graficos.html` (tiles), `sprites.html`,
-  `portada.html` (loading screen), `flujo_programa.html` (routine
-  inventory) and `flujo_secuencial.html` (execution order) — templates
-  filled in progressively session by session. Also
-  `ohmummy_referencia_binario.html`: a supporting document (provided
+  `mapa_memoria.html` (confirmed regions + hypothesis sub-regions),
+  `flujo_programa.html` (routine inventory, firmware + hypotheses),
+  `flujo_secuencial.html` (boot execution order) and `portada.html`
+  (the "AMSOFT" logo now rendered from the BASIC's 191 real strokes)
+  have real content since Session 3. `graficos.html` (tiles) and
+  `sprites.html` are still empty — no tile/sprite graphics have been
+  extracted yet. Also `ohmummy_referencia_binario.html`: a supporting
+  document (provided
   by the author, not derived from the binary) with a generic
   hypothesis of what subsystems to expect in a 1984 CPC maze arcade
   game — orients the search, doesn't replace verification against the

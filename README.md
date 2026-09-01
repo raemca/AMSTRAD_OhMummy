@@ -25,10 +25,11 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 2 — compilación operativa, desensamblado empezado.** El
-catálogo AMSDOS del disco (`FISICO/Oh Mummy (1984)(Amsoft).dsk`,
-194816 bytes, formato CPCEMU estándar, 40 pistas x 1 cara, formato de
-datos 9x512, IDs de sector `C1`-`C9`) solo tiene **2 ficheros**:
+**Sesión 3 — firmware identificado, primeras hipótesis semánticas del
+motor.** El catálogo AMSDOS del disco (`FISICO/Oh Mummy
+(1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
+x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
+**2 ficheros**:
 
 | Fichero | Bloques asignados | Estado |
 |---|---|---|
@@ -36,19 +37,31 @@ datos 9x512, IDs de sector `C1`-`C9`) solo tiene **2 ficheros**:
 | `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado y verificado**, resto (12165 bytes) pendiente |
 
 `MUMMY.BAS` es el cargador: dibuja a mano (con `PLOT`/`DRAW`
-relativos) el logo "AMSOFT", el título "Oh Mummy" con un efecto de
+relativos) el logo "AMSOFT" (191 trazos, ya visibles en
+`recursos/portada.html`), el título "Oh Mummy" con un efecto de
 partículas, el crédito **"PRESENTS 1984 GEM SOFTWARE"** (el estudio
 que desarrolló el juego — ver `AVISO-LEGAL.md`) y "LOADING......",
 y termina con `MEMORY 15000:LOAD"!mummy1",&6000:CALL &6000` — de ahí
 salen, confirmadas contra el propio BASIC (no contra la cabecera
 AMSDOS, que resultó ambigua), la dirección de carga **y** de ejecución
-del motor: `$6000`. El primer tramo del motor ($6000-$6400) ya está
-desensamblado a mano — llama repetidamente a rutinas fijas de la ROM
-de firmware del CPC (`$BBxx`/`$BCxx`/`$BDxx`) y a subrutinas internas
-propias sin identificar todavía; el resto (`$6401`-`$9385`) se incluye
-tal cual con `INCBIN` mientras se va analizando sesión a sesión — ver
-`FINDINGS.md` para el detalle completo y la metodología de
-desensamblado mecánico usada.
+del motor: `$6000`.
+
+El primer tramo del motor (`$6000`-`$6400`) está desensamblado y
+verificado byte a byte. Las **12 rutinas de firmware** que llama están
+identificadas contra el manual oficial del CPC (`EQU` con nombre real
+en `src/mummy1_body.asm`: gestión de sonido, texto, pantalla...). Las
+**~19 subrutinas internas** que llama (fuera del tramo compilado, en
+la zona `INCBIN`) están desensambladas hasta su `RET` y tienen ya una
+primera hipótesis de función cada una, con su nivel de confianza —
+inicialización de sonido, borrado de bloques de estado, una tabla de
+200 direcciones de pantalla por fila, borrado de rectángulos de HUD,
+el dibujado del marco decorativo (6 variantes de máscara), una posible
+rutina de impresión de marcador (4 dígitos decimales), y un menú de
+selección 1/2 jugadores — ninguna verificada todavía en emulador. El
+resto (`$6401`-`$9385`) se incluye tal cual con `INCBIN` mientras se
+va analizando sesión a sesión — ver `FINDINGS.md` para el mapa de
+llamadas completo, la tabla de confianza por rutina, y la metodología
+usada.
 
 Compilar
 --------
@@ -102,11 +115,14 @@ Estructura del repositorio
 - `manuales/` — manuales técnicos de referencia, uno por subsistema,
   redactados al cerrar cada pieza (aún sin contenido).
 - `recursos/` — páginas HTML autocontenidas (visores/inventarios):
-  `mapa_memoria.html`, `graficos.html` (losetas), `sprites.html`,
-  `portada.html` (pantalla de carga), `flujo_programa.html`
-  (inventario de rutinas) y `flujo_secuencial.html` (orden de
-  ejecución) — plantillas que se van rellenando sesión a sesión.
-  También `ohmummy_referencia_binario.html`: documento de apoyo
+  `mapa_memoria.html` (regiones confirmadas + subregiones hipótesis),
+  `flujo_programa.html` (inventario de rutinas, firmware + hipótesis),
+  `flujo_secuencial.html` (orden de ejecución del arranque) y
+  `portada.html` (el logo "AMSOFT" ya renderizado a partir de los 191
+  trazos reales del BASIC) tienen contenido real desde la Sesión 3.
+  `graficos.html` (losetas) y `sprites.html` siguen vacíos — no se ha
+  extraído ningún gráfico de tiles/sprites todavía. También
+  `ohmummy_referencia_binario.html`: documento de apoyo
   (aportado por el autor, no derivado del binario) con la hipótesis
   genérica de qué subsistemas esperar en un arcade de laberinto de
   CPC de 1984 — orienta la búsqueda, no sustituye la verificación
