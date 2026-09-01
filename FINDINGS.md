@@ -577,3 +577,96 @@ resto de la documentación del proyecto (sin desensamblar nada nuevo):
 Todos los ficheros HTML tocados se comprobaron con un script de
 balanceo de llaves/paréntesis antes de darlos por buenos (mismo método
 que en la Sesión 1).
+
+## Sesión 4 — 2026-09-01: sigue el hilo de llamadas más allá de `$6400` — posible generador de entidades aleatorias
+
+Sesión guiada por `prompts/sesion_04_desensamblado_continuacion.md`:
+continuar el análisis por llamadas desde `$6000` (no linealmente),
+profundizando en las subrutinas que la Sesión 3 solo había esbozado.
+
+### Intento de resolver los códigos de tecla `$2C`/`$3E` — sin éxito
+
+Se intentó localizar la tabla oficial de numeración de teclas del
+firmware (referenciada como "Appendix I" en la sección 3 del manual,
+que sí se pudo leer completa vía
+[cpctech.cpcwiki.de/docs/manual/s968se03.pdf](https://cpctech.cpcwiki.de/docs/manual/s968se03.pdf)).
+El propio Apéndice I no está disponible en ningún espejo accesible
+probado (`s968ap01.pdf` da 404; `cpcwiki.eu` bloquea las peticiones
+automatizadas con 403; `docs/keyboard.html` del mismo sitio documenta
+la matriz de escaneo pero no la numeración de teclas del firmware). Se
+descarta explícitamente usar la tabla de la librería CPCtelera (ya
+señalado en Sesión 3 que usa su propia numeración, no confirmada igual
+a la del firmware). **Sigue pendiente** — no se identifica ninguna
+tecla concreta.
+
+### Rutinas nuevas exploradas (desensambladas hasta su `RET`)
+
+| Dirección | Qué hace | Hipótesis | Confianza |
+|---|---|---|---|
+| `$7E92` | Indexa la tabla de 200 direcciones de pantalla por fila (`$8ECA`, ver Sesión 3) por fila+columna y sinal como direccion de pantalla en HL | Función auxiliar "coordenada (fila,columna) → dirección de pantalla", usa la tabla que en Sesión 3 solo se sabía que se *construía* | **Alta** (confirma y precisa la hipótesis de Sesión 3) |
+| `$7E73` | Bucle de 12 "filas", cada una copia 6 bytes desde una tabla (`IY`) a pantalla/buffer y avanza con `INC H` (paso de 256, no el paso real de pantalla del CPC) | Dibuja un bloque gráfico de 6x12 bytes desde una tabla — el paso `INC H` sugiere que no escribe a la VRAM real directamente sino a un lienzo de trabajo en RAM con stride de 256 bytes (patrón ya visto en los proyectos hermanos) | Media |
+| `$7D53` | Lee semilla de 16 bits en `$8151` (la misma que se sembró con `KL TIME PLEASE` al arrancar, Sesión 3), la transforma con `$7D78`, y hace un "módulo" por resta repetida contra `$0101`, actualizando la semilla | **Generador de números pseudoaleatorios** (congruencial/aditivo clásico de 8 bits) | **Alta** |
+| `$7A10` | Recorre el array de 6 registros de 5 bytes en `$816D` (ver `$7996`/`$795B`) comparando la posición de cada uno contra `D,E` con margenes de ±8 (eje X) y ±2 (eje Y), contando coincidencias en `$8610` | Comprobación de proximidad/colisión entre una posición candidata y las entidades ya colocadas | Media-alta |
+| `$7996` | Por cada registro de `$816D` (si está activo): guarda su posición, llama a `$7A10` dos veces (posición y posición+1 en X) y, si hay colisión, salta a `$7AF2`; si no, llama a `$7D53` (dado de nuevo) y en un caso concreto llama a `$7B39` con `A=$4F` ('O') | Coloca/valida la posición de una entidad, evitando solapes -- usa el generador aleatorio y el chequeo de proximidad de arriba | Media |
+| `$795B` | Incrementa el contador `$816C`, usa dos llamadas a `$7D53` (dado, +1) para rellenar los bytes 0-1 de un registro nuevo en `$816D`, y copia 2 bytes de una tabla de posiciones (`$8645`, indexada por `contador*2`) a los bytes 2-3 | Inicializa un registro/entidad nuevo con atributos "aleatorios" (¿tipo, dirección?) y una posición tomada de una tabla de puntos válidos | Media-alta |
+
+### Hipótesis de conjunto: generador de entidades al arrancar
+
+Encadenando lo de arriba con lo ya sabido de la Sesión 3 (`$794F`
+llama a `$795B` 6 veces, con el contador `$8169`/`$816C` puesto a 6 al
+arrancar en `$6054`/`$623B`): la evidencia apunta a que el motor
+**inicializa 6 "entidades"** (registros de 5 bytes en `$816D`-`$8196`)
+en el arranque, cada una con posición tomada de una tabla de puntos
+candidatos (`$8645`, que cambia de tabla según la pantalla — vista
+apuntando a `$860F`/`$8637`/`$6828` en distintos momentos) y un par de
+bytes "aleatorios" adicionales generados con el PRNG sembrado por el
+reloj del sistema. Es coherente con la expectativa genérica de
+`ohmummy_referencia_binario.html` ("colocación de... premios y
+enemigos") y con que 6 sea el número de momias/enemigos o
+coleccionables del laberinto — **pero esto NO está confirmado**: no
+se ha llegado a ver qué campo decide "cuántas entidades son enemigos"
+frente a "objetos", ni se ha ejecutado nada en un emulador para
+comprobarlo. Ninguna de las direcciones de esta sección se ha
+renombrado en `mummy1_body.asm` todavía.
+
+### Separación código/datos (actualización)
+
+Confirmado (no solo referenciado) que existe un array de registros de
+5 bytes en `$816D`+ (al menos 6 registros = 30 bytes, `$816D`-`$818A`)
+— cada registro: byte 0-1 (datos del PRNG, sin decodificar su
+significado), byte 2-3 (posición X,Y probablemente), byte 4 sin
+usar/observar todavía. Este array no estaba en la lista de
+subregiones de la Sesión 3 (se solapa con el bloque `$8172`+ que se
+creía "borrado a 0 y sin más" — hay que revisar esa hipótesis: `$816D`
+cae ANTES de `$8172`, así que no hay conflicto, pero conviene
+verificarlo con más cuidado en la próxima sesión).
+
+### Documentación actualizada en esta sesión
+
+- `README.md`/`README.en.md`: estado a Sesión 4, mención del generador
+  de entidades.
+- `src/README.md`: subsistema nuevo listado.
+- `recursos/flujo_programa.html`: 6 rutinas nuevas añadidas al
+  inventario (`$7E92`, `$7E73`, `$7D53`, `$7A10`, `$7996`, `$795B`).
+- `recursos/mapa_memoria.html`: nueva subregión `$816D`-`$818A`
+  (array de entidades).
+- `recursos/flujo_secuencial.html`: nueva fase "generador de entidades
+  aleatorias" entre la construcción del marco y el menú.
+- `recursos/graficos.html`/`sprites.html`/`portada.html`: **sin
+  cambios** — nada de lo descubierto esta sesión es un recurso gráfico
+  extraíble (son rutinas de posicionamiento/aleatoriedad, no bitmaps).
+
+### Pendiente para próximas sesiones
+
+- Confirmar el significado exacto de los registros de `$816D` (qué es
+  cada byte) y de dónde sale la tabla de posiciones candidatas en
+  `$8645` (parece cambiar de tabla según contexto — localizar cada una).
+- Desensamblar `$7D78` (la transformación usada por el PRNG), `$7A95`
+  y `$7AB6`/`$7AF2` (los destinos condicionales de `$7996`).
+- Seguir intentando resolver la numeración de teclas del firmware
+  (Apéndice I) por otra vía -- quizas un volcado de la ROM real en vez
+  del manual escaneado.
+- Retomar la lista de subrutinas de alta confianza de la Sesión 3
+  (`$7EAB`, `$7EF4`, `$7EB9`, `$786C`) para promoverlas a código
+  compilado real (con `INCBIN` partido alrededor) si el hilo de
+  llamadas lo justifica.

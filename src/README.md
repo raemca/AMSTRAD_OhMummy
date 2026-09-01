@@ -51,10 +51,15 @@ dirección de carga y ejecución real del motor.
   proyectos hermanos.
 - Menú: un bucle de selección 1/2 jugadores, con lectura de teclado y
   un indicador de opción activa.
+- Aleatoriedad/entidades (Sesión 4): un generador de números
+  pseudoaleatorios (`$7D53`, sembrado con el reloj del sistema) y un
+  chequeo de proximidad (`$7A10`) se usan para inicializar un array de
+  6 registros de 5 bytes en `$816D` — hipótesis: colocación de
+  enemigos o coleccionables en el laberinto, sin confirmar.
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesión 3) para la evidencia y el mapa de
-llamadas.
+dirección y `../FINDINGS.md` (Sesiones 3-4) para la evidencia y el
+mapa de llamadas.
 
 ## Compilar y verificar
 

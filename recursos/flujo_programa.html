@@ -127,7 +127,7 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 3.</strong> El bloque <code>$6000</code>-
+  <strong>Actualizado Sesion 4.</strong> El bloque <code>$6000</code>-
   <code>$6400</code> del motor esta desensamblado y verificado (ver
   <code>src/mummy1_body.asm</code>). Las 12 rutinas de firmware que
   llama estan confirmadas contra el manual oficial (badge "completo").
@@ -207,6 +207,13 @@ const RUTINAS = [
   { addr: "$78F7", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible posicionado del indicador de opcion activa" },
   { addr: "$7B39", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible dibujado del indicador de seleccion" },
   { addr: "$794F", nombre: "?", subsistema: "sin resolver", estado: "pendiente", notas: "Confianza muy baja. Llama a $795B en bucle (contador en $8169)" },
+  // -- Sesion 4: hilo de llamadas mas alla de $6400 --
+  { addr: "$7E92", nombre: "?", subsistema: "pantalla (hipotesis)", estado: "pendiente", notas: "Confianza alta. Indexa la tabla de $8ECA por fila+columna -> direccion de pantalla en HL" },
+  { addr: "$7E73", nombre: "?", subsistema: "pantalla/marco (hipotesis)", estado: "pendiente", notas: "Confianza media. Copia un bloque de 6x12 bytes desde una tabla (IY) a pantalla/buffer, paso INC H (256, no el paso real de VRAM del CPC)" },
+  { addr: "$7D53", nombre: "?", subsistema: "aleatoriedad (hipotesis)", estado: "pendiente", notas: "Confianza alta. Generador pseudoaleatorio: transforma la semilla de $8151 (sembrada con el reloj al arrancar) y hace modulo por resta repetida" },
+  { addr: "$7A10", nombre: "?", subsistema: "colisiones (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Compara una posicion candidata contra el array de 6 entidades de $816D con margenes +-8/+-2, cuenta coincidencias en $8610" },
+  { addr: "$7996", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media. Valida/coloca una entidad usando $7A10 (colision) y $7D53 (aleatorio); si colisiona salta a $7AF2" },
+  { addr: "$795B", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Inicializa un registro nuevo en $816D: 2 bytes de $7D53 (aleatorio) + 2 bytes de posicion copiados de una tabla en $8645" },
 ];
 
 const tbody = document.querySelector("#tabla-rutinas tbody");

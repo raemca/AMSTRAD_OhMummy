@@ -132,7 +132,7 @@
 <p class="subtitle">Amstrad CPC, version de disco -- orden real de ejecucion, arranque a partida. Ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 3.</strong> El cargador BASIC completo y
+  <strong>Actualizado Sesion 4.</strong> El cargador BASIC completo y
   el bloque <code>$6000</code>-<code>$6400</code> del motor estan
   desensamblados y verificados byte a byte -- esas fases aparecen como
   "confirmado". El resto de fases del arranque del motor son
@@ -197,6 +197,11 @@ const FASES = [
     estado: "hipotesis",
     titulo: "Borrado de paneles de HUD y dibujado del marco decorativo",
     detalle: "$60AD-$61E5: borra 14 rectangulos de una tabla de texto/atributos ($81D8) en distintas posiciones, luego dibuja el marco decorativo del motor con 4+6 subrutinas que combinan tablas de offset y 6 variantes de mascara AND/OR. Confianza media -- equivalente funcional al \"marco_decorativo\" de los proyectos hermanos, ver FINDINGS.md Sesion 3.",
+  },
+  {
+    estado: "hipotesis",
+    titulo: "Generador de entidades aleatorias (Sesion 4)",
+    detalle: "$61EB y alrededores: un generador pseudoaleatorio ($7D53, sembrado con el reloj del sistema leido al arrancar) junto con un chequeo de proximidad/colision ($7A10) inicializan un array de 6 registros de 5 bytes en $816D -- hipotesis: colocacion de enemigos o coleccionables en el laberinto, con posicion tomada de una tabla de puntos candidatos que cambia segun la pantalla. Sin confirmar en emulador.",
   },
   {
     estado: "hipotesis",

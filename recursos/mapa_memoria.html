@@ -124,7 +124,7 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note" id="estado-nota">
-  <strong>Actualizado Sesion 3.</strong> La direccion de carga y
+  <strong>Actualizado Sesion 4.</strong> La direccion de carga y
   ejecucion del motor (<code>$6000</code>) esta confirmada desde
   Sesion 2 contra el propio <code>CALL &amp;6000</code> de
   <code>mummy_bas.bas</code>, no desde la cabecera AMSDOS (que resulto
@@ -212,6 +212,7 @@ const SUBREGIONES = [
   { start: 0x8919, end: 0x8A89 + 0x40, contenido: "Tablas usadas por el indicador de seleccion de menu", usado_por: "$7B39", confianza: "baja" },
   { start: 0x8ECA, end: 0x905A, contenido: "Tabla de 200 direcciones de pantalla por fila (SE CONSTRUYE en tiempo de ejecucion, no es dato estatico del binario)", usado_por: "bucle $607E-$6093", confianza: "alta" },
   { start: 0x905A, end: 0x937D, contenido: "Cola/guion de eventos de sonido (hipotesis), registros de 9 bytes", usado_por: "$78D1", confianza: "media" },
+  { start: 0x816D, end: 0x816D + 30, contenido: "Array de 6 registros de 5 bytes -- hipotesis: entidades (enemigos/coleccionables), bytes 0-1 de un generador aleatorio, bytes 2-3 posicion", usado_por: "$795B/$7996/$7A10 (Sesion 4)", confianza: "media" },
 ];
 
 const ADDR_MAX = 0x10000;
