@@ -127,7 +127,7 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 4.</strong> El bloque <code>$6000</code>-
+  <strong>Actualizado Sesion 5.</strong> El bloque <code>$6000</code>-
   <code>$6400</code> del motor esta desensamblado y verificado (ver
   <code>src/mummy1_body.asm</code>). Las 12 rutinas de firmware que
   llama estan confirmadas contra el manual oficial (badge "completo").
@@ -214,6 +214,13 @@ const RUTINAS = [
   { addr: "$7A10", nombre: "?", subsistema: "colisiones (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Compara una posicion candidata contra el array de 6 entidades de $816D con margenes +-8/+-2, cuenta coincidencias en $8610" },
   { addr: "$7996", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media. Valida/coloca una entidad usando $7A10 (colision) y $7D53 (aleatorio); si colisiona salta a $7AF2" },
   { addr: "$795B", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Inicializa un registro nuevo en $816D: 2 bytes de $7D53 (aleatorio) + 2 bytes de posicion copiados de una tabla en $8645" },
+  // -- Sesion 5: cadena de movimiento/IA --
+  { addr: "$7D78", nombre: "?", subsistema: "aleatoriedad (hipotesis)", estado: "pendiente", notas: "Confianza alta. Funcion de mezcla del PRNG de $7D53 (duplica HL 8 veces sumando DE por acarreo)" },
+  { addr: "$7A95", nombre: "?", subsistema: "movimiento (hipotesis)", estado: "pendiente", notas: "Confianza alta. Calcula la celda adyacente en una direccion 0-3 (pasos de 8px en X / 2px en Y)" },
+  { addr: "$7AB6", nombre: "?", subsistema: "IA (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Elige direccion hacia una posicion objetivo, con desempate aleatorio de eje via $7D53 -- patron de IA de persecucion" },
+  { addr: "$7AF2", nombre: "?", subsistema: "colisiones/mapa (hipotesis)", estado: "pendiente", notas: "Confianza media. Calcula la celda adyacente y consulta que hay en ella via $7D3E+$7CE6" },
+  { addr: "$7D3E", nombre: "?", subsistema: "mapa (hipotesis)", estado: "pendiente", notas: "Confianza media. Indexa una estructura en $8200 (paso de fila 5 bytes) -- posible mapa del laberinto o subdivision" },
+  { addr: "$7CE6", nombre: "?", subsistema: "sin resolver", estado: "pendiente", notas: "Confianza baja. Dispatcher que elige tabla ($8959/$8A69/$8A89/$8AA9...) segun un valor -- desensamblado parcial, no se alcanzo su RET" },
 ];
 
 const tbody = document.querySelector("#tabla-rutinas tbody");

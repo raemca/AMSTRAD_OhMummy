@@ -25,9 +25,9 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 4 — firmware identificado, primeras hipótesis semánticas del
-motor, posible generador de entidades aleatorias.** El catálogo
-AMSDOS del disco (`FISICO/Oh Mummy
+**Sesión 5 — firmware identificado, primeras hipótesis semánticas del
+motor, posible generador de entidades e IA de persecución.** El
+catálogo AMSDOS del disco (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
 x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 **2 ficheros**:
@@ -60,15 +60,20 @@ el dibujado del marco decorativo (6 variantes de máscara), una posible
 rutina de impresión de marcador (4 dígitos decimales), y un menú de
 selección 1/2 jugadores — ninguna verificada todavía en emulador.
 
-Siguiendo el hilo de llamadas más allá del tramo compilado (Sesión 4)
-apareció lo que parece un **generador de números pseudoaleatorios**
+Siguiendo el hilo de llamadas más allá del tramo compilado (Sesiones
+4-5) apareció lo que parece un **generador de números pseudoaleatorios**
 (sembrado con el reloj del sistema) usado, junto con un chequeo de
 proximidad/colisión, para inicializar un array de 6 "entidades" con
-posición y atributos — hipótesis razonable: colocación de enemigos o
-coleccionables en el laberinto, sin confirmar. El resto (`$6401`-
-`$9385`) se incluye tal cual con `INCBIN` mientras se va analizando
-sesión a sesión — ver `FINDINGS.md` para el mapa de llamadas completo,
-la tabla de confianza por rutina, y la metodología usada.
+posición y atributos, y una cadena de rutinas (elegir dirección hacia
+un objetivo con desempate aleatorio + comprobar la celda adyacente
+contra una estructura en `$8200`) consistente con un **algoritmo de
+movimiento/persecución en rejilla** — hipótesis razonable para la IA
+de un enemigo persiguiendo al jugador por el laberinto, sin confirmar
+(no se ha visto todavía el bucle de juego principal que la usaría). El
+resto (`$6401`-`$9385`) se incluye tal cual con `INCBIN` mientras se
+va analizando sesión a sesión — ver `FINDINGS.md` para el mapa de
+llamadas completo, la tabla de confianza por rutina, y la metodología
+usada.
 
 Compilar
 --------

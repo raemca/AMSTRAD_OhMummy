@@ -670,3 +670,81 @@ verificarlo con más cuidado en la próxima sesión).
   (`$7EAB`, `$7EF4`, `$7EB9`, `$786C`) para promoverlas a código
   compilado real (con `INCBIN` partido alrededor) si el hilo de
   llamadas lo justifica.
+
+## Sesión 5 — 2026-09-01: posible IA de persecución y mapa del laberinto
+
+Sesión guiada por `prompts/sesion_05_firmware_y_rutinas_internas.md` —
+continúa el hilo de llamadas pendiente de la Sesión 4 (`$7D78`,
+`$7A95`, `$7AB6`, `$7AF2`).
+
+### Rutinas nuevas exploradas
+
+| Dirección | Qué hace | Hipótesis | Confianza |
+|---|---|---|---|
+| `$7D78` | Duplica HL 8 veces, sumando DE cuando la duplicación genera acarreo | Función de mezcla/dispersión del generador pseudoaleatorio de `$7D53` (no es una multiplicación de propósito general: no prueba bits de un multiplicador, prueba el acarreo interno) | Alta (refuerza la hipótesis de PRNG de la Sesión 4) |
+| `$7A95` | Según un valor 0-3 en `A`, suma o resta 8 a la coordenada alta (`H`) o 2 a la baja (`L`) de una posición en `($8164)` | Calcular la posición de la celda adyacente en una direccion dada (pasos de rejilla 8/2, iguales a los margenes de colision de `$7A10`) | **Alta** |
+| `$7AB6` | Compara una posición candidata `($8164)` contra una posición de referencia `($8155)/($8156)` eje a eje, codifica el signo de cada diferencia como una dirección (mismo esquema 1-4 que `$7A95`), y usa `$7D53` (aleatorio) para decidir aleatoriamente cuál de los dos ejes va primero | **Elegir dirección hacia un objetivo, con desempate aleatorio de eje** -- patrón clásico de IA de persecución en rejilla (tipo "fantasma" de laberinto) | Media-alta |
+| `$7AF2` | Según la dirección en `($8159)`, calcula la posición adyacente (mismos pasos 8/2) y llama a `$7D3E` + `$7CE6` con el valor leído en esa celda | Comprobar qué hay en la casilla adyacente en una dirección dada, antes de moverse -- posible chequeo de colisión/transitabilidad | Media |
+| `$7D3E` | `LD HL,$8200`; indexa por `(columna/2) + fila*5` | Acceso a una estructura en `$8200` con paso de fila de 5 bytes -- hipótesis: **mapa del laberinto o una subdivisión de él** (dimensión exacta sin confirmar: 5 bytes/fila es estrecho para un laberinto completo, podría ser una zona/pantalla, no el nivel entero) | Media (estructura sí, tamaño real no) |
+| `$7CE6` | Segun el valor de `A` (en pasos de 2: 0,2,4,6,8...) selecciona una de varias tablas via `IY` (`$8959`, `$8A69`, `$8A89`, `$8AA9`, mas que no se llegaron a capturar) | Dispatcher: elegir una tabla de sprite/animación segun un valor de tipo de celda o entidad -- desensamblado parcial, no se alcanzó su `RET` | Baja-media (funcion parcial) |
+
+### Hipótesis de conjunto (revisada)
+
+La cadena `$7996` (valida/coloca una entidad) → `$7A10` (colisión con
+otras entidades, pasos 8/2) → `$7AB6` (elegir dirección hacia un
+objetivo con desempate aleatorio) → `$7A95`/`$7AF2` (mover un paso en
+una dirección y comprobar la celda destino via `$7D3E`+`$7CE6`) encaja
+de forma consistente con un **algoritmo de movimiento/persecución en
+rejilla** — el tipo de lógica esperable en la IA de un enemigo que
+persigue al jugador por un laberinto (ver
+`ohmummy_referencia_binario.html`, "IA de enemigos: patrones de
+desplazamiento, detección de perseguir"). Esto **no está confirmado**:
+no se ha visto todavía el bucle de juego principal que llamaría a esto
+fotograma a fotograma, ni se ha ejecutado nada en un emulador. Es
+plausible que estas mismas rutinas de bajo nivel (calcular celda
+adyacente, comprobar qué hay en ella) se reutilicen tanto para la
+inicialización de entidades (Sesión 4) como para su movimiento en el
+bucle de juego real -- de ahí que aparezcan ya en el arranque.
+
+### Separación código/datos (actualización)
+
+- `$8200`+: hipótesis de estructura de mapa/nivel, paso de fila de 5
+  bytes -- sin extraer a fichero, sin confirmar sus dimensiones reales
+  ni si es el laberinto completo o una subdivisión.
+- Las tablas `$8959`/`$8A69`/`$8A89`/`$8AA9` (vistas ya de pasada en
+  Sesión 3 como "tablas del indicador de menú") podrían en realidad
+  ser tablas de sprite/animación de propósito más general,
+  seleccionadas por `$7CE6` según un valor de tipo -- revisar esa
+  hipótesis de Sesión 3, puede que estuviera incompleta.
+
+### Documentación actualizada en esta sesión
+
+- `README.md`/`README.en.md`: estado a Sesión 5, mención de la
+  hipótesis de IA de persecución.
+- `src/README.md`: subsistema "movimiento/IA (hipótesis)" añadido.
+- `recursos/flujo_programa.html`: 6 rutinas nuevas.
+- `recursos/mapa_memoria.html`: nueva subregión `$8200`+ (mapa/nivel,
+  hipótesis).
+- `recursos/flujo_secuencial.html`: sin cambios de fase -- lo
+  descubierto esta sesión son rutinas de apoyo (cálculo de posición,
+  comprobación de celda) usadas DESDE la fase de "generador de
+  entidades" ya documentada en Sesión 4, no una fase nueva del
+  arranque.
+- `recursos/graficos.html`/`sprites.html`/`portada.html`: **sin
+  cambios** -- las tablas de sprite localizadas (`$8959`+) no se han
+  extraído ni decodificado como gráfico todavía, solo se sabe que
+  existen y dónde.
+
+### Pendiente para próximas sesiones
+
+- Terminar de desensamblar `$7CE6` (no se alcanzó su `RET`) y mapear
+  las tablas completas que selecciona.
+- Confirmar las dimensiones reales de la estructura en `$8200`
+  (¿cuántas filas? ¿es el laberinto completo?).
+- Buscar el bucle de juego principal (frame a frame) que llame a esta
+  cadena de movimiento/colisión de forma repetida -- sería la
+  confirmación más fuerte de la hipótesis de IA de persecución.
+- Seguir sin resolver: numeración de teclas del firmware (`$2C`/`$3E`).
+- Seguir pendiente: promover a código compilado real las subrutinas de
+  mayor confianza (`$7EAB`, `$7EF4`, `$7EB9`, `$786C`, `$7E92`, `$7D78`,
+  `$7A95`).

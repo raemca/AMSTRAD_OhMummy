@@ -38,7 +38,7 @@ dirección de carga y ejecución real del motor.
   completo byte a byte mientras se va desensamblando de verdad, sesión
   a sesión.
 
-### Subsistemas con hipótesis (Sesión 3, ninguno verificado en emulador)
+### Subsistemas con hipótesis (Sesiones 3-5, ninguno verificado en emulador)
 
 - Sonido: inicialización de 3 envolventes y una posible cola/guión de
   eventos (`$78D1`).
@@ -56,9 +56,16 @@ dirección de carga y ejecución real del motor.
   chequeo de proximidad (`$7A10`) se usan para inicializar un array de
   6 registros de 5 bytes en `$816D` — hipótesis: colocación de
   enemigos o coleccionables en el laberinto, sin confirmar.
+- Movimiento/IA (Sesión 5): una cadena de rutinas que elige una
+  dirección hacia una posición objetivo (con desempate aleatorio de
+  eje, `$7AB6`), calcula la celda adyacente (`$7A95`/`$7AF2`, pasos de
+  8/2 px) y consulta una estructura en `$8200` (paso de fila 5 bytes)
+  — hipótesis: algoritmo de persecución en rejilla, típico de IA de
+  enemigo en un laberinto. No se ha localizado todavía el bucle de
+  juego que lo usaría fotograma a fotograma.
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesiones 3-4) para la evidencia y el
+dirección y `../FINDINGS.md` (Sesiones 3-5) para la evidencia y el
 mapa de llamadas.
 
 ## Compilar y verificar
@@ -101,4 +108,4 @@ los dos**.
   varias interpretaciones, se verifica contra el código que lo usa de
   verdad (p. ej. el `CALL &6000` de `mummy_bas.bas`) antes de darlo
   por bueno — no se confía en una tabla recordada de memoria sin
-  contrastar (ver `../FINDINGS.md`, Sesiones 1-3).
+  contrastar (ver `../FINDINGS.md`, Sesiones 1-5).
