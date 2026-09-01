@@ -13,10 +13,12 @@
     --muted: #7a7266;
     --accent-basic: #6a86ae;
     --accent-codigo: #ae6a8f;
+    --accent-reconstruida: #4e7ecf;
     --accent-graficos: #7fae6a;
     --accent-sonido: #cf9f4e;
     --accent-niveles: #4ea6cf;
     --accent-unknown: #b3aa9c;
+    --accent-sistema: #e4dfd4;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -27,10 +29,12 @@
       --muted: #a39a8a;
       --accent-basic: #7f9bc4;
       --accent-codigo: #c47fa4;
+      --accent-reconstruida: #5e9edf;
       --accent-graficos: #8fc27a;
       --accent-sonido: #dfae5e;
       --accent-niveles: #5eb6df;
       --accent-unknown: #4a453d;
+      --accent-sistema: #322e28;
     }
   }
   * { box-sizing: border-box; }
@@ -72,7 +76,7 @@
     vertical-align: middle;
   }
   .bar {
-    display: flex;
+    position: relative;
     width: 100%;
     height: 2.4rem;
     border-radius: 8px;
@@ -81,17 +85,44 @@
     background: var(--accent-unknown);
   }
   .bar .seg {
-    height: 100%;
-    position: relative;
+    position: absolute;
+    top: 0;
+    bottom: 0;
     border-right: 1px solid rgba(0,0,0,0.15);
+    overflow: hidden;
+  }
+  .bar .seg-label {
+    position: absolute;
+    top: 0; bottom: 0; left: 3px; right: 3px;
+    display: flex;
+    align-items: center;
+    font-size: 0.68rem;
+    color: #14110d;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.35);
   }
   .bar-ticks {
-    display: flex;
-    justify-content: space-between;
-    font-family: "SFMono-Regular", Consolas, monospace;
-    font-size: 0.75rem;
-    color: var(--muted);
+    position: relative;
+    height: 1.4rem;
     margin-top: 0.3rem;
+  }
+  .bar-ticks .tick {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 5px;
+    background: var(--muted);
+  }
+  .bar-ticks .tick-label {
+    position: absolute;
+    top: 7px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+    transform: translateX(-2px);
   }
   table {
     width: 100%;
@@ -124,33 +155,42 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note" id="estado-nota">
-  <strong>Actualizado Sesion 6.</strong> La direccion de carga y
+  <strong>Actualizado Sesion 7.</strong> La direccion de carga y
   ejecucion del motor (<code>$6000</code>) esta confirmada desde
   Sesion 2 contra el propio <code>CALL &amp;6000</code> de
   <code>mummy_bas.bas</code>, no desde la cabecera AMSDOS (que resulto
   ambigua). El tramo <code>$6000</code>-<code>$6400</code> esta
-  desensamblado y verificado (compila byte a byte identico). Dentro
-  del resto todavia sin analizar (<code>$6401</code>-<code>$9385</code>,
-  incluido tal cual con <code>INCBIN</code>) ya se han localizado por
-  llamada varias subregiones de datos -- ver la segunda tabla mas
-  abajo -- pero son <strong>hipotesis sin verificar en emulador</strong>,
-  no direcciones confirmadas, asi que no aparecen en la barra de
-  arriba (solo lo confirmado ocupa un segmento propio).
+  desensamblado y verificado (compila byte a byte identico), sin
+  nombres semanticos propios todavia. Dentro del resto del motor
+  (<code>$6401</code>-<code>$9385</code>), las Sesiones 3-6 ya
+  reconstruyeron 26 rutinas con nombre funcional (1539 bytes, en dos
+  bloques contiguos <code>$786C</code>-<code>$7DE4</code> y
+  <code>$7E73</code>-<code>$7EFC</code>) que <strong>compilan byte a
+  byte identicas</strong> al original -- pero cuyos nombres siguen
+  siendo <strong>hipotesis sin verificar en emulador</strong>, asi que
+  la barra los marca en un color propio ("reconstruida"), distinto del
+  codigo mecanico ya nombrado con firmware y del resto que sigue sin
+  analizar. La barra ahora cubre <strong>las 65536 direcciones
+  completas</strong> (0000-FFFF), incluida la RAM/ROM del sistema y de
+  BASIC fuera de los dos ficheros del juego, para que cada segmento
+  quede colocado en su posicion real (ya no solo yuxtapuestos en
+  orden). Las subregiones con hipotesis de la segunda tabla siguen sin
+  aparecer como segmento propio (ver nota debajo de esa tabla).
 </div>
 
 <h2>Espacio de direcciones (0000-FFFF)</h2>
 <div class="bar" id="bar"></div>
-<div class="bar-ticks">
-  <span>$0000</span><span>$4000</span><span>$8000</span><span>$C000</span><span>$FFFF</span>
-</div>
+<div class="bar-ticks" id="bar-ticks"></div>
 
 <div class="legend">
   <span><span class="swatch" style="background:var(--accent-basic)"></span>cargador BASIC</span>
-  <span><span class="swatch" style="background:var(--accent-codigo)"></span>codigo (motor)</span>
+  <span><span class="swatch" style="background:var(--accent-codigo)"></span>codigo (motor, verificado + firmware nombrado)</span>
+  <span><span class="swatch" style="background:var(--accent-reconstruida)"></span>codigo reconstruido (verificado, nombres provisionales/hipotesis)</span>
   <span><span class="swatch" style="background:var(--accent-graficos)"></span>datos: graficos</span>
   <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
   <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
-  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin mapear todavia</span>
+  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin analizar todavia (dentro de MUMMY1.BIN)</span>
+  <span><span class="swatch" style="background:var(--accent-sistema)"></span>fuera de alcance (sistema/BASIC/pantalla CPC)</span>
 </div>
 
 <h2>Regiones identificadas</h2>
@@ -183,16 +223,29 @@ Sesion 3.</p>
 
 <script>
 // ============================================================
-// REGIONES DE MEMORIA -- ir anadiendo aqui conforme se confirmen
-// direcciones reales (verificadas, no solo leidas de una cabecera
-// sin contrastar). Cada entrada: {start, end, label, kind, fuente}
+// REGIONES DE MEMORIA -- cubren las 65536 direcciones COMPLETAS sin
+// huecos (cada entrada empieza donde termina la anterior), a
+// semejanza de los proyectos hermanos de Spectrum/MSX, para que la
+// barra de abajo posicione cada segmento por su direccion real (no
+// solo por orden). Ir anadiendo/ajustando aqui conforme se confirmen
+// direcciones reales (verificadas, no solo leidas de una cabecera sin
+// contrastar). Cada entrada: {start, end, label, kind, fuente}
 // direcciones en hexadecimal (numeros JS), end es EXCLUSIVO.
-// kind: "basic" | "codigo" | "graficos" | "sonido" | "niveles" | "unknown"
+// kind: "basic" | "codigo" | "reconstruida" | "graficos" | "sonido" |
+//       "niveles" | "unknown" (sin analizar, dentro de MUMMY1.BIN) |
+//       "sistema" (fuera del alcance de este proyecto)
 // ============================================================
 const REGIONS = [
+  { start: 0x0000, end: 0x0170, label: "Sistema CPC / variables antes del area de programa BASIC", kind: "sistema", fuente: "mapa de memoria estandar CPC 464, no analizado especificamente para este juego" },
   { start: 0x0170, end: 0x0170 + 2436, label: "MUMMY.BAS (cargador, tokenizado en RAM)", kind: "basic", fuente: "FINDINGS.md Sesion 2 (confirmado)" },
+  { start: 0x0170 + 2436, end: 0x6000, label: "Sistema CPC / BASIC (variables, pila, resto de RAM) -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
-  { start: 0x6401, end: 0x6000 + 13190, label: "MUMMY1.BIN: resto del motor -- INCBIN, contiene codigo y datos sin separar todavia", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x6401, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5227 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x786C, end: 0x7DE5, label: "MUMMY1.BIN: 21 rutinas reconstruidas con nombre funcional (1401 bytes) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-6 (compilado, 0 diferencias)" },
+  { start: 0x7DE5, end: 0x7E73, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 142 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 6 (pendiente)" },
+  { start: 0x7E73, end: 0x7EFD, label: "MUMMY1.BIN: 5 rutinas reconstruidas con nombre funcional (138 bytes) -- COPIAR_BLOQUE_A_LIENZO, CASILLA_A_DIRECCION_PANTALLA, BORRAR_BLOQUE_ESTADO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesion 3 (compilado, 0 diferencias)" },
+  { start: 0x7EFD, end: 0x6000 + 13190, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5257 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x6000 + 13190, end: 0x10000, label: "Sistema CPC / pantalla / RAM no usada por el motor -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
 ];
 
 // ============================================================
@@ -218,19 +271,23 @@ const SUBREGIONES = [
 ];
 
 const ADDR_MAX = 0x10000;
+const pct = (addr) => (100 * addr) / ADDR_MAX;
 const KIND_VAR = {
   basic: "--accent-basic",
   codigo: "--accent-codigo",
+  reconstruida: "--accent-reconstruida",
   graficos: "--accent-graficos",
   sonido: "--accent-sonido",
   niveles: "--accent-niveles",
   unknown: "--accent-unknown",
+  sistema: "--accent-sistema",
 };
 
 const bar = document.getElementById("bar");
 if (REGIONS.length === 0) {
   const seg = document.createElement("div");
   seg.className = "seg";
+  seg.style.left = "0%";
   seg.style.width = "100%";
   seg.style.background = "var(--accent-unknown)";
   seg.title = "Sin regiones confirmadas todavia";
@@ -239,11 +296,34 @@ if (REGIONS.length === 0) {
   REGIONS.slice().sort((a, b) => a.start - b.start).forEach((r) => {
     const seg = document.createElement("div");
     seg.className = "seg";
-    seg.style.width = (100 * (r.end - r.start) / ADDR_MAX) + "%";
+    seg.style.left = pct(r.start) + "%";
+    seg.style.width = (pct(r.end) - pct(r.start)) + "%";
     seg.style.background = "var(" + (KIND_VAR[r.kind] || KIND_VAR.unknown) + ")";
     seg.title = r.label + " ($" + r.start.toString(16).toUpperCase() + "-$" + (r.end - 1).toString(16).toUpperCase() + ")";
+    const widthPx = (pct(r.end) - pct(r.start)) / 100 * bar.clientWidth || 0;
+    if (widthPx > 46) {
+      const lbl = document.createElement("div");
+      lbl.className = "seg-label";
+      lbl.textContent = r.label;
+      seg.appendChild(lbl);
+    }
     bar.appendChild(seg);
   });
+}
+
+// --- regla de direcciones bajo la barra: una marca cada $1000, a
+// semejanza de los proyectos hermanos de Spectrum/MSX ---
+const barTicks = document.getElementById("bar-ticks");
+for (let addr = 0; addr <= ADDR_MAX; addr += 0x1000) {
+  const t = document.createElement("div");
+  t.className = "tick";
+  t.style.left = pct(addr) + "%";
+  barTicks.appendChild(t);
+  const l = document.createElement("div");
+  l.className = "tick-label";
+  l.style.left = pct(addr) + "%";
+  l.textContent = "$" + addr.toString(16).toUpperCase().padStart(4, "0");
+  barTicks.appendChild(l);
 }
 
 const tbody = document.querySelector("#tabla-regiones tbody");
