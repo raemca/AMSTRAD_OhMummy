@@ -162,10 +162,11 @@
   ambigua). El tramo <code>$6000</code>-<code>$6400</code> esta
   desensamblado y verificado (compila byte a byte identico), sin
   nombres semanticos propios todavia. Dentro del resto del motor
-  (<code>$6401</code>-<code>$9385</code>), las Sesiones 3-6 ya
-  reconstruyeron 26 rutinas con nombre funcional (1539 bytes, en dos
-  bloques contiguos <code>$786C</code>-<code>$7DE4</code> y
-  <code>$7E73</code>-<code>$7EFC</code>) que <strong>compilan byte a
+  (<code>$6401</code>-<code>$9385</code>), las Sesiones 3-7 ya
+  reconstruyeron 38 rutinas con nombre funcional (1681 bytes, un
+  unico bloque contiguo <code>$786C</code>-<code>$7EFC</code> desde
+  que la Sesion 7 cerro el hueco de 142 bytes que separaba los dos
+  bloques anteriores) que <strong>compilan byte a
   byte identicas</strong> al original -- pero cuyos nombres siguen
   siendo <strong>hipotesis sin verificar en emulador</strong>, asi que
   la barra los marca en un color propio ("reconstruida"), distinto del
@@ -241,9 +242,7 @@ const REGIONS = [
   { start: 0x0170 + 2436, end: 0x6000, label: "Sistema CPC / BASIC (variables, pila, resto de RAM) -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
   { start: 0x6401, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5227 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
-  { start: 0x786C, end: 0x7DE5, label: "MUMMY1.BIN: 21 rutinas reconstruidas con nombre funcional (1401 bytes) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-6 (compilado, 0 diferencias)" },
-  { start: 0x7DE5, end: 0x7E73, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 142 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 6 (pendiente)" },
-  { start: 0x7E73, end: 0x7EFD, label: "MUMMY1.BIN: 5 rutinas reconstruidas con nombre funcional (138 bytes) -- COPIAR_BLOQUE_A_LIENZO, CASILLA_A_DIRECCION_PANTALLA, BORRAR_BLOQUE_ESTADO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesion 3 (compilado, 0 diferencias)" },
+  { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
   { start: 0x7EFD, end: 0x6000 + 13190, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5257 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
   { start: 0x6000 + 13190, end: 0x10000, label: "Sistema CPC / pantalla / RAM no usada por el motor -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
 ];

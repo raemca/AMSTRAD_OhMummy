@@ -1092,3 +1092,119 @@ la tokenización del BASIC (Sesión 2) y la comprensión del formato
   (versión anterior del logo "AMSOFT") con más detalle si se llega a
   detokenizar ese fragmento completo — podría revelar diferencias
   entre un borrador y la versión final del cargador.
+
+## Sesión 7 (continuación 1) — 2026-09-01: `recursos/mapa_memoria.html` — la barra no cuadraba con las direcciones reales
+
+A petición del usuario ("la grafica horizontal no esta actualizada y
+lo que hay parece no cuadrar con las direcciones de memoria"): la
+barra usaba `display:flex` y solo el ANCHO de cada región de
+`REGIONS`, sin ninguna noción de posición — los segmentos se
+yuxtaponían en el orden del array, así que cualquier hueco de
+direcciones no cubierto por una entrada simplemente desaparecía
+visualmente (el hueco de ~22K bytes entre `MUMMY.BAS` y `$6000`
+colapsaba a cero ancho, y el motor aparecía pegado justo después del
+cargador BASIC en vez de a mitad de la barra). Además `REGIONS` solo
+cubría una fracción del espacio de direcciones — no reflejaba las 26
+rutinas ya reconstruidas en las Sesiones 3-6.
+
+Corregido a semejanza de los proyectos hermanos de Spectrum/MSX:
+
+- `REGIONS` ahora cubre las **65536 direcciones completas** sin
+  huecos (cada entrada empieza donde termina la anterior).
+- La barra posiciona cada segmento por dirección real
+  (`left`/`width` absolutos calculados como `direccion / 0x10000`),
+  no por orden secuencial de un `display:flex`.
+- Nueva categoría `"reconstruida"` (mismo nombre y color que ya usa
+  `flujo_programa.html`) para los dos bloques de las Sesiones 3-6
+  (`$786C`-`$7DE4`, `$7E73`-`$7EFC`): verificados byte a byte pero con
+  nombres todavía hipótesis, distintos del código mecánico ya
+  nombrado con firmware.
+- Nueva categoría `"sistema"` para distinguir la RAM/ROM/BASIC/
+  pantalla del CPC fuera del alcance de este proyecto de las zonas
+  `"unknown"` que sí son parte de `MUMMY1.BIN` pero siguen sin
+  analizar.
+- Regla de direcciones cada `$1000` bajo la barra (antes solo 5
+  marcas fijas).
+
+Cambio solo de documentación/visualización, sin impacto en el ASM —
+no requiere `py tools/build_all.py`.
+
+## Sesión 7 (continuación 2) — 2026-09-01: cerrado el hueco `$7DE5`-`$7E72` — 12 rutinas nuevas, el bloque `$786C`-`$7EFC` queda contiguo (1681 bytes)
+
+Siguiendo el hilo de llamadas real (regla base: no avanzar a ciegas):
+`DIBUJAR_TRAMO_MARCO_1/2/3` llaman a `$7DED` y `DIBUJAR_TRAMO_MARCO_4`
+a `$7DE5` — ambos dentro del único hueco de 142 bytes que quedaba
+entre los dos bloques ya reconstruidos. Desensamblado completo con
+`tools/z80_disasm.py` (sin fallos de decodificación en las 142 bytes)
+y reconstruido en `src/mummy1_body.asm`.
+
+### Hallazgo: 12 rutinas nuevas, y una hipótesis previa corregida
+
+**Corrección importante**: `flujo_programa.html` (Sesión 5/6) etiquetaba
+las entradas en `$7DFC`-`$7E29` como "variantes de máscara AND/OR". El
+desensamblado real muestra que **no hay ninguna instrucción AND ni OR
+en todo el bloque** — es una hipótesis anterior sin evidencia directa,
+ahora corregida con el código real delante.
+
+Lo que hay de verdad:
+
+- `RELLENAR_MARCO_MEDIO` (`$7DE5`, máscara `$0F`), `RELLENAR_MARCO_SOLIDO`
+  (`$7DED`, máscara `$FF`) y `RELLENAR_MARCO_VACIO` (`$7DF5`, máscara
+  `$00`): cada una fija un byte de máscara constante en `$864A` y salta
+  a `PREPARAR_RELLENO_MASCARA_UNICA`, que rellena un bloque de 24 filas
+  x 10 bytes (reutilizando `CASILLA_A_DIRECCION_PANTALLA` fila a fila
+  vía `RELLENAR_FILAS_MASCARA`) con ESE byte repetido — sin AND/OR,
+  solo `LD (HL),A` en bucle. Confianza alta en la estructura; media en
+  el papel visual exacto (hipótesis: relleno sólido/vacío/a medias de
+  una casilla del marco decorativo).
+- `RELLENAR_MARCO_DIAGONAL_1`..`_6` (`$7DFC`-`$7E2E`): cada una hace lo
+  mismo pero con un truco de **código automodificable** — parchea en
+  caliente el byte inmediato de la instrucción `XOR $0F` situada en
+  `$7E47` (dentro de `RELLENAR_MARCO_DIAGONAL_BUCLE`) con un segundo
+  valor de máscara, y fija un primer valor en `$864A`. El bucle
+  resultante dibuja 24 filas ALTERNANDO entre la máscara inicial y su
+  XOR contra el valor parcheado (una fila con cada una, alternando),
+  dando un patrón "a rayas"/veteado en vez de sólido. Confianza alta en
+  la estructura (compilado, 0 diferencias); media en el papel visual
+  (hipótesis: variantes de veta diagonal para las esquinas del marco).
+- `RELLENAR_MARCO_DIAGONAL_BUCLE` (`$7E30`) y `PREPARAR_RELLENO_MASCARA_UNICA`
+  (`$7E4F`) son los dos preparadores compartidos; `RELLENAR_FILAS_MASCARA`
+  (`$7E59`) es el bucle de bajo nivel que ambos usan (también se llama a
+  sí mismo como subrutina con `B=1` para dibujar una sola fila desde el
+  bucle diagonal).
+
+Solo `RELLENAR_MARCO_MEDIO` y `RELLENAR_MARCO_SOLIDO` tienen un
+llamador conocido dentro de lo ya reconstruido (`DIBUJAR_TRAMO_MARCO_4`
+y `DIBUJAR_TRAMO_MARCO_1/2/3`, actualizados para llamarlas por nombre).
+`RELLENAR_MARCO_VACIO` y las 6 variantes diagonales no tienen todavía
+un llamador conocido — probablemente están en uno de los dos huecos
+`INCBIN` que quedan (`$6401`-`$786B` o `$7EFD`-`$9385`).
+
+### Resultado
+
+El bloque reconstruido `$786C`-`$7DE4` (Sesión 6) + este hueco cerrado
++ el bloque `$7E73`-`$7EFC` (Sesión 3) quedan **fusionados en un único
+tramo contiguo `$786C`-`$7EFC` (1681 bytes, 38 rutinas)**, el 12.7% del
+motor. Verificado con `py tools/build_all.py` (0 diferencias, 13190
+bytes) y `py tools/dsk_build.py` (0 diferencias, 194816 bytes).
+
+Quedan 2 huecos `INCBIN` sin analizar: `$6401`-`$786B` (5227 bytes) y
+`$7EFD`-`$9385` (5257 bytes) — 10484 bytes en total.
+
+### Documentación actualizada en esta sesión
+
+- `FINDINGS.md` (esta entrada), `README.md`/`README.en.md`/
+  `src/README.md` (cifras actualizadas: 38 rutinas, 1681 bytes, un
+  único bloque contiguo), `recursos/flujo_programa.html` (12 filas
+  nuevas) y `recursos/mapa_memoria.html` (los 3 segmentos del tramo
+  `$786C`-`$7EFD` fusionados en uno solo, ya no hay hueco `unknown`
+  entre ellos).
+
+### Pendiente para próximas sesiones
+
+- Los dos huecos `INCBIN` restantes (`$6401`-`$786B`, `$7EFD`-`$9385`).
+- Localizar el llamador de `RELLENAR_MARCO_VACIO` y de las 6 variantes
+  `RELLENAR_MARCO_DIAGONAL_*`.
+- Numeración de teclas de firmware para `$2C`/`$3E` (pendiente desde
+  Sesión 4/5).
+- Bucle principal de juego, todavía sin localizar.

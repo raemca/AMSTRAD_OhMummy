@@ -31,18 +31,19 @@ dirección de carga y ejecución real del motor.
   tramo. Este tramo en sí sigue sin nombres semánticos propios
   (reconstrucción mecánica de primera pasada, solo llama a otras
   rutinas ya nombradas).
-- **`$6401`-`$9385`** (12165 bytes originalmente): **26 subrutinas
-  (1539 bytes, el 12.7% del motor) ya están reconstruidas con nombre
-  funcional real**, formando un único bloque contiguo de 1401 bytes
-  (`$78D1`-`$7DE4`, cerrado en la Sesión 6) más el bloque de la Sesión 3
-  (`$7E73`-`$7EFC`) — `GENERAR_ALEATORIO`, `ACTUALIZAR_SECUENCIA_SONIDO`,
-  `HAY_COLISION`, `DIBUJAR_ENTIDAD` (dispatcher de sprites)... (lista
+- **`$6401`-`$9385`** (12165 bytes originalmente): **38 subrutinas
+  (1681 bytes, el 12.7% del motor) ya están reconstruidas con nombre
+  funcional real**, formando un único bloque contiguo de 1681 bytes
+  (`$786C`-`$7EFC`, cerrado en la Sesión 7 al fusionarse el bloque de
+  la Sesión 6 con el de la Sesión 3) — `GENERAR_ALEATORIO`,
+  `ACTUALIZAR_SECUENCIA_SONIDO`, `HAY_COLISION`, `DIBUJAR_ENTIDAD`
+  (dispatcher de sprites), `RELLENAR_MARCO_DIAGONAL_1..6`... (lista
   completa más abajo). **Todos los nombres son provisionales**, cada
   uno con su hipótesis y nivel de confianza en un comentario junto a
   la etiqueta — ninguno verificado ejecutando el juego en un emulador
   (ver `prompts/_base_reconstruccion.md`, reglas globales desde la
-  Sesión 6). El resto (10626 bytes, en 5 huecos entre las rutinas ya
-  reconstruidas) sigue sin analizar, incluido tal cual con varios
+  Sesión 6). El resto (10484 bytes, en 2 huecos: `$6401`-`$786B` y
+  `$7EFD`-`$9385`) sigue sin analizar, incluido tal cual con
   `INCBIN "data/mummy1_resto_sin_analizar.bin", offset, longitud` —
   el offset/longitud de cada hueco se calcula automáticamente (no a
   mano) para que la compilación siga reproduciendo el binario completo
@@ -71,9 +72,12 @@ dirección de carga y ejecución real del motor.
 | `IMPRIMIR_NUMERO_HL` | HUD — imprime HL como 4 dígitos decimales (posible marcador) | Media-alta |
 | `ESPERAR_TECLA_2C` | Entrada — espera una tecla con antirrebote | Alta |
 | `ANIMAR_OPCION_MENU` | Menú — anima/temporiza la opción resaltada (1/2 jugadores) | Baja |
+| `RELLENAR_MARCO_MEDIO` / `RELLENAR_MARCO_SOLIDO` / `RELLENAR_MARCO_VACIO` | Marco decorativo — rellena una casilla de 24x10 bytes con una máscara constante ($0F/$FF/$00) | Media |
+| `RELLENAR_MARCO_DIAGONAL_1..6` / `RELLENAR_MARCO_DIAGONAL_BUCLE` | Marco decorativo — rellena alternando dos máscaras fila a fila vía código automodificable (Sesión 7: corrige la hipótesis previa "AND/OR", no hay AND ni OR en el bloque) | Media |
+| `PREPARAR_RELLENO_MASCARA_UNICA` / `RELLENAR_FILAS_MASCARA` | Marco decorativo — preparadores compartidos del relleno de máscara, reutilizan `CASILLA_A_DIRECCION_PANTALLA` | Alta |
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesiones 3-6) para la evidencia, el
+dirección y `../FINDINGS.md` (Sesiones 3-7) para la evidencia, el
 nivel de confianza detallado, y el mapa de llamadas.
 
 ## Compilar y verificar

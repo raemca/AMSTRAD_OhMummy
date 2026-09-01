@@ -25,9 +25,10 @@ notice.
 
 Current status
 ---------------
-**Session 6 — 26 routines reconstructed with functional names (1539
-bytes, including a ~20-table sprite dispatcher), firmware identified.**
-The disk's AMSDOS catalogue (`FISICO/Oh Mummy
+**Session 7 — 38 routines reconstructed with functional names (1681
+bytes in a single contiguous block, including a ~20-table sprite
+dispatcher), firmware identified, full `.dsk` regenerated from
+scratch.** The disk's AMSDOS catalogue (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU format, 40 tracks x
 1 side, 9x512 data format, sector IDs `C1`-`C9`) only has **2 files**:
 
@@ -52,30 +53,34 @@ against the official CPC manual (named `EQU`s in
 `src/mummy1_body.asm`: sound, text, screen management...).
 
 Beyond that stretch, following the real call thread (not linearly),
-**26 internal subroutines (1539 bytes, 12.7% of the engine) now have
+**38 internal subroutines (1681 bytes, 12.7% of the engine) now have
 real functional names and are reconstructed as compiled source code**,
-forming one contiguous 1401-byte block (`$78D1`-`$7DE4`) plus the
-Session 3 block (`$7E73`-`$7EFC`). Includes
-`GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO` (pseudo-random generator
-seeded from the system clock), `ACTUALIZAR_SECUENCIA_SONIDO` (steps
-through a **circular** sound-script table and queues sound via
+forming one contiguous block `$786C`-`$7EFC` (merged in Session 7 by
+closing the 142-byte gap between the Session 3 and Session 6 blocks).
+Includes `GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO` (pseudo-random
+generator seeded from the system clock), `ACTUALIZAR_SECUENCIA_SONIDO`
+(steps through a **circular** sound-script table and queues sound via
 firmware), `HAY_COLISION` (collision against other entities and
 against the map), `ELEGIR_DIRECCION_HACIA_OBJETIVO` and
 `CALCULAR_CASILLA_ADYACENTE` (grid-based movement),
 `COLOCAR_ENTIDAD`/`INICIALIZAR_ENTIDADES`/`INICIALIZAR_UNA_ENTIDAD`
-(possibly placing 6 enemies or collectibles), and — Session 6's
-biggest finding — **`DIBUJAR_ENTIDAD`** (429 bytes, a dispatcher
-picking one of ~20 4x16-byte sprite tables by entity type, direction,
-and an animation frame) and `DIBUJAR_CASILLA_MAPA` (the same for 9
-2x8-byte tile tables) — the strongest evidence yet of where the
-game's character drawing lives. **All names are provisional** (each
-with its hypothesis and confidence level in the code itself, see
-`FINDINGS.md`) — none verified yet by running the game in an emulator.
-The rest of the engine (10626 bytes across several stretches) is still
-included as-is via `INCBIN` (offset and length computed automatically
-around the reconstructed code) while it gets analyzed session by
-session — see `FINDINGS.md` for the full call map, the per-routine
-confidence table, and the methodology used.
+(possibly placing 6 enemies or collectibles), **`DIBUJAR_ENTIDAD`**
+(429 bytes, a dispatcher picking one of ~20 4x16-byte sprite tables by
+entity type, direction, and an animation frame) and `DIBUJAR_CASILLA_MAPA`
+(the same for 9 2x8-byte tile tables), and — Session 7 —
+`RELLENAR_MARCO_MEDIO`/`_SOLIDO`/`_VACIO` and
+`RELLENAR_MARCO_DIAGONAL_1..6` (fill a 24x10-byte decorative-frame
+tile with a constant mask, or with two masks alternated row by row via
+self-modifying code; corrects an earlier hypothesis that called these
+"AND/OR mask variants" — there is no actual AND/OR instruction in the
+block). **All names are provisional** (each with its hypothesis and
+confidence level in the code itself, see `FINDINGS.md`) — none
+verified yet by running the game in an emulator. The rest of the
+engine (10484 bytes across 2 stretches) is still included as-is via
+`INCBIN` (offset and length computed automatically around the
+reconstructed code) while it gets analyzed session by session — see
+`FINDINGS.md` for the full call map, the per-routine confidence table,
+and the methodology used.
 
 Building
 --------

@@ -130,21 +130,26 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 6.</strong> El bloque
+  <strong>Actualizado Sesion 7.</strong> El bloque
   <code>$6000</code>-<code>$6400</code> del motor esta desensamblado y
   verificado. Las 14 rutinas de firmware que llama estan confirmadas
-  contra el manual oficial (badge "completo"). <strong>26 subrutinas
-  internas (1539 bytes) ya estan reconstruidas con nombre funcional
+  contra el manual oficial (badge "completo"). <strong>38 subrutinas
+  internas (1681 bytes) ya estan reconstruidas con nombre funcional
   real y compiladas</strong> (badge "reconstruida, provisional") --
-  forman un unico bloque contiguo de 1401 bytes mas el bloque de la
-  Sesion 3, cada una con su hipotesis y nivel de confianza en la
+  forman un unico bloque contiguo <code>$786C</code>-<code>$7EFC</code>
+  (fusionado en la Sesion 7 al cerrar el hueco entre los bloques de las
+  Sesiones 3 y 6), cada una con su hipotesis y nivel de confianza en la
   columna de notas, pero <strong>ninguna verificada ejecutando el
   juego en un emulador</strong>, por eso no llevan el badge "completo"
   todavia. El hallazgo mas importante: <code>DIBUJAR_ENTIDAD</code>,
-  un dispatcher de ~20 tablas de sprite. El resto de subrutinas
-  detectadas siguen sin nombre ("pendiente"). Ver
-  <code>FINDINGS.md</code> Sesiones 3-6 para el detalle y el mapa de
-  llamadas completo.
+  un dispatcher de ~20 tablas de sprite. La Sesion 7 corrige ademas una
+  hipotesis previa de esta misma tabla ("variantes de mascara AND/OR"
+  en <code>$7DFC</code>-<code>$7E29</code>): el desensamblado real no
+  tiene ninguna instruccion AND/OR, son escrituras directas y una
+  alternancia via codigo automodificable (ver <code>RELLENAR_MARCO_*</code>
+  abajo). El resto de subrutinas detectadas siguen sin nombre
+  ("pendiente"). Ver <code>FINDINGS.md</code> Sesiones 3-7 para el
+  detalle y el mapa de llamadas completo.
 </div>
 
 <div class="stats">
@@ -205,11 +210,21 @@ const RUTINAS = [
   { addr: "$7D9D", nombre: "DIBUJAR_TRAMO_MARCO_2", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $87C5 y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
   { addr: "$7DB5", nombre: "DIBUJAR_TRAMO_MARCO_3", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $880D y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
   { addr: "$7DCD", nombre: "DIBUJAR_TRAMO_MARCO_4", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $8855 y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
-  { addr: "$7DFC", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 1 de 6 de mascara AND/OR, cae en $7E30" },
-  { addr: "$7E05", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 2 de 6 de mascara AND/OR, cae en $7E30" },
-  { addr: "$7E0E", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 3 de 6 de mascara AND/OR, cae en $7E30" },
-  { addr: "$7E17", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 4 de 6 de mascara AND/OR, cae en $7E30" },
-  { addr: "$7E29", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 6 de 6 de mascara AND/OR, cae en $7E30" },
+  // -- Sesion 7: cerrado el hueco $7DE5-$7E72 -- CORRIGE la hipotesis
+  // previa de esta misma tabla ("mascara AND/OR"): no hay ninguna
+  // instruccion AND ni OR en el bloque real, ver FINDINGS.md Sesion 7 --
+  { addr: "$7DE5", nombre: "RELLENAR_MARCO_MEDIO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Llamada real desde DIBUJAR_TRAMO_MARCO_4. Fija mascara $0F y salta a PREPARAR_RELLENO_MASCARA_UNICA (rellena 24x10 bytes). Compilada, 0 diferencias" },
+  { addr: "$7DED", nombre: "RELLENAR_MARCO_SOLIDO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Llamada real desde DIBUJAR_TRAMO_MARCO_1/2/3. Fija mascara $FF y salta a PREPARAR_RELLENO_MASCARA_UNICA. Compilada, 0 diferencias" },
+  { addr: "$7DF5", nombre: "RELLENAR_MARCO_VACIO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Fija mascara $00 y salta a PREPARAR_RELLENO_MASCARA_UNICA. Sin llamador conocido todavia dentro de lo reconstruido. Compilada, 0 diferencias" },
+  { addr: "$7DFC", nombre: "RELLENAR_MARCO_DIAGONAL_1", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 1 de 6: parchea (codigo automodificable) el XOR $0F de $7E47 con $FF, fija mascara $A5, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E05", nombre: "RELLENAR_MARCO_DIAGONAL_2", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 2 de 6: parchea $7E47 con $F0, mascara $AF, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E0E", nombre: "RELLENAR_MARCO_DIAGONAL_3", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 3 de 6: parchea $7E47 con $0F, mascara $FA, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E17", nombre: "RELLENAR_MARCO_DIAGONAL_4", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 4 de 6: parchea $7E47 con $F0, mascara $50, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E20", nombre: "RELLENAR_MARCO_DIAGONAL_5", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 5 de 6: parchea $7E47 con $FF, mascara $55, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E29", nombre: "RELLENAR_MARCO_DIAGONAL_6", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 6 de 6: parchea $7E47 con $0F, mascara $05, cae en RELLENAR_MARCO_DIAGONAL_BUCLE (sin JR, fall-through directo). Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7E30", nombre: "RELLENAR_MARCO_DIAGONAL_BUCLE", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta en estructura. Bucle compartido de las 6 variantes diagonales: dibuja 24 filas llamando a RELLENAR_FILAS_MASCARA con B=1 (una fila cada vez), alternando la mascara via XOR contra el byte parcheado en $7E47. Compilada, 0 diferencias" },
+  { addr: "$7E4F", nombre: "PREPARAR_RELLENO_MASCARA_UNICA", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Prepara un relleno de 24 filas con una unica mascara (sin alternar) y cae en RELLENAR_FILAS_MASCARA. Compilada, 0 diferencias" },
+  { addr: "$7E59", nombre: "RELLENAR_FILAS_MASCARA", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Bucle de bajo nivel: por cada fila llama a CASILLA_A_DIRECCION_PANTALLA, escribe 10 bytes de mascara, avanza fila (INC H). Reusado tanto por relleno unico (B=24) como por el bucle diagonal (llamado con B=1). Compilada, 0 diferencias" },
   { addr: "$786C", nombre: "IMPRIMIR_NUMERO_HL", subsistema: "HUD/marcador (hipotesis)", estado: "reconstruida", notas: "Confianza media-alta. Imprime HL como 4 digitos decimales via TXT OUTPUT (resta repetida + $30). Compilada, 0 diferencias" },
   { addr: "$7893", nombre: "ESPERAR_TECLA_2C", subsistema: "entrada/teclado (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Espera la tecla $2C con antirrebote (pulsacion + liberacion). Compilada, 0 diferencias" },
   { addr: "$78B7", nombre: "ANIMAR_OPCION_MENU", subsistema: "menu (hipotesis)", estado: "reconstruida", notas: "Confianza baja. Posible animacion/temporizado de la opcion de menu resaltada. Compilada, 0 diferencias" },

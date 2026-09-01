@@ -1133,7 +1133,7 @@ MEZCLAR_ALEATORIO:
     RET                              ; 7D84: c9
 DIBUJAR_TRAMO_MARCO_1:
     LD ($8645),HL                    ; 7D85: 224586
-    CALL $7DED                       ; 7D88: cded7d
+    CALL RELLENAR_MARCO_SOLIDO       ; 7D88: cded7d
     LD HL,($8645)                    ; 7D8B: 2a4586
     LD BC,$0602                      ; 7D8E: 010206
     ADD HL,BC                        ; 7D91: 09
@@ -1143,7 +1143,7 @@ DIBUJAR_TRAMO_MARCO_1:
     RET                              ; 7D9C: c9
 DIBUJAR_TRAMO_MARCO_2:
     LD ($8645),HL                    ; 7D9D: 224586
-    CALL $7DED                       ; 7DA0: cded7d
+    CALL RELLENAR_MARCO_SOLIDO       ; 7DA0: cded7d
     LD HL,($8645)                    ; 7DA3: 2a4586
     LD BC,$0602                      ; 7DA6: 010206
     ADD HL,BC                        ; 7DA9: 09
@@ -1153,7 +1153,7 @@ DIBUJAR_TRAMO_MARCO_2:
     RET                              ; 7DB4: c9
 DIBUJAR_TRAMO_MARCO_3:
     LD ($8645),HL                    ; 7DB5: 224586
-    CALL $7DED                       ; 7DB8: cded7d
+    CALL RELLENAR_MARCO_SOLIDO       ; 7DB8: cded7d
     LD HL,($8645)                    ; 7DBB: 2a4586
     LD BC,$0602                      ; 7DBE: 010206
     ADD HL,BC                        ; 7DC1: 09
@@ -1163,7 +1163,7 @@ DIBUJAR_TRAMO_MARCO_3:
     RET                              ; 7DCC: c9
 DIBUJAR_TRAMO_MARCO_4:
     LD ($8645),HL                    ; 7DCD: 224586
-    CALL $7DE5                       ; 7DD0: cde57d
+    CALL RELLENAR_MARCO_MEDIO        ; 7DD0: cde57d
     LD HL,($8645)                    ; 7DD3: 2a4586
     LD BC,$0602                      ; 7DD6: 010206
     ADD HL,BC                        ; 7DD9: 09
@@ -1171,7 +1171,108 @@ DIBUJAR_TRAMO_MARCO_4:
     LD IY,$8855                      ; 7DDD: fd215588
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DE1: cd737e
     RET                              ; 7DE4: c9
-    INCBIN "data/mummy1_resto_sin_analizar.bin", 6628, 142  ; $7DE5-$7E72, sin analizar todavia
+; ---- RELLENAR_MARCO_MEDIO / RELLENAR_MARCO_SOLIDO / RELLENAR_MARCO_VACIO /
+; RELLENAR_MARCO_DIAGONAL_1..6 / RELLENAR_MARCO_DIAGONAL_BUCLE /
+; PREPARAR_RELLENO_MASCARA_UNICA / RELLENAR_FILAS_MASCARA ----
+; Cierra el hueco $7DE5-$7E72 (Sesion 7): son los destinos de las
+; CALL $7DED/CALL $7DE5 de DIBUJAR_TRAMO_MARCO_1..4 (arriba), ahora
+; ya nombrados. CORRIGE la hipotesis previa de FINDINGS.md/
+; flujo_programa.html ("variantes de mascara AND/OR"): no hay
+; ninguna instruccion AND ni OR en todo el bloque -- son escrituras
+; directas (LD (HL),A) de un byte de mascara repetido 10 veces por
+; fila x 24 filas (RELLENAR_FILAS_MASCARA, reusa
+; CASILLA_A_DIRECCION_PANTALLA para cada fila), mas 6 variantes que
+; ALTERNAN dos mascaras fila a fila mediante codigo AUTOMODIFICABLE
+; (RELLENAR_MARCO_DIAGONAL_BUCLE parchea en caliente el operando
+; inmediato del "XOR $0F" en $7E47 antes de ejecutarlo, y llama a
+; RELLENAR_FILAS_MASCARA con B=1 para dibujar una sola fila cada vez).
+; Confianza ALTA en la estructura (compilada, 0 diferencias byte a
+; byte). Confianza MEDIA en el papel visual exacto: hipotesis de que
+; rellenan una casilla/tramo del marco decorativo con un patron
+; solido/vacio/a medias (las 3 primeras) o con una veta a rayas
+; alternas de 24x10 bytes (las 6 diagonales) -- sin confirmar en
+; emulador. RELLENAR_MARCO_MEDIO y RELLENAR_MARCO_SOLIDO son las
+; unicas llamadas desde codigo ya conocido (DIBUJAR_TRAMO_MARCO_4 y
+; DIBUJAR_TRAMO_MARCO_1/2/3); RELLENAR_MARCO_VACIO y las 6 variantes
+; RELLENAR_MARCO_DIAGONAL_1..6 no tienen todavia un llamador conocido
+; dentro de lo ya reconstruido -- pendiente localizarlo en uno de los
+; huecos INCBIN restantes. Ver FINDINGS.md Sesion 7.
+RELLENAR_MARCO_MEDIO:
+    LD A,$0F                         ; 7DE5: 3e0f
+    LD ($864A),A                     ; 7DE7: 324a86
+    JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DEA: c34f7e
+RELLENAR_MARCO_SOLIDO:
+    LD A,$FF                         ; 7DED: 3eff
+    LD ($864A),A                     ; 7DEF: 324a86
+    JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DF2: c34f7e
+RELLENAR_MARCO_VACIO:
+    XOR A                            ; 7DF5: af
+    LD ($864A),A                     ; 7DF6: 324a86
+    JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DF9: c34f7e
+RELLENAR_MARCO_DIAGONAL_1:
+    LD A,$FF                         ; 7DFC: 3eff
+    LD ($7E47),A                     ; 7DFE: 32477e
+    LD A,$A5                         ; 7E01: 3ea5
+    JR RELLENAR_MARCO_DIAGONAL_BUCLE ; 7E03: 182b
+RELLENAR_MARCO_DIAGONAL_2:
+    LD A,$F0                         ; 7E05: 3ef0
+    LD ($7E47),A                     ; 7E07: 32477e
+    LD A,$AF                         ; 7E0A: 3eaf
+    JR RELLENAR_MARCO_DIAGONAL_BUCLE ; 7E0C: 1822
+RELLENAR_MARCO_DIAGONAL_3:
+    LD A,$0F                         ; 7E0E: 3e0f
+    LD ($7E47),A                     ; 7E10: 32477e
+    LD A,$FA                         ; 7E13: 3efa
+    JR RELLENAR_MARCO_DIAGONAL_BUCLE ; 7E15: 1819
+RELLENAR_MARCO_DIAGONAL_4:
+    LD A,$F0                         ; 7E17: 3ef0
+    LD ($7E47),A                     ; 7E19: 32477e
+    LD A,$50                         ; 7E1C: 3e50
+    JR RELLENAR_MARCO_DIAGONAL_BUCLE ; 7E1E: 1810
+RELLENAR_MARCO_DIAGONAL_5:
+    LD A,$FF                         ; 7E20: 3eff
+    LD ($7E47),A                     ; 7E22: 32477e
+    LD A,$55                         ; 7E25: 3e55
+    JR RELLENAR_MARCO_DIAGONAL_BUCLE ; 7E27: 1807
+RELLENAR_MARCO_DIAGONAL_6:
+    LD A,$0F                         ; 7E29: 3e0f
+    LD ($7E47),A                     ; 7E2B: 32477e
+    LD A,$05                         ; 7E2E: 3e05
+RELLENAR_MARCO_DIAGONAL_BUCLE:
+    LD ($864A),A                     ; 7E30: 324a86
+    LD A,$0A                         ; 7E33: 3e0a
+    LD ($8649),A                     ; 7E35: 324986
+    LD ($8647),HL                    ; 7E38: 224786
+    LD B,$18                         ; 7E3B: 0618
+    PUSH BC                          ; 7E3D: c5
+    LD B,$01                         ; 7E3E: 0601
+    CALL RELLENAR_FILAS_MASCARA      ; 7E40: cd597e
+    LD A,($864A)                     ; 7E43: 3a4a86
+    XOR $0F                          ; 7E46: ee0f
+    LD ($864A),A                     ; 7E48: 324a86
+    POP BC                           ; 7E4B: c1
+    DJNZ $7E3D                       ; 7E4C: 10ef
+    RET                              ; 7E4E: c9
+PREPARAR_RELLENO_MASCARA_UNICA:
+    LD A,$0A                         ; 7E4F: 3e0a
+    LD ($8649),A                     ; 7E51: 324986
+    LD B,$18                         ; 7E54: 0618
+    LD ($8647),HL                    ; 7E56: 224786
+RELLENAR_FILAS_MASCARA:
+    PUSH BC                          ; 7E59: c5
+    CALL CASILLA_A_DIRECCION_PANTALLA ; 7E5A: cd927e
+    LD A,($8649)                     ; 7E5D: 3a4986
+    LD B,A                           ; 7E60: 47
+    LD A,($864A)                     ; 7E61: 3a4a86
+    LD (HL),A                        ; 7E64: 77
+    INC HL                           ; 7E65: 23
+    DJNZ $7E64                       ; 7E66: 10fc
+    LD HL,($8647)                    ; 7E68: 2a4786
+    INC H                            ; 7E6B: 24
+    LD ($8647),HL                    ; 7E6C: 224786
+    POP BC                           ; 7E6F: c1
+    DJNZ RELLENAR_FILAS_MASCARA      ; 7E70: 10e7
+    RET                              ; 7E72: c9
 
 ; ---- COPIAR_BLOQUE_A_LIENZO / CASILLA_A_DIRECCION_PANTALLA / BORRAR_BLOQUE_ESTADO / BORRAR_RECTANGULO_VENTANA / REPETIR_CARACTER ----
 ; hipotesis: copia un bloque de 6x12 bytes a un lienzo de trabajo (media);
