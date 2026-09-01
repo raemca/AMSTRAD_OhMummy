@@ -1686,13 +1686,17 @@ TABLAS_SPRITE_CASILLA:
 ; ($7C2F) y 'O' ($7C7C) hacen "LD IY,$8AB9/$8AF9/.../$8E79" -- 8
 ; direcciones (agrupadas en 4 grupos: <2, ==2, ==3, >=4 segun
 ; ($8157) para 'A' y ($8159) para 'O') x 2 fotogramas de animacion
-; cada una (alternados via XOR $01 de un flag). Confirmado ademas por
-; el usuario probando el explorador de recursos/sprites.html (Modo 1,
-; 4x16, offset $8AB9): el grupo 'A' se ve como el personaje jugable y
-; el grupo 'O' como un enemigo (momia) -- hipotesis de identidad
-; visual, confianza media; la estructura (16 sprites de 64 bytes
-; perfectamente contiguos) esta confirmada al 100% por el codigo.
-; Ver FINDINGS.md Sesion 8.
+; cada una (alternados via XOR $01 de un flag). Confirmado de forma
+; independiente por el usuario probando el explorador de
+; recursos/sprites.html (Modo 1, 4x16, offset inicial 416 = $8AB9,
+; salto 64): identifica visualmente 8 sprites del jugador y 8 del
+; zombie/momia, primero en $8AB9 y ultimo en $8E79 -- coincide exacto
+; con lo derivado del codigo. Hipotesis de identidad visual
+; ("jugador"/"momia"), confianza media-alta (dos fuentes
+; independientes de acuerdo: codigo y ojo humano, pero sin verificar
+; todavia contra una captura de pantalla real en emulador); la
+; estructura (16 sprites de 64 bytes perfectamente contiguos) esta
+; confirmada al 100% por el codigo. Ver FINDINGS.md Sesion 8.
 SPRITE_JUGADOR_G1_F1:
     DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AB9
     DB $F0,$0C,$03,$F0,$F0,$86,$16,$78,$E0,$77,$CC,$70,$C0,$77,$CC,$70 ; 8AC9

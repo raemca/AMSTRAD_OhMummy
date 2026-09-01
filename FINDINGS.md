@@ -1463,6 +1463,17 @@ reales) y **media en la identidad visual** ("jugador"/"momia" es la
 lectura del usuario probando el explorador con estos offsets exactos,
 no confirmada contra una captura de pantalla real).
 
+**Confirmado de forma independiente por el usuario** probando
+`recursos/sprites.html` con Modo 1, ancho 4, alto 16, offset inicial
+416, salto 64: identifica visualmente 8 sprites del jugador y 8 del
+zombie/momia, con el primero en `$8AB9` y el último en `$8E79` —
+coincide exactamente, byte a byte de dirección, con lo derivado del
+código de `DIBUJAR_ENTIDAD` arriba. Refuerza la confianza en la
+estructura (ya era alta) y sube la de la identidad visual de "media"
+a "media-alta" (sigue sin verificarse contra una captura de pantalla
+real del juego en emulador, pero ahora hay dos fuentes independientes
+-- código y ojo humano -- de acuerdo).
+
 Esto explica por qué escanear linealmente con salto fijo de 64 bytes
 desde el offset 0 (como hacía el preset inicial de `sprites.html`)
 producía basura en algunos tramos y figuras "medio bien" en otros: la
