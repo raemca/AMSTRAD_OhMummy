@@ -997,3 +997,98 @@ firmware.
   pero nunca desensamblados).
 - Numeración de teclas del firmware (`$2C`/`$3E`) sigue sin resolver.
 - El bucle de juego principal (frame a frame) sigue sin localizar.
+
+## Sesión 7 — 2026-09-01: reconstrucción completa del `.dsk` — `tools/dsk_build.py`
+
+A petición directa del usuario ("la compilación del proyecto debe
+funcionar como el proyecto de Spectrum"): hasta ahora `build_all.py`
+solo verificaba los dos ficheros por separado contra lo extraído del
+disco (ver Sesión 2), sin empaquetar el resultado de vuelta en un
+`.dsk` completo — a diferencia de los proyectos hermanos, que sí
+regeneran su entregable final (`.tzx`/`.dsk`) desde cero. Esta sesión
+cierra esa carencia.
+
+### Investigación del formato antes de escribir nada
+
+Antes de generar un solo byte se inspeccionó el `.dsk` original campo
+a campo para separar lo **reconstruible** (estructura del formato,
+metadatos del catálogo — deterministas, se pueden volver a calcular)
+de lo que **no lo es** (contenido sobrante de sectores reutilizados):
+
+- El área de disco no usada (bloques 19-179, 164864 bytes) es
+  uniformemente `$E5` — el byte de relleno estándar de un disco
+  formateado y vacío. Igual las 62 entradas de catálogo sin usar.
+  **Totalmente reconstruible.**
+- El relleno tras el contenido real de `MUMMY.BAS` dentro de sus 3
+  bloques asignados (508 bytes) **no es basura aleatoria**: contiene
+  texto ASCII reconocible de las mismas listas `DATA` del logo
+  "AMSOFT" que ya se habían detokenizado en la Sesión 2 (p. ej.
+  `"1,7,0,2,0,2,1,-7,0,2,2,2..."`), y fragmentos de tokens BASIC
+  reconocibles. Es decir: son restos legibles de una **versión
+  anterior del mismo fichero**, grabada antes en ese mismo sector
+  físico y no borrada al sobrescribirse con la versión final (AMSDOS,
+  como CP/M, no borra los sectores al truncar un fichero, solo dejan
+  de estar "reclamados"). Una pequeña ventana arqueológica al proceso
+  de desarrollo del juego, pero **no forma parte del programa real** —
+  no se reconstruye, se copia del original documentando por qué.
+- El relleno tras `MUMMY1.BIN` (1018 bytes) es del mismo tipo:
+  contenido variado no relacionado con el programa actual, tampoco
+  reconstruible.
+- Las cabeceras AMSDOS de 128 bytes: los campos con significado
+  conocido (Sesión 1-2: tipo, dirección de carga, longitud, checksum)
+  se recalculan; el resto (~90 bytes sin campo identificado) se copia
+  del original, igual que ya hacía `amsdos_basic_tool.tokenizar()`
+  desde la Sesión 2.
+- Formato de cabecera de pista confirmado byte a byte: gap#3=`$4E`,
+  filler=`$E5` (mismo valor que el relleno del disco vacío — no es
+  casualidad, es el valor estándar AMSDOS), IDs de sector `$C1`-`$C9`,
+  y el campo `C` (pista) de cada descriptor de sector coincide con el
+  número de pista real — se confirmó comparando las pistas 0, 1 y 39.
+
+### `tools/dsk_build.py`
+
+Reconstruye el `.dsk` **desde cero** (no copia el original salvo los
+~1600 bytes documentados arriba):
+
+1. Compila el motor (`sjasmplus main.asm`) y tokeniza el cargador
+   (`amsdos_basic_tool.tokenizar`) — reutilizando exactamente lo que
+   ya hacía `build_all.py`.
+2. Construye la cabecera de disco (256 bytes) y las 40 cabeceras de
+   pista (256 bytes cada una) campo a campo, con los valores del
+   formato "Data" de AMSDOS confirmados arriba.
+3. Construye el catálogo (2 entradas reales + 62 marcadas como
+   borradas `$E5`), leyendo del `.dsk` original solo los metadatos ya
+   conocidos y verificados en sesiones anteriores (usuario, nombre,
+   bloques asignados, número de registros) — no inventa nada nuevo,
+   reutiliza hechos ya confirmados.
+4. Coloca el cargador y el motor reconstruidos en sus bloques
+   correspondientes, con el relleno no reconstruible documentado
+   copiado del original.
+5. Compara el resultado byte a byte contra
+   `FISICO/Oh Mummy (1984)(Amsoft).dsk`.
+
+**Resultado: 0 diferencias a la primera ejecución** (194816 bytes) —
+confirma de un tirón que el desensamblado del motor (Sesión 2),
+la tokenización del BASIC (Sesión 2) y la comprensión del formato
+`.dsk`/AMSDOS (Sesión 1 y esta) son todas correctas simultáneamente.
+
+### Documentación actualizada en esta sesión
+
+- `README.md`/`README.en.md` y `src/README.md`: sección "Compilar"
+  actualizada con el nuevo paso `py tools/dsk_build.py` y el resultado
+  final en `build/ohmummy_reconstruido.dsk`.
+- `.vscode/tasks.json`: nueva tarea "Generar dsk" y tarea compuesta
+  "Compilar todo + generar dsk" (ahora la tarea por defecto de
+  `Ctrl+Shift+B`, igual que en los proyectos hermanos).
+- `recursos/*.html`: sin cambios — esta sesión fue de infraestructura
+  de compilación, no de nuevos hallazgos semánticos sobre el motor.
+
+### Pendiente para próximas sesiones
+
+- Seguir el trabajo de desensamblado donde lo dejó la Sesión 6
+  (bloque `$7DE5`-`$7E72`, numeración de teclas, bucle de juego
+  principal).
+- Documentar el hallazgo arqueológico del relleno de `MUMMY.BAS`
+  (versión anterior del logo "AMSOFT") con más detalle si se llega a
+  detokenizar ese fragmento completo — podría revelar diferencias
+  entre un borrador y la versión final del cargador.

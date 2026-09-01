@@ -80,13 +80,17 @@ nivel de confianza detallado, y el mapa de llamadas.
 
 ```
 py tools/build_all.py
+py tools/dsk_build.py
 ```
 
-Ensambla `main.asm` con SjASMPlus → `build/mummy1.bin`, tokeniza
-`load_disk/mummy_bas.bas` → `build/mummy.bas`, y compara ambos byte a
-byte contra lo extraído del `.dsk` original
-(`FISICO/extraido/MUMMY1.BIN` y `MUMMY.BAS`). Hoy: **0 diferencias en
-los dos**.
+El primero ensambla `main.asm` con SjASMPlus → `build/mummy1.bin`,
+tokeniza `load_disk/mummy_bas.bas` → `build/mummy.bas`, y compara
+ambos byte a byte contra lo extraído del `.dsk` original
+(`FISICO/extraido/MUMMY1.BIN` y `MUMMY.BAS`). El segundo reconstruye
+el **`.dsk` completo desde cero** (no copia el original salvo ~1600
+bytes de contenido sobrante no reconstruible, ver `../FINDINGS.md`
+Sesión 7) en `../build/ohmummy_reconstruido.dsk`. Hoy: **0 diferencias
+en los tres** (los dos ficheros por separado y el disco completo).
 
 ## Estructura
 

@@ -84,22 +84,31 @@ Compilar
 --------
 ```
 py tools/build_all.py
+py tools/dsk_build.py
 ```
+(o, en VSCode, `Ctrl+Shift+B` — tarea por defecto "Compilar todo +
+generar dsk", ver `.vscode/tasks.json`).
 
-Ensambla `src/main.asm` con SjASMPlus (motor en `src/build/mummy1.bin`)
-y tokeniza `src/load_disk/mummy_bas.bas` (en `src/build/mummy.bas`), y
-**verifica automáticamente los dos resultados byte a byte** contra lo
-extraído del `.dsk` original — hoy mismo: **0 diferencias** en ambos.
+El primer script ensambla `src/main.asm` con SjASMPlus (motor en
+`src/build/mummy1.bin`) y tokeniza `src/load_disk/mummy_bas.bas` (en
+`src/build/mummy.bas`), verificando cada uno byte a byte contra lo
+extraído del `.dsk` original. El segundo **reconstruye el `.dsk`
+completo desde cero** (cabecera del disco, cabeceras de las 40 pistas,
+catálogo AMSDOS, área de datos) — no copia el original salvo en los
+~1600 bytes que resultaron ser contenido sobrante no reconstruible
+(relleno tras el contenido real de cada fichero dentro de sus bloques,
+y los campos sin identificar de las cabeceras AMSDOS, ver
+`FINDINGS.md`) — y compara el resultado byte a byte contra
+`FISICO/Oh Mummy (1984)(Amsoft).dsk`: **hoy, 0 diferencias**. El
+resultado queda en `build/ohmummy_reconstruido.dsk` (no versionado,
+ver `.gitignore`).
+
 Herramientas de solo lectura del disco, por separado:
 
 ```
 py tools/dsk_catalog.py
 py tools/dsk_extract.py
 ```
-
-Pendiente: empaquetar el resultado de vuelta en un `.dsk` completo
-(equivalente a `gen_tzx_file.py` de los proyectos hermanos) — de
-momento la verificación es fichero a fichero, no disco completo.
 
 Estructura del repositorio
 --------------------------
@@ -122,13 +131,16 @@ Estructura del repositorio
 - `src/load_disk/` — cargador de disco (equivalente Amstrad al
   `load_cas/` de los proyectos hermanos de cinta): `mummy_bas.bas`, el
   BASIC del cargador detokenizado a texto editable.
-- `build/` — entregable final (`.dsk` reconstruido), cuando exista.
+- `build/` — entregable final, `ohmummy_reconstruido.dsk`
+  (`py tools/dsk_build.py`, no versionado).
 - `tools/` — herramientas Python propias: `dsk_common.py` (lectura de
   imágenes `.dsk` CPCEMU y del catálogo AMSDOS), `dsk_catalog.py`
   (listar catálogo), `dsk_extract.py` (extraer ficheros crudos),
   `amsdos_basic_tool.py` (detokenizar/tokenizar Locomotive BASIC),
   `z80_disasm.py` (desensamblador Z80 mecánico), `build_all.py`
-  (compilar todo y verificar byte a byte).
+  (compilar y verificar cada fichero por separado), `dsk_build.py`
+  (reconstruir el `.dsk` completo desde cero y verificarlo byte a
+  byte contra el original).
 - `manuales/` — manuales técnicos de referencia, uno por subsistema,
   redactados al cerrar cada pieza (aún sin contenido).
 - `recursos/` — páginas HTML autocontenidas (visores/inventarios):

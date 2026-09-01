@@ -28,6 +28,26 @@
             "args": [
                 "tools/build_all.py"
             ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Generar dsk",
+            "type": "shell",
+            "command": "py",
+            "args": [
+                "tools/dsk_build.py"
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Compilar todo + generar dsk",
+            "dependsOn": [
+                "Compilar todo",
+                "Generar dsk"
+            ],
+            "dependsOrder": "sequence",
             "group": {
                 "kind": "build",
                 "isDefault": true
