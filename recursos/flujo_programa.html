@@ -12,6 +12,7 @@
     --border: #ddd6cc;
     --muted: #7a7266;
     --accent-ok: #7fae6a;
+    --accent-reconstruida: #4e7ecf;
     --accent-pendiente: #b08a3e;
     --accent-subsistema: #6a86ae;
   }
@@ -23,6 +24,7 @@
       --border: #3a352e;
       --muted: #a39a8a;
       --accent-ok: #8fc27a;
+      --accent-reconstruida: #5e9edf;
       --accent-pendiente: #cf9f4e;
       --accent-subsistema: #7f9bc4;
     }
@@ -101,6 +103,7 @@
     color: white;
   }
   .badge.ok { background: var(--accent-ok); }
+  .badge.reconstruida { background: var(--accent-reconstruida); }
   .badge.pendiente { background: var(--accent-pendiente); }
   .empty-state {
     color: var(--muted);
@@ -127,23 +130,24 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 5.</strong> El bloque <code>$6000</code>-
-  <code>$6400</code> del motor esta desensamblado y verificado (ver
-  <code>src/mummy1_body.asm</code>). Las 12 rutinas de firmware que
-  llama estan confirmadas contra el manual oficial (badge "completo").
-  Las ~19 subrutinas internas propias que llama estan desensambladas
-  y tienen una <strong>hipotesis</strong> de funcion cada una, con su
-  nivel de confianza en la columna de notas -- ninguna verificada en
-  emulador todavia, por eso aparecen como "pendiente" pese a ya tener
-  nombre provisional. El resto del motor (<code>$6401</code>-
-  <code>$9385</code>) sigue sin ninguna rutina identificada. Ver
-  <code>FINDINGS.md</code> Sesion 3 para el detalle y el mapa de
-  llamadas completo.
+  <strong>Actualizado Sesion 5 (continuacion).</strong> El bloque
+  <code>$6000</code>-<code>$6400</code> del motor esta desensamblado y
+  verificado. Las 12 rutinas de firmware que llama estan confirmadas
+  contra el manual oficial (badge "completo"). <strong>18 subrutinas
+  internas (510 bytes) ya estan reconstruidas con nombre funcional
+  real y compiladas</strong> (badge "reconstruida, provisional") --
+  cada una con su hipotesis y nivel de confianza en la columna de
+  notas, pero <strong>ninguna verificada ejecutando el juego en un
+  emulador</strong>, por eso no llevan el badge "completo" todavia.
+  El resto de subrutinas detectadas siguen sin nombre ("pendiente").
+  Ver <code>FINDINGS.md</code> Sesiones 3-5 para el detalle y el mapa
+  de llamadas completo.
 </div>
 
 <div class="stats">
   <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">rutinas listadas</div></div>
   <div class="stat"><div class="num" id="stat-ok">0</div><div class="lbl">con analisis completo</div></div>
+  <div class="stat"><div class="num" id="stat-reconstruida">0</div><div class="lbl">reconstruidas (provisional)</div></div>
   <div class="stat"><div class="num" id="stat-pendiente">0</div><div class="lbl">pendientes</div></div>
 </div>
 
@@ -189,37 +193,37 @@ const RUTINAS = [
   { addr: "$BD0D", nombre: "FIRM_KL_TIME_PLEASE", subsistema: "firmware/kernel", estado: "ok", notas: "KL TIME PLEASE" },
   // -- Internas propias, desensambladas hasta su RET, con hipotesis (Sesion 3) --
   { addr: "$78D1", nombre: "?", subsistema: "sonido (hipotesis)", estado: "pendiente", notas: "Confianza media. Bombea una cola/guion de sonido ($905A-$937D, paso de 9 bytes); llamada decenas de veces" },
-  { addr: "$7EAB", nombre: "?", subsistema: "arranque/estado (hipotesis)", estado: "pendiente", notas: "Confianza alta. Borra a 0 un bloque de 1182 bytes en $8172 (LDIR origen=destino-1)" },
-  { addr: "$7EF4", nombre: "?", subsistema: "texto/HUD (hipotesis)", estado: "pendiente", notas: "Confianza alta. Repite un caracter N veces via TXT OUTPUT (formato: cuenta+caracter)" },
-  { addr: "$7EB9", nombre: "?", subsistema: "pantalla/texto (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Borra un rectangulo de una tabla en $81D8 (paso 40 bytes/fila)" },
-  { addr: "$7D85", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $877D y llama a $7E73" },
-  { addr: "$7D9D", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $87C5 y llama a $7E73" },
-  { addr: "$7DB5", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $880D y llama a $7E73" },
-  { addr: "$7DCD", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Prepara tabla $8855 y llama a $7E73" },
+  { addr: "$7EAB", nombre: "BORRAR_BLOQUE_ESTADO", subsistema: "arranque/estado (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Borra a 0 un bloque de 1182 bytes en $8172 (LDIR origen=destino-1). Compilada, 0 diferencias" },
+  { addr: "$7EF4", nombre: "REPETIR_CARACTER", subsistema: "texto/HUD (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Repite un caracter N veces via TXT OUTPUT (formato: cuenta+caracter). Compilada, 0 diferencias" },
+  { addr: "$7EB9", nombre: "BORRAR_RECTANGULO_VENTANA", subsistema: "pantalla/texto (hipotesis)", estado: "reconstruida", notas: "Confianza alta (subida en Sesion 5: usa FIRM_TXT_WIN_ENABLE/FIRM_TXT_CLEAR_WINDOW). Borra un rectangulo de una tabla en $81D8 (paso 40 bytes/fila). Compilada, 0 diferencias" },
+  { addr: "$7D85", nombre: "DIBUJAR_TRAMO_MARCO_1", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $877D y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
+  { addr: "$7D9D", nombre: "DIBUJAR_TRAMO_MARCO_2", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $87C5 y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
+  { addr: "$7DB5", nombre: "DIBUJAR_TRAMO_MARCO_3", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $880D y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
+  { addr: "$7DCD", nombre: "DIBUJAR_TRAMO_MARCO_4", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Prepara tabla $8855 y llama a COPIAR_BLOQUE_A_LIENZO. Compilada, 0 diferencias" },
   { addr: "$7DFC", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 1 de 6 de mascara AND/OR, cae en $7E30" },
   { addr: "$7E05", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 2 de 6 de mascara AND/OR, cae en $7E30" },
   { addr: "$7E0E", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 3 de 6 de mascara AND/OR, cae en $7E30" },
   { addr: "$7E17", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 4 de 6 de mascara AND/OR, cae en $7E30" },
   { addr: "$7E29", nombre: "?", subsistema: "marco decorativo (hipotesis)", estado: "pendiente", notas: "Confianza media. Variante 6 de 6 de mascara AND/OR, cae en $7E30" },
-  { addr: "$786C", nombre: "?", subsistema: "HUD/marcador (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Imprime HL como 4 digitos decimales via TXT OUTPUT (resta repetida + $30)" },
-  { addr: "$7893", nombre: "?", subsistema: "entrada/teclado (hipotesis)", estado: "pendiente", notas: "Confianza alta. Espera una tecla concreta con antirrebote (pulsacion + liberacion)" },
-  { addr: "$78B7", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible animacion/temporizado de la opcion de menu resaltada" },
+  { addr: "$786C", nombre: "IMPRIMIR_NUMERO_HL", subsistema: "HUD/marcador (hipotesis)", estado: "reconstruida", notas: "Confianza media-alta. Imprime HL como 4 digitos decimales via TXT OUTPUT (resta repetida + $30). Compilada, 0 diferencias" },
+  { addr: "$7893", nombre: "ESPERAR_TECLA_2C", subsistema: "entrada/teclado (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Espera la tecla $2C con antirrebote (pulsacion + liberacion). Compilada, 0 diferencias" },
+  { addr: "$78B7", nombre: "ANIMAR_OPCION_MENU", subsistema: "menu (hipotesis)", estado: "reconstruida", notas: "Confianza baja. Posible animacion/temporizado de la opcion de menu resaltada. Compilada, 0 diferencias" },
   { addr: "$78F7", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible posicionado del indicador de opcion activa" },
   { addr: "$7B39", nombre: "?", subsistema: "menu (hipotesis)", estado: "pendiente", notas: "Confianza baja. Posible dibujado del indicador de seleccion" },
-  { addr: "$794F", nombre: "?", subsistema: "sin resolver", estado: "pendiente", notas: "Confianza muy baja. Llama a $795B en bucle (contador en $8169)" },
+  { addr: "$794F", nombre: "INICIALIZAR_ENTIDADES", subsistema: "entidades (hipotesis)", estado: "reconstruida", notas: "Confianza media-alta. Llama a INICIALIZAR_UNA_ENTIDAD en bucle (contador en $8169). Compilada, 0 diferencias" },
   // -- Sesion 4: hilo de llamadas mas alla de $6400 --
-  { addr: "$7E92", nombre: "?", subsistema: "pantalla (hipotesis)", estado: "pendiente", notas: "Confianza alta. Indexa la tabla de $8ECA por fila+columna -> direccion de pantalla en HL" },
-  { addr: "$7E73", nombre: "?", subsistema: "pantalla/marco (hipotesis)", estado: "pendiente", notas: "Confianza media. Copia un bloque de 6x12 bytes desde una tabla (IY) a pantalla/buffer, paso INC H (256, no el paso real de VRAM del CPC)" },
-  { addr: "$7D53", nombre: "?", subsistema: "aleatoriedad (hipotesis)", estado: "pendiente", notas: "Confianza alta. Generador pseudoaleatorio: transforma la semilla de $8151 (sembrada con el reloj al arrancar) y hace modulo por resta repetida" },
-  { addr: "$7A10", nombre: "?", subsistema: "colisiones (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Compara una posicion candidata contra el array de 6 entidades de $816D con margenes +-8/+-2, cuenta coincidencias en $8610" },
-  { addr: "$7996", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media. Valida/coloca una entidad usando $7A10 (colision) y $7D53 (aleatorio); si colisiona salta a $7AF2" },
-  { addr: "$795B", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Inicializa un registro nuevo en $816D: 2 bytes de $7D53 (aleatorio) + 2 bytes de posicion copiados de una tabla en $8645" },
+  { addr: "$7E92", nombre: "CASILLA_A_DIRECCION_PANTALLA", subsistema: "pantalla (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Indexa la tabla de $8ECA por fila+columna -> direccion de pantalla en HL. Compilada, 0 diferencias" },
+  { addr: "$7E73", nombre: "COPIAR_BLOQUE_A_LIENZO", subsistema: "pantalla/marco (hipotesis)", estado: "reconstruida", notas: "Confianza media. Copia un bloque de 6x12 bytes desde una tabla (IY) a pantalla/buffer, paso INC H (256, no el paso real de VRAM del CPC). Compilada, 0 diferencias" },
+  { addr: "$7D53", nombre: "GENERAR_ALEATORIO", subsistema: "aleatoriedad (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Generador pseudoaleatorio: transforma la semilla de $8151 (sembrada con el reloj al arrancar) y hace modulo por resta repetida. Compilada, 0 diferencias" },
+  { addr: "$7A10", nombre: "?", subsistema: "colisiones (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Compara una posicion candidata contra el array de 6 entidades de $816D con margenes +-8/+-2, cuenta coincidencias en $8610. Segunda mitad ($7A64+) reindexa $8200 -- desensamblado completo pero sin promover" },
+  { addr: "$7996", nombre: "?", subsistema: "entidades (hipotesis)", estado: "pendiente", notas: "Confianza media. Valida/coloca una entidad usando $7A10 (colision) y GENERAR_ALEATORIO; si colisiona salta a $7AF2" },
+  { addr: "$795B", nombre: "INICIALIZAR_UNA_ENTIDAD", subsistema: "entidades (hipotesis)", estado: "reconstruida", notas: "Confianza media-alta. Inicializa un registro nuevo en $816D: 2 bytes de GENERAR_ALEATORIO + 2 bytes de posicion copiados de una tabla en $8645. Compilada, 0 diferencias" },
   // -- Sesion 5: cadena de movimiento/IA --
-  { addr: "$7D78", nombre: "?", subsistema: "aleatoriedad (hipotesis)", estado: "pendiente", notas: "Confianza alta. Funcion de mezcla del PRNG de $7D53 (duplica HL 8 veces sumando DE por acarreo)" },
-  { addr: "$7A95", nombre: "?", subsistema: "movimiento (hipotesis)", estado: "pendiente", notas: "Confianza alta. Calcula la celda adyacente en una direccion 0-3 (pasos de 8px en X / 2px en Y)" },
-  { addr: "$7AB6", nombre: "?", subsistema: "IA (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Elige direccion hacia una posicion objetivo, con desempate aleatorio de eje via $7D53 -- patron de IA de persecucion" },
-  { addr: "$7AF2", nombre: "?", subsistema: "colisiones/mapa (hipotesis)", estado: "pendiente", notas: "Confianza media. Calcula la celda adyacente y consulta que hay en ella via $7D3E+$7CE6" },
-  { addr: "$7D3E", nombre: "?", subsistema: "mapa (hipotesis)", estado: "pendiente", notas: "Confianza media. Indexa una estructura en $8200 (paso de fila 5 bytes) -- posible mapa del laberinto o subdivision" },
+  { addr: "$7D78", nombre: "MEZCLAR_ALEATORIO", subsistema: "aleatoriedad (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Funcion de mezcla del PRNG de GENERAR_ALEATORIO (duplica HL 8 veces sumando DE por acarreo). Compilada, 0 diferencias" },
+  { addr: "$7A95", nombre: "CALCULAR_CASILLA_ADYACENTE", subsistema: "movimiento (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Calcula la celda adyacente en una direccion 0-3 (pasos de 8px en X / 2px en Y). Compilada, 0 diferencias" },
+  { addr: "$7AB6", nombre: "?", subsistema: "IA (hipotesis)", estado: "pendiente", notas: "Confianza media-alta. Elige direccion hacia una posicion objetivo, con desempate aleatorio de eje via GENERAR_ALEATORIO -- patron de IA de persecucion" },
+  { addr: "$7AF2", nombre: "?", subsistema: "colisiones/mapa (hipotesis)", estado: "pendiente", notas: "Confianza media. Calcula la celda adyacente y consulta que hay en ella via CONSULTAR_CASILLA_MAPA+$7CE6" },
+  { addr: "$7D3E", nombre: "CONSULTAR_CASILLA_MAPA", subsistema: "mapa (hipotesis)", estado: "reconstruida", notas: "Confianza media. Indexa una estructura en $8200 (paso de fila 5 bytes) -- posible mapa del laberinto o subdivision. Compilada, 0 diferencias" },
   { addr: "$7CE6", nombre: "?", subsistema: "sin resolver", estado: "pendiente", notas: "Confianza baja. Dispatcher que elige tabla ($8959/$8A69/$8A89/$8AA9...) segun un valor -- desensamblado parcial, no se alcanzo su RET" },
 ];
 
@@ -239,12 +243,14 @@ function render(filtro) {
   } else {
     filtradas.forEach((r) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="dir">${r.addr}</td><td><code>${r.nombre}</code></td><td>${r.subsistema}</td><td><span class="badge ${r.estado}">${r.estado === "ok" ? "completo" : "pendiente"}</span></td><td>${r.notas || ""}</td>`;
+      const ESTADO_LABEL = { ok: "completo", reconstruida: "reconstruida, provisional", pendiente: "pendiente" };
+      tr.innerHTML = `<td class="dir">${r.addr}</td><td><code>${r.nombre}</code></td><td>${r.subsistema}</td><td><span class="badge ${r.estado}">${ESTADO_LABEL[r.estado] || r.estado}</span></td><td>${r.notas || ""}</td>`;
       tbody.appendChild(tr);
     });
   }
   document.getElementById("stat-total").textContent = RUTINAS.length;
   document.getElementById("stat-ok").textContent = RUTINAS.filter((r) => r.estado === "ok").length;
+  document.getElementById("stat-reconstruida").textContent = RUTINAS.filter((r) => r.estado === "reconstruida").length;
   document.getElementById("stat-pendiente").textContent = RUTINAS.filter((r) => r.estado === "pendiente").length;
 }
 

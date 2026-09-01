@@ -25,9 +25,9 @@ notice.
 
 Current status
 ---------------
-**Session 5 — firmware identified, first semantic hypotheses for the
-engine, possible entity generator and chase AI.** The disk's AMSDOS
-catalogue (`FISICO/Oh Mummy
+**Session 5 — 18 routines reconstructed with functional names,
+firmware identified, entity generator and chase AI hypotheses.** The
+disk's AMSDOS catalogue (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU format, 40 tracks x
 1 side, 9x512 data format, sector IDs `C1`-`C9`) only has **2 files**:
 
@@ -49,27 +49,27 @@ turned out ambiguous.
 The engine's first stretch (`$6000`-`$6400`) is disassembled and
 byte-verified. The **12 firmware routines** it calls are identified
 against the official CPC manual (named `EQU`s in
-`src/mummy1_body.asm`: sound, text, screen management...). The
-**~19 internal subroutines** it calls (outside the compiled stretch,
-in the `INCBIN` zone) are disassembled down to their `RET` and each
-has a first function hypothesis with a confidence level — sound
-initialization, clearing state blocks, a 200-entry screen row address
-table, clearing HUD rectangles, drawing the decorative frame (6 mask
-variants), a possible score-printing routine (4 decimal digits), and a
-1/2-player selection menu — none verified in an emulator yet.
+`src/mummy1_body.asm`: sound, text, screen management...).
 
-Following the call thread further (Sessions 4-5) turned up what looks
-like a **pseudo-random number generator** (seeded from the system
-clock), used together with a proximity/collision check to initialize
-an array of 6 "entities" with position and attributes, and a chain of
-routines (pick a direction toward a target with random axis tie-break
-+ check the adjacent cell against a structure at `$8200`) consistent
-with a **grid-based movement/chase algorithm** — a reasonable
-hypothesis for an enemy AI chasing the player through the maze,
-unconfirmed (the main game loop that would use it hasn't been found
-yet). The rest (`$6401`-`$9385`) is still included as-is via `INCBIN` while
-it gets analyzed session by session — see `FINDINGS.md` for the full
-call map, the per-routine confidence table, and the methodology used.
+Beyond that stretch, following the real call thread (not linearly),
+**18 internal subroutines (510 bytes) now have real functional names
+and are reconstructed as compiled source code** —
+`GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO` (pseudo-random generator
+seeded from the system clock), `CALCULAR_CASILLA_ADYACENTE` and
+`CONSULTAR_CASILLA_MAPA` (movement and lookup into a structure at
+`$8200`, possibly the maze map), `INICIALIZAR_ENTIDADES`/
+`INICIALIZAR_UNA_ENTIDAD` (possibly placing 6 enemies or
+collectibles), `DIBUJAR_TRAMO_MARCO_1..4`/`COPIAR_BLOQUE_A_LIENZO`
+(decorative frame), `BORRAR_BLOQUE_ESTADO`, `BORRAR_RECTANGULO_VENTANA`,
+`REPETIR_CARACTER`, `IMPRIMIR_NUMERO_HL`, `CASILLA_A_DIRECCION_PANTALLA`,
+`ESPERAR_TECLA_2C` and `ANIMAR_OPCION_MENU`. **All names are
+provisional** (each with its hypothesis and confidence level in the
+code itself, see `FINDINGS.md`) — none verified yet by running the
+game in an emulator. The rest of the engine (11655 bytes across
+several stretches) is still included as-is via `INCBIN` (offset and
+length computed automatically around the reconstructed code) while it
+gets analyzed session by session — see `FINDINGS.md` for the full call
+map, the per-routine confidence table, and the methodology used.
 
 Building
 --------

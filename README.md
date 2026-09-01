@@ -25,9 +25,9 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 5 — firmware identificado, primeras hipótesis semánticas del
-motor, posible generador de entidades e IA de persecución.** El
-catálogo AMSDOS del disco (`FISICO/Oh Mummy
+**Sesión 5 — 18 rutinas reconstruidas con nombre funcional, firmware
+identificado, hipótesis de generador de entidades e IA de
+persecución.** El catálogo AMSDOS del disco (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
 x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 **2 ficheros**:
@@ -50,30 +50,28 @@ del motor: `$6000`.
 El primer tramo del motor (`$6000`-`$6400`) está desensamblado y
 verificado byte a byte. Las **12 rutinas de firmware** que llama están
 identificadas contra el manual oficial del CPC (`EQU` con nombre real
-en `src/mummy1_body.asm`: gestión de sonido, texto, pantalla...). Las
-**~19 subrutinas internas** que llama (fuera del tramo compilado, en
-la zona `INCBIN`) están desensambladas hasta su `RET` y tienen ya una
-primera hipótesis de función cada una, con su nivel de confianza —
-inicialización de sonido, borrado de bloques de estado, una tabla de
-200 direcciones de pantalla por fila, borrado de rectángulos de HUD,
-el dibujado del marco decorativo (6 variantes de máscara), una posible
-rutina de impresión de marcador (4 dígitos decimales), y un menú de
-selección 1/2 jugadores — ninguna verificada todavía en emulador.
+en `src/mummy1_body.asm`: gestión de sonido, texto, pantalla...).
 
-Siguiendo el hilo de llamadas más allá del tramo compilado (Sesiones
-4-5) apareció lo que parece un **generador de números pseudoaleatorios**
-(sembrado con el reloj del sistema) usado, junto con un chequeo de
-proximidad/colisión, para inicializar un array de 6 "entidades" con
-posición y atributos, y una cadena de rutinas (elegir dirección hacia
-un objetivo con desempate aleatorio + comprobar la celda adyacente
-contra una estructura en `$8200`) consistente con un **algoritmo de
-movimiento/persecución en rejilla** — hipótesis razonable para la IA
-de un enemigo persiguiendo al jugador por el laberinto, sin confirmar
-(no se ha visto todavía el bucle de juego principal que la usaría). El
-resto (`$6401`-`$9385`) se incluye tal cual con `INCBIN` mientras se
-va analizando sesión a sesión — ver `FINDINGS.md` para el mapa de
-llamadas completo, la tabla de confianza por rutina, y la metodología
-usada.
+Más allá de ese tramo, siguiendo el hilo real de llamadas (no
+linealmente), **18 subrutinas internas (510 bytes) ya tienen nombre
+funcional real y están reconstruidas como código fuente compilado**
+— `GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO` (generador pseudoaleatorio
+sembrado con el reloj del sistema), `CALCULAR_CASILLA_ADYACENTE` y
+`CONSULTAR_CASILLA_MAPA` (movimiento y consulta de una estructura en
+`$8200`, posible mapa del laberinto), `INICIALIZAR_ENTIDADES`/
+`INICIALIZAR_UNA_ENTIDAD` (posible colocación de 6 enemigos o
+coleccionables), `DIBUJAR_TRAMO_MARCO_1..4`/`COPIAR_BLOQUE_A_LIENZO`
+(marco decorativo), `BORRAR_BLOQUE_ESTADO`, `BORRAR_RECTANGULO_VENTANA`,
+`REPETIR_CARACTER`, `IMPRIMIR_NUMERO_HL`, `CASILLA_A_DIRECCION_PANTALLA`,
+`ESPERAR_TECLA_2C` y `ANIMAR_OPCION_MENU`. **Todos los nombres son
+provisionales** (cada uno con su comentario de hipótesis y nivel de
+confianza en el propio código, ver `FINDINGS.md`) — ninguno verificado
+todavía ejecutando el juego en un emulador. El resto del motor (11655
+bytes en varios tramos) se incluye tal cual con `INCBIN` (offset y
+longitud calculados automáticamente alrededor del código ya
+reconstruido) mientras se va analizando sesión a sesión — ver
+`FINDINGS.md` para el mapa de llamadas completo, la tabla de confianza
+por rutina, y la metodología usada.
 
 Compilar
 --------

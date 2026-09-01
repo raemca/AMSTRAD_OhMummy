@@ -748,3 +748,124 @@ bucle de juego real -- de ahí que aparezcan ya en el arranque.
 - Seguir pendiente: promover a código compilado real las subrutinas de
   mayor confianza (`$7EAB`, `$7EF4`, `$7EB9`, `$786C`, `$7E92`, `$7D78`,
   `$7A95`).
+
+## Sesión 5 (continuación) — 2026-09-01: reconstrucción del código fuente con nombres funcionales
+
+El prompt de la Sesión 5 se actualizó a mitad de proyecto para pedir
+explícitamente lo que las sesiones 3-4 dejaban para más adelante: no
+solo documentar hipótesis en comentarios, sino **reescribir
+`src/mummy1_body.asm` con etiquetas funcionales reales**, compiladas y
+verificadas, para las rutinas ya entendidas con confianza suficiente
+(regla explícita del prompt: "si no puedes garantizar un nombre
+definitivo, usa un nombre provisional funcional con comentario de
+hipótesis y nivel de confianza" — es decir, nombrar SÍ, pero dejando
+constancia de que es provisional).
+
+### Trabajo previo: completar el desensamblado de 3 rutinas a medias
+
+Antes de poder promoverlas a código compilado hacía falta su `RET`
+completo (Sesiones 3-4 las habían dejado a medias):
+
+- `$7EB9` (borrado de rectángulo): se completó hasta `$7EF3` — termina
+  llamando a `FIRM_TXT_WIN_ENABLE`/`FIRM_TXT_CLEAR_WINDOW`, lo que
+  **sube su confianza a alta** (ya no es solo "parece borrar un
+  rectángulo", usa literalmente las rutinas de firmware de ventana de
+  texto).
+- `$7A10` (chequeo de colisión, Sesión 4): se completó más allá de su
+  primer `RET` condicional — tiene una segunda mitad (`$7A64`+) que
+  vuelve a indexar la estructura de `$8200` con la MISMA fórmula que
+  `$7D3E` (confirma que es la misma estructura de mapa, usada tanto
+  para movimiento como para colisión). No se ha llegado a su `RET`
+  final — sigue sin promover.
+- El resto de rutinas a medias (`$7996`, `$78F7`, `$7AB6`, `$7AF2`,
+  `$7B39`, `$7CE6`) se quedan como estaban, documentadas por hipótesis
+  pero sin código compilado — no había tiempo de completarlas todas
+  con el mismo rigor.
+
+### Herramienta: generación automática del `INCBIN` partido
+
+En vez de editar a mano los offsets de cada fragmento `INCBIN`
+(propenso a errores de 1 byte), se escribió un script puntual
+(basado en `tools/z80_disasm.py`) que:
+
+1. Toma una lista de rangos `(inicio, fin)` a promover, cada uno ya
+   verificado como una secuencia contigua de instrucciones completas
+   terminada en `RET`.
+2. Vuelca cada rango como código real, sustituyendo las direcciones
+   literales de llamadas a firmware y a OTRAS rutinas ya promovidas
+   por su nombre de etiqueta (verificado con una lista de
+   correspondencias, no a ciegas).
+3. Rellena los huecos entre rangos con
+   `INCBIN "fichero", offset, longitud` (offset relativo al principio
+   de `data/mummy1_resto_sin_analizar.bin`, que empieza en `$6401`).
+4. Comprueba que la suma de bytes (código + huecos) cuadra exactamente
+   con los 12165 bytes esperados antes de escribir nada.
+
+Este mismo patrón (generar el `INCBIN` partido con una herramienta en
+vez de a mano) se reutilizará en sesiones futuras según se vayan
+entendiendo más tramos.
+
+### 18 rutinas promovidas a código fuente real (510 bytes, 5 bloques)
+
+Todas compiladas con SjASMPlus y verificadas **0 diferencias** contra
+el binario original tras el cambio. Nombres, todos provisionales
+(marcados así en el propio código, con su hipótesis y confianza):
+
+| Etiqueta | Dirección | Hipótesis | Confianza |
+|---|---|---|---|
+| `IMPRIMIR_NUMERO_HL` | `$786C` | Imprime HL como 4 dígitos decimales vía `FIRM_TXT_OUTPUT` | Media-alta |
+| `ESPERAR_TECLA_2C` | `$7893` | Espera pulsación+liberación de la tecla `$2C`, con antirrebote | Alta |
+| `ANIMAR_OPCION_MENU` | `$78B7` | Anima/temporiza la opción de menú resaltada | Baja |
+| `INICIALIZAR_ENTIDADES` | `$794F` | Llama 6 veces a `INICIALIZAR_UNA_ENTIDAD` | Media-alta |
+| `INICIALIZAR_UNA_ENTIDAD` | `$795B` | Rellena un registro de `$816D` con 2 bytes de `GENERAR_ALEATORIO` + posición de una tabla en `$8645` | Media-alta |
+| `CALCULAR_CASILLA_ADYACENTE` | `$7A95` | Calcula la celda adyacente en una dirección 0-3 (pasos 8px/2px) | Alta |
+| `CONSULTAR_CASILLA_MAPA` | `$7D3E` | Indexa la estructura de `$8200` (paso de fila 5 bytes) | Media |
+| `GENERAR_ALEATORIO` | `$7D53` | Generador pseudoaleatorio sembrado con el reloj del sistema | Alta |
+| `MEZCLAR_ALEATORIO` | `$7D78` | Función de mezcla interna de `GENERAR_ALEATORIO` | Alta |
+| `DIBUJAR_TRAMO_MARCO_1..4` | `$7D85`/`$7D9D`/`$7DB5`/`$7DCD` | Preparan una tabla de offset y llaman a `COPIAR_BLOQUE_A_LIENZO` para dibujar un tramo del marco decorativo | Media |
+| `COPIAR_BLOQUE_A_LIENZO` | `$7E73` | Copia un bloque de 6x12 bytes a un lienzo de trabajo | Media |
+| `CASILLA_A_DIRECCION_PANTALLA` | `$7E92` | Indexa la tabla de 200 direcciones de pantalla por fila | Alta |
+| `BORRAR_BLOQUE_ESTADO` | `$7EAB` | Borra 1182 bytes de estado en `$8172` | Alta |
+| `BORRAR_RECTANGULO_VENTANA` | `$7EB9` | Borra un rectángulo de la ventana de texto (usa firmware) | **Alta** (subida esta sesión) |
+| `REPETIR_CARACTER` | `$7EF4` | Repite un carácter N veces vía `FIRM_TXT_OUTPUT` | Alta |
+
+También se añadió `FIRM_KM_CHAR_RETURN` (`$BB0C`) a la tabla de `EQU`
+de firmware (usada por `ESPERAR_TECLA_2C`).
+
+El bloque `$6000`-`$6400` (cabecera del motor) se actualizó para
+llamar a estas rutinas por su nombre en vez de por dirección literal
+allí donde corresponde (`BORRAR_BLOQUE_ESTADO`, `REPETIR_CARACTER`,
+`BORRAR_RECTANGULO_VENTANA`, los 4 `DIBUJAR_TRAMO_MARCO_*`,
+`INICIALIZAR_ENTIDADES`, `ESPERAR_TECLA_2C`, `ANIMAR_OPCION_MENU` — 48
+sustituciones). `$78D1` (la rutina más llamada de todas, hipótesis de
+bombeo de sonido) sigue sin promover — no se completó su
+desensamblado esta sesión.
+
+### Documentación actualizada en esta sesión
+
+- `README.md`/`README.en.md` y `src/README.md`: estado actualizado —
+  18 rutinas con nombre real, 510 de los 12165 bytes restantes ya
+  reconstruidos.
+- `recursos/flujo_programa.html`: las 18 rutinas pasan de `nombre: "?"`
+  a su nombre real, y de `estado: "pendiente"` a `"ok"` marcado como
+  "nombre provisional, no verificado en emulador" en las notas (no se
+  puede usar el badge "completo" sin matizarlo).
+- `recursos/mapa_memoria.html`: sin cambios de región (las rutinas
+  promovidas ya estaban documentadas como subregiones; ahora tienen
+  nombre de etiqueta en vez de solo dirección).
+- `recursos/flujo_secuencial.html`, `graficos.html`, `sprites.html`,
+  `portada.html`: sin cambios — esta sesión fue de reconstrucción de
+  código y nombrado, no de hallazgos nuevos de flujo o gráficos.
+
+### Pendiente para próximas sesiones
+
+- Completar el desensamblado de `$78D1`, `$7996`, `$78F7`, `$7AB6`,
+  `$7AF2`, `$7B39`, `$7CE6`, y la segunda mitad de `$7A10`, para poder
+  promoverlas también.
+- Seguir reduciendo los tramos `INCBIN` restantes (11655 bytes en 6
+  huecos) sesión a sesión con el mismo método (completar
+  desensamblado -> verificar hasta `RET` -> generar `INCBIN` partido
+  -> compilar -> comprobar 0 diferencias).
+- Cuando una hipótesis se confirme con más seguridad (idealmente
+  contra ejecución real en emulador), quitar la marca de "provisional"
+  del nombre y de los comentarios.

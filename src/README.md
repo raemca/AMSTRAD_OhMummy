@@ -27,46 +27,52 @@ dirección de carga y ejecución real del motor.
   compilar con SjASMPlus reproduce exactamente los mismos bytes que el
   binario original en ese rango. Las 12 rutinas de firmware que llama
   están identificadas y nombradas (`EQU`, ver Sesión 3 en
-  `../FINDINGS.md`); las subrutinas internas propias (`$78xx`, `$7Dxx`,
-  `$7Exx`, `$7Bxx`) tienen ya una primera hipótesis de función cada una
-  (sonido, borrado de pantalla, marco decorativo, menú de selección...)
-  pero **ninguna verificada en emulador todavía** — siguen sin
-  nombre definitivo en el código, solo comentadas.
-- **`$6401`-`$9385`** (12165 bytes): sin analizar. Incluido tal cual
-  con `INCBIN "data/mummy1_resto_sin_analizar.bin"` en
-  `mummy1_body.asm` para que la compilación reproduzca el binario
-  completo byte a byte mientras se va desensamblando de verdad, sesión
-  a sesión.
+  `../FINDINGS.md`) y se llama a ellas por su nombre real en este
+  tramo. Este tramo en sí sigue sin nombres semánticos propios
+  (reconstrucción mecánica de primera pasada, solo llama a otras
+  rutinas ya nombradas).
+- **`$6401`-`$9385`** (12165 bytes originalmente): **18 subrutinas
+  (510 bytes, en 5 bloques) ya están reconstruidas con nombre
+  funcional real** — `GENERAR_ALEATORIO`, `CALCULAR_CASILLA_ADYACENTE`,
+  `INICIALIZAR_ENTIDADES`, `DIBUJAR_TRAMO_MARCO_1..4`,
+  `BORRAR_BLOQUE_ESTADO`, `REPETIR_CARACTER`... (lista completa más
+  abajo). **Todos los nombres son provisionales**, cada uno con su
+  hipótesis y nivel de confianza en un comentario junto a la etiqueta
+  — ninguno verificado ejecutando el juego en un emulador (ver
+  "Reglas de rigor" del prompt de Sesión 5,
+  `prompts/sesion_05_firmware_y_rutinas_internas.md`). El resto
+  (11655 bytes, en 6 huecos entre las rutinas ya reconstruidas) sigue
+  sin analizar, incluido tal cual con varios
+  `INCBIN "data/mummy1_resto_sin_analizar.bin", offset, longitud` —
+  el offset/longitud de cada hueco se calcula automáticamente (no a
+  mano) para que la compilación siga reproduciendo el binario completo
+  byte a byte mientras se va desensamblando de verdad, sesión a
+  sesión.
 
-### Subsistemas con hipótesis (Sesiones 3-5, ninguno verificado en emulador)
+### Rutinas reconstruidas (nombres provisionales, Sesión 5)
 
-- Sonido: inicialización de 3 envolventes y una posible cola/guión de
-  eventos (`$78D1`).
-- Pantalla/HUD: tabla de 200 direcciones de pantalla por fila
-  (confirmada, se construye en tiempo de ejecución), borrado de
-  rectángulos de texto, e impresión de un número de 4 dígitos
-  (posible marcador).
-- Marco decorativo: dibujado por tramos con 6 variantes de máscara
-  AND/OR, equivalente funcional al `marco_decorativo` de los
-  proyectos hermanos.
-- Menú: un bucle de selección 1/2 jugadores, con lectura de teclado y
-  un indicador de opción activa.
-- Aleatoriedad/entidades (Sesión 4): un generador de números
-  pseudoaleatorios (`$7D53`, sembrado con el reloj del sistema) y un
-  chequeo de proximidad (`$7A10`) se usan para inicializar un array de
-  6 registros de 5 bytes en `$816D` — hipótesis: colocación de
-  enemigos o coleccionables en el laberinto, sin confirmar.
-- Movimiento/IA (Sesión 5): una cadena de rutinas que elige una
-  dirección hacia una posición objetivo (con desempate aleatorio de
-  eje, `$7AB6`), calcula la celda adyacente (`$7A95`/`$7AF2`, pasos de
-  8/2 px) y consulta una estructura en `$8200` (paso de fila 5 bytes)
-  — hipótesis: algoritmo de persecución en rejilla, típico de IA de
-  enemigo en un laberinto. No se ha localizado todavía el bucle de
-  juego que lo usaría fotograma a fotograma.
+| Etiqueta | Subsistema | Confianza |
+|---|---|---|
+| `GENERAR_ALEATORIO` / `MEZCLAR_ALEATORIO` | Aleatoriedad — PRNG sembrado con el reloj del sistema | Alta |
+| `CALCULAR_CASILLA_ADYACENTE` | Movimiento — celda adyacente en una dirección (pasos 8px/2px) | Alta |
+| `CONSULTAR_CASILLA_MAPA` | Mapa — acceso a una estructura en `$8200` (paso de fila 5 bytes) | Media |
+| `INICIALIZAR_ENTIDADES` / `INICIALIZAR_UNA_ENTIDAD` | Entidades — posible colocación de 6 enemigos/coleccionables | Media-alta |
+| `DIBUJAR_TRAMO_MARCO_1..4` / `COPIAR_BLOQUE_A_LIENZO` | Pantalla — marco decorativo (6 variantes de máscara) | Media |
+| `CASILLA_A_DIRECCION_PANTALLA` | Pantalla — indexa la tabla de 200 direcciones de fila | Alta |
+| `BORRAR_BLOQUE_ESTADO` | Arranque — borra 1182 bytes de estado en `$8172` | Alta |
+| `BORRAR_RECTANGULO_VENTANA` | Pantalla/HUD — borra un rectángulo vía firmware | Alta |
+| `REPETIR_CARACTER` | Texto/HUD — repite un carácter N veces vía firmware | Alta |
+| `IMPRIMIR_NUMERO_HL` | HUD — imprime HL como 4 dígitos decimales (posible marcador) | Media-alta |
+| `ESPERAR_TECLA_2C` | Entrada — espera una tecla con antirrebote | Alta |
+| `ANIMAR_OPCION_MENU` | Menú — anima/temporiza la opción resaltada (1/2 jugadores) | Baja |
+
+`$78D1` (sonido, hipótesis de bombeo de cola de eventos) sigue sin
+promover — se llama decenas de veces desde el bloque `$6000`-`$6400`
+pero su desensamblado no se completó todavía.
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesiones 3-5) para la evidencia y el
-mapa de llamadas.
+dirección y `../FINDINGS.md` (Sesiones 3-5) para la evidencia, el
+nivel de confianza detallado, y el mapa de llamadas.
 
 ## Compilar y verificar
 
@@ -84,8 +90,9 @@ los dos**.
 
 - `main.asm` — punto de entrada único de compilación (`ORG $6000`,
   `INCLUDE mummy1_body.asm`, `SAVEBIN`).
-- `mummy1_body.asm` — el motor: cabecera desensamblada a mano +
-  `INCBIN` del resto sin analizar.
+- `mummy1_body.asm` — el motor: cabecera desensamblada a mano
+  (`$6000`-`$6400`) + 18 rutinas reconstruidas con nombre (510 bytes,
+  5 bloques) + `INCBIN` (con offset/longitud) del resto sin analizar.
 - `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
 - `data/` — recursos ya identificados y extraídos a fichero individual
   (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y
@@ -96,9 +103,14 @@ los dos**.
 
 - **Nombres descriptivos en español**, no inglés ni abreviaturas
   crípticas — ver `.github/CONTRIBUTING.md` para el detalle completo y
-  la disciplina de verificación byte a byte. Todavía no aplica: el
-  único tramo desensamblado (`$6000`-`$6400`) sigue sin nombres
-  semánticos (reconstrucción mecánica de primera pasada).
+  la disciplina de verificación byte a byte. Desde la Sesión 5, los
+  nombres se asignan también de forma **provisional** cuando hay una
+  hipótesis de función razonable (no solo cuando está confirmada al
+  100%), siempre que quede constancia explícita, junto a la etiqueta,
+  de que es provisional y de su nivel de confianza — no se retira esa
+  marca hasta verificarlo con más seguridad (idealmente en emulador).
+  El tramo `$6000`-`$6400` en sí sigue sin nombre propio (solo llama a
+  otras rutinas ya nombradas).
 - No se comparte nombrado con los proyectos hermanos de MSX/Spectrum:
   *Oh Mummy* no tiene relación de código con *Mad Mix Game* (juegos
   distintos, plataformas distintas) — solo coincide el género (laberinto/
