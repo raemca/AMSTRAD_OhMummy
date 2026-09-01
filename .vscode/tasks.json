@@ -18,6 +18,16 @@
             "args": [
                 "tools/dsk_extract.py"
             ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Compilar todo",
+            "type": "shell",
+            "command": "py",
+            "args": [
+                "tools/build_all.py"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true

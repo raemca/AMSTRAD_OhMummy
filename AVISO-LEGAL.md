@@ -7,14 +7,17 @@
 **El juego no es nuestro.** *Oh Mummy* se publicó para **Amstrad CPC**
 en 1984 bajo el sello **Amsoft** (la marca de software propia de
 Amstrad, que distribuía tanto títulos propios como de terceros en el
-catálogo de lanzamiento del CPC 464). **La autoría concreta del juego
-—programador, gráficos, música— no se ha confirmado todavía**: no se
-da por buena ninguna atribución hasta verificarla en el propio binario
-(pantalla de créditos, si la hay, o cadenas de texto identificables) o
-en fuentes documentales fiables. La propiedad intelectual del juego
-original — código, gráficos, sonido y diseño — sigue siendo de
-Amsoft/Amstrad, de las personas que lo crearon, o de quien haya
-heredado esos derechos a día de hoy.
+catálogo de lanzamiento del CPC 464). El propio cargador del disco
+(`MUMMY.BAS`, detokenizado en la Sesión 2 — ver `FINDINGS.md`) muestra
+en pantalla, durante la carga, el texto **"PRESENTS"** seguido de un
+carácter especial del juego de caracteres del CPC (`CHR$(164)`, sin
+identificar todavía qué símbolo dibuja exactamente) y **"1984  GEM
+SOFTWARE"** — es decir, el estudio que lo desarrolló se identifica a
+sí mismo como **Gem Software**, con Amsoft como sello distribuidor. No se afirma ninguna identidad civil real (nombres de
+las personas concretas) detrás de "Gem Software" hasta que aparezca
+en el propio binario. La propiedad intelectual del juego original —
+código, gráficos, sonido y diseño — sigue siendo de Gem Software,
+Amsoft/Amstrad, o de quien haya heredado esos derechos a día de hoy.
 
 **Lo que sí es nuestro** son las herramientas de este repositorio, los
 comentarios del código fuente reconstruido, el análisis y la

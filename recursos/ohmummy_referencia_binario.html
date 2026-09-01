@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oh Mummy — referencia para desensamblado del binario</title>
+  <style>
+    :root {
+      --bg: #f4f0e7;
+      --panel: #fffdf9;
+      --ink: #1d1a17;
+      --muted: #635b52;
+      --border: #d7cab8;
+      --accent: #8f6f42;
+      --accent-2: #4f6d73;
+      --ok: #628d5a;
+      --warn: #b77a2a;
+      --code-bg: #1d1d1d;
+      --code-fg: #f3ead7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem clamp(1rem, 3vw, 3rem);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.55;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1, h2, h3 {
+      color: var(--ink);
+      margin-top: 1.8rem;
+      margin-bottom: 0.6rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      margin-top: 0;
+      border-bottom: 3px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    h2 {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3rem;
+      font-size: 1.3rem;
+    }
+    p, li {
+      font-size: 0.98rem;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: -0.4rem;
+      margin-bottom: 1.3rem;
+    }
+    .callout {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      margin: 1.2rem 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin: 1.2rem 0;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .tag {
+      display: inline-block;
+      background: var(--accent-2);
+      color: white;
+      border-radius: 999px;
+      padding: 0.18rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 0.7rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(143,111,66,0.08);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      background: rgba(0,0,0,0.04);
+      padding: 0.08rem 0.26rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    pre {
+      margin: 1rem 0;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+    footer {
+      margin-top: 2.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      padding-top: 1rem;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Oh Mummy</h1>
+    <div class="meta">Amstrad CPC · 1984 · Amsoft · referencia técnica para ingeniería inversa</div>
+
+    <div class="callout">
+      Este documento sirve como referencia documental para una IA o un analista que vaya a desensamblar el binario del juego. Su objetivo es <strong>describir la naturaleza del programa, su flujo de juego, sus componentes visuales y los subsistemas esperables dentro del código máquina</strong>, para que el desensamblado pueda orientarse hacia estructuras típicas del videojuego: menús, bucle principal, tablas de datos, sprites, niveles, control, colisiones, audio y renderizado.
+    </div>
+
+    <h2>Resumen del juego</h2>
+    <p><strong>Oh Mummy</strong> es un juego arcade de temática egipcia para Amstrad CPC, con un enfoque de <em>laberinto/acción</em> y una presentación típica del software de la época: pantalla de título, jugador controlado por teclado o joystick, objetivos claros, enemigos, puntuación y progresión por niveles.</p>
+    <p>Desde el punto de vista de la ingeniería inversa, la expectativa es encontrar un binario de juego que combine varios bloques funcionales: carga inicial, pantalla de inicio, lógica del juego, gestión de entidades, renderizado del mapa, sistema de colisiones, contador de puntuación, compilación de niveles y posiblemente música/efectos de sonido.</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Objetivo principal</h3>
+        <ul>
+          <li>Recorrer un escenario o laberinto.</li>
+          <li>Reunir objetos, premios o elementos clave.</li>
+          <li>Evitar o neutralizar amenazas.</li>
+          <li>Completar niveles y avanzar.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Estilo funcional</h3>
+        <ul>
+          <li>Acción arcade.</li>
+          <li>Control por teclado/joystick.</li>
+          <li>Juego en tiempo real.</li>
+          <li>Escenarios basados en tiles o bloques.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Entorno de ejecución</h3>
+        <ul>
+          <li>Amstrad CPC 464.</li>
+          <li>Modo gráfico de 8 bits.</li>
+          <li>Paleta limitada, sprites simples y mapas de tiles.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Funcionamiento esperado del juego</h2>
+    <p>La estructura probable del programa es la típica de un videojuego de 1984 en CPC:</p>
+
+    <ol>
+      <li><strong>Inicio y cargador</strong>: pantalla de título, arranque del juego y transición desde BASIC hacia el binario de código máquina.</li>
+      <li><strong>Inicialización del sistema</strong>: configuración de modo gráfico, paleta, tablas de sprites, punteros a datos y valores de estado.</li>
+      <li><strong>Bucle principal</strong>: actualización continua del estado del juego, lectura del teclado/joystick, lógica de movimiento, colisiones y render.</li>
+      <li><strong>Generación del nivel</strong>: lectura de un mapa de tiles o un patrón de laberinto y colocación de obstáculos/objetos.</li>
+      <li><strong>Lógica de entidades</strong>: jugador, enemigos, coleccionables, temporizadores, vidas, contador de puntuación.</li>
+      <li><strong>Fin de nivel / fin de partida</strong>: comprobación de victoria, game over, reintentos y continuidad.</li>
+      <li><strong>Sonido y música</strong>: efectos por interrupciones o rutinas de temporización, con tablas de tonos y duración.</li>
+    </ol>
+
+    <h3>Flujo lógico de una partida</h3>
+    <pre>inicio del programa
+  ├─ pantalla de titulo
+  ├─ seleccionar o iniciar partida
+  ├─ carga/creacion del nivel
+  ├─ bucle principal del juego
+  │   ├─ leer entrada
+  │   ├─ mover jugador
+  │   ├─ mover enemigos / IA
+  │   ├─ resolver colisiones
+  │   ├─ actualizar puntuacion / vidas / temporizador
+  │   └─ renderizar pantalla
+  ├─ comprobacion de nivel completado
+  ├─ siguiente nivel o fin de partida
+  └─ reinicio o cierre</pre>
+
+    <h2>Componentes visuales esperables</h2>
+    <p>En un juego de este tipo en CPC, la parte visual se puede dividir en varios subsistemas:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Componente</th>
+          <th>Qué representa</th>
+          <th>Qué buscar en el binario</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Logo / título</td>
+          <td>Pantalla de inicio y branding del juego.</td>
+          <td>Datos bitmaps, tablas de caracteres, rutina de dibujado de texto grande.</td>
+        </tr>
+        <tr>
+          <td>Mapa de tiles</td>
+          <td>Laberinto, paredes, suelo, decoración.</td>
+          <td>Tablas de índices, patrón de bloques, máscaras de colisión, arrays de 8x8 o 16x16.</td>
+        </tr>
+        <tr>
+          <td>Sprites del jugador</td>
+          <td>Personaje principal y animaciones de movimiento.</td>
+          <td>Frames de sprite, secuencias de animación, punteros a cuadros, bitmaps en memoria.</td>
+        </tr>
+        <tr>
+          <td>Sprites enemigos</td>
+          <td>Enemigos, guardianes, criaturas o monstruos.</td>
+          <td>Tablas de direcciones, estados IA, cuadros alternativos y patrones de movimiento.</td>
+        </tr>
+        <tr>
+          <td>Objetos de colección</td>
+          <td>Premios, tesoros, piezas, energía, vidas o llaves.</td>
+          <td>Listas de posiciones, tipos de item, contador y rutina de recogida.</td>
+        </tr>
+        <tr>
+          <td>Marcos y HUD</td>
+          <td>Marcadores, vidas, nivel, tiempo, puntuación.</td>
+          <td>Rutinas de texto en pantalla, bcd/decimal conversion, vistas de estado.</td>
+        </tr>
+        <tr>
+          <td>Paleta</td>
+          <td>Colores de fondo, ladrillos, jugador, enemigos, UI.</td>
+          <td>Tablas de colores, valores por índice, cambio de paleta por escena.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Aspecto visual esperado</h2>
+    <p>El estilo gráfico del CPC suele ser austero y funcional, con paletas restringidas y uso intensivo de bloques geométricos. En <strong>Oh Mummy</strong> es razonable esperar:</p>
+
+    <ul>
+      <li>Escenarios basados en tiles de tamaño pequeño (muy probablemente 8x8 o 16x16).</li>
+      <li>Patrones decorativos con temática egipcia: paredes, tumbas, columnas, símbolos, arena, elementos arqueológicos.</li>
+      <li>Personajes con contornos simples y animación limitada por hardware.</li>
+      <li>Fuente de texto simple para puntuación, vidas, mensajes y pantallas de estado.</li>
+      <li>Uso de cajas, marcos o fondos de pantalla para separar la zona de juego de la interfaz.</li>
+    </ul>
+
+    <h2>Subsistemas funcionales que probablemente existan en el binario</h2>
+
+    <div class="grid">
+      <div class="card">
+        <h3>1. Carga y arranque</h3>
+        <ul>
+          <li>Rutina de inicialización del modo gráfico.</li>
+          <li>Configuración del registro de pantalla y memoria.</li>
+          <li>Detección de teclado/joystick y estados iniciales.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>2. Pantalla de título</h3>
+        <ul>
+          <li>Dibujo del título.</li>
+          <li>Rutina de espera de pulsación.</li>
+          <li>Transición a juego o menú de opciones.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>3. Generación de nivel</h3>
+        <ul>
+          <li>Lectura de datos del mapa.</li>
+          <li>Colocación de paredes, muros, premios y enemigos.</li>
+          <li>Cálculo de ancho y alto del nivel.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>4. Control del jugador</h3>
+        <ul>
+          <li>Lectura de entrada.</li>
+          <li>Movimiento por direcciones.</li>
+          <li>Animación y límites del escenario.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>5. IA de enemigos</h3>
+        <ul>
+          <li>Patrones de desplazamiento.</li>
+          <li>Detección de perseguir o huir.</li>
+          <li>Interacción con muros y espacios libres.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>6. Colisiones</h3>
+        <ul>
+          <li>Jugador vs pared.</li>
+          <li>Jugador vs enemigo.</li>
+          <li>Jugador vs objeto.</li>
+          <li>Enemigos vs bordes y obstáculos.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>7. Sistema de puntuación</h3>
+        <ul>
+          <li>Acumulación por objetos/recompensas.</li>
+          <li>Vida, energía o intentos.</li>
+          <li>Reloj/temporizador de nivel.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>8. Pantalla y render</h3>
+        <ul>
+          <li>Relleno del fondo.</li>
+          <li>Dibujo del mapa.</li>
+          <li>Blitting de sprites.</li>
+          <li>Actualización de HUD.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>9. Audio</h3>
+        <ul>
+          <li>Generación de tonos.</li>
+          <li>Tablas de notas para música.</li>
+          <li>Efectos de alarma, recogida, muerte o victoria.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Qué buscar dentro del binario</h2>
+    <p>Para orientar el análisis del binario, un desensamblador o agente de IA debería centrarse en estos elementos:</p>
+
+    <ul>
+      <li><strong>Rutina de arranque</strong>: inicialización de modo gráfico, limpieza de memoria, entorno de pantalla, carga de patrones.</li>
+      <li><strong>Tablas de sprites</strong>: bloques de bytes por animación, con secuencias pequeñas y reutilizables.</li>
+      <li><strong>Tablas de colores</strong>: valores RGB o paleta simplificada del CPC.</li>
+      <li><strong>Arrays de niveles</strong>: mayoritariamente datos numéricos, índices, posiciones y dimensiones.</li>
+      <li><strong>Tablas de colisión</strong>: mapas puntuales de accesibilidad o bloqueo por celdas.</li>
+      <li><strong>Bucles de juego</strong>: loops repetitivos con actualización, espera de frame, gestión del timer.</li>
+      <li><strong>Subrutinas de entrada</strong>: lectura de teclas o joystick y traducción a direcciones/acciones.</li>
+      <li><strong>Subrutinas de dibujo</strong>: rellenar pantalla, dibujar mapa, teclado, marcas, HUD, menús.</li>
+      <li><strong>Generadores de sonido</strong>: rutinas tipo tone, noise, envelope o tablas de frecuencia.</li>
+      <li><strong>Strings / textos</strong>: nombres de pantallas, mensajes, opciones, player status, score, high score.</li>
+    </ul>
+
+    <h2>Patrones típicos del juego en Z80</h2>
+    <p>En un binario de CPC para Z80, un analista puede esperar ver estructuras de bajo nivel como estas:</p>
+
+    <pre>LD A, (HL)
+INC HL
+CALL rutina_dibujo
+DEC B
+JR NZ, bucle
+LD A, #xx
+OUT (#xx), A
+CALL leer_joystick
+CALL actualizar_entidades
+CALL dibujar_pantalla</pre>
+
+    <p>Esto no implica necesariamente que el juego use exactamente ese código, pero sí refleja el tipo de secuencias esperables para:</p>
+
+    <ul>
+      <li>Lectura de entrada.</li>
+      <li>Actualización de estado.</li>
+      <li>Bucle por frames.</li>
+      <li>Acceso a tablas y punteros.</li>
+      <li>Dibujo de bloques o sprites.</li>
+      <li>Control de temporizadores y bandas de sonido.</li>
+    </ul>
+
+    <h2>Notas para una IA de desensamblado</h2>
+    <div class="callout">
+      La IA debe tratar este documento como <strong>una hipótesis de trabajo</strong>, no como una verdad absoluta del binario final. Su utilidad es orientar la identificación de módulos comunes en juegos de Amstrad: arranque, render, lógica, niveles, colisiones, audio y textos. Cuando el binario se haya desmontado por completo, las conclusiones deben validarse contra las direcciones reales de la ROM/loads del binario y contra la ejecución en emulador.
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Bloque probable</th>
+          <th>Qué debería contener</th>
+          <th>Señal útil</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Inicio</td>
+          <td>Instalación de runtime, modo pantalla y variables globales.</td>
+          <td>Instrucciones de inicialización de hardware y tablas de memoria.</td>
+        </tr>
+        <tr>
+          <td>Menú / título</td>
+          <td>Texto, logo, transición, espera de entrada.</td>
+          <td>Rutin de espera, cadenas en pantalla, debug states.</td>
+        </tr>
+        <tr>
+          <td>Mapa</td>
+          <td>Tiles, posiciones y patrones de escenario.</td>
+          <td>Arrays de bytes, pantallas 2D, offsets por fila/columna.</td>
+        </tr>
+        <tr>
+          <td>Entidades</td>
+          <td>Jugador, enemigos, objetos e instancias.</td>
+          <td>Estructuras repetitivas con X/Y, dirección, estado y sprite.</td>
+        </tr>
+        <tr>
+          <td>Juego</td>
+          <td>Bucle principal, colisiones, puntuación y fin de nivel.</td>
+          <td>Multiples jumps condicionales y llamadas repetitivas a subrutinas.</td>
+        </tr>
+        <tr>
+          <td>Audio</td>
+          <td>Notas, tonos, volumen y efectos.</td>
+          <td>Tablas de frecuencias y rutinas con salida a puertos de sonido.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Conclusión corta</h2>
+    <p>El binario de <strong>Oh Mummy</strong> probablemente está compuesto por un cargador, un sistema gráfico, un motor de juego en tiempo real, tablas de tiles/sprites, lógica de niveles y audio. Para el análisis, lo más importante es buscar la separación clara entre: <em>datos</em> (sprites, tiles, niveles, paletas) y <em>código</em> (bucle principal, IA, colisiones, render, input y sonido).</p>
+
+    <footer>
+      Documento de apoyo para ingeniería inversa del juego Oh Mummy (Amstrad CPC). Se recomienda usarlo junto con el diario de descubrimientos y el análisis del disco original, sin sustituir la validación real del binario desmontado.
+    </footer>
+  </div>
+</body>
+</html>

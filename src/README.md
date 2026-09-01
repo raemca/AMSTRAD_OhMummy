@@ -3,60 +3,78 @@
 *Ingeniería inversa, análisis y documentación: Rafael Eduardo Martín Candial (raemca@hotmail.com)*
 
 Reconstrucción por ingeniería inversa de la versión de disco (`.dsk`)
-de *Oh Mummy* (Amsoft, 1984). Ver `../FINDINGS.md` para el diario de
+de *Oh Mummy* (Amsoft, 1984; desarrollado por **Gem Software**, ver
+`../AVISO-LEGAL.md`). Ver `../FINDINGS.md` para el diario de
 descubrimientos completo, sesión a sesión.
 
 ## Estado
 
-**Nada desensamblado todavía.** Esta sesión solo ha montado el entorno
-del proyecto y las herramientas de lectura del `.dsk`. Lo único que se
-sabe con certeza a día de hoy es el catálogo AMSDOS del disco (ver
-`../FISICO/extraido/extraccion.log` tras ejecutar
-`py tools/dsk_extract.py`):
+**`MUMMY.BAS` (cargador) — reconstruido y verificado byte a byte.**
+`load_disk/mummy_bas.bas` es el BASIC detokenizado a texto editable
+con `tools/amsdos_basic_tool.py`; `py tools/build_all.py` lo vuelve a
+tokenizar y compara contra el original — **0 diferencias** (2564
+bytes, cabecera AMSDOS incluida). Dibuja a mano el logo "AMSOFT", el
+título "Oh Mummy" (efecto de partículas vía `TEST()`), el crédito
+"PRESENTS 1984 GEM SOFTWARE" y "LOADING......", y termina con
+`MEMORY 15000:LOAD"!mummy1",&6000:CALL &6000` — de ahí sale la
+dirección de carga y ejecución real del motor.
 
-| Fichero AMSDOS | Bloques | Cabecera de 128 bytes |
-|---|---|---|
-| `MUMMY.BAS` | 3 (3072 bytes) | válida (checksum verificado) |
-| `MUMMY1.BIN` | 14 (14336 bytes) | válida (checksum verificado) |
+**`MUMMY1.BIN` (motor) — carga en `$6000`, longitud real 13190 bytes
+($3386, hasta `$9385`).** Estado por tramos:
 
-Hipótesis de trabajo, aún sin confirmar: `MUMMY.BAS` es el cargador
-(BASIC tokenizado que dibuja la pantalla de título y arranca el
-motor), `MUMMY1.BIN` es el motor del juego en código máquina. Los
-campos de la cabecera AMSDOS (dirección de carga, dirección de
-ejecución, tipo, longitud real) no se han decodificado — el checksum
-confirma que la cabecera no está corrupta, pero su significado
-campo a campo se verificará contra el propio `MUMMY.BAS` (que hace el
-`LOAD`/`CALL` real) en la primera sesión de desensamblado, en vez de
-darlo por hecho de memoria. Ver `../FINDINGS.md`.
+- **`$6000`-`$6400`** (1025 bytes): desensamblado a mano con
+  `tools/z80_disasm.py`, en `mummy1_body.asm`. **Verificado**: al
+  compilar con SjASMPlus reproduce exactamente los mismos bytes que el
+  binario original en ese rango. Es una reconstrucción **mecánica**
+  (primera pasada): llama repetidamente a rutinas fijas del firmware
+  del CPC (`$BBxx`/`$BCxx`/`$BDxx`) y a subrutinas internas (`$78xx`,
+  `$7Dxx`, `$7Exx`, `$7Bxx`) sin identificar todavía; nada tiene
+  nombre semántico aún, ni se ha confirmado con certeza qué es cada
+  cosa (ver "Pendiente" en `../FINDINGS.md`).
+- **`$6401`-`$9385`** (12165 bytes): sin analizar. Incluido tal cual
+  con `INCBIN "data/mummy1_resto_sin_analizar.bin"` en
+  `mummy1_body.asm` para que la compilación reproduzca el binario
+  completo byte a byte mientras se va desensamblando de verdad, sesión
+  a sesión.
 
-## Estructura prevista (por analogía con los proyectos hermanos)
+## Compilar y verificar
 
-Esta carpeta seguirá la misma organización que
-[`MSX/proyectos/madmixgame`](../../../MSX/proyectos/madmixgame) y
-[`SPECTRUM_MadMixGame`](../../../../SPECTRUM_MadMixGame) a medida que
-avance el trabajo:
+```
+py tools/build_all.py
+```
 
-- `main.asm` — punto de entrada único de compilación (cuando exista).
-- `*_body.asm` — un fichero por bloque de código reconstruido, cada
-  uno a su dirección real de ejecución.
-- `load_disk/` — cargador de disco: el `MUMMY.BAS` detokenizado a
-  texto editable, y el análisis del mecanismo real de carga del
-  binario (equivalente al `load_cas/` de los proyectos de cinta).
-- `data/img/` — gráficos ya identificados y extraídos a fichero
-  individual (`sprites/`, `tiles/`, `logo/`, `marco_decorativo/`,
-  `texto/`), incluidos en la fuente vía `INCBIN`.
-- `data/niveles/` — datos de los niveles del laberinto.
-- `data/sound/` — datos de música y efectos.
+Ensambla `main.asm` con SjASMPlus → `build/mummy1.bin`, tokeniza
+`load_disk/mummy_bas.bas` → `build/mummy.bas`, y compara ambos byte a
+byte contra lo extraído del `.dsk` original
+(`FISICO/extraido/MUMMY1.BIN` y `MUMMY.BAS`). Hoy: **0 diferencias en
+los dos**.
+
+## Estructura
+
+- `main.asm` — punto de entrada único de compilación (`ORG $6000`,
+  `INCLUDE mummy1_body.asm`, `SAVEBIN`).
+- `mummy1_body.asm` — el motor: cabecera desensamblada a mano +
+  `INCBIN` del resto sin analizar.
+- `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
+- `data/` — recursos ya identificados y extraídos a fichero individual
+  (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y
+  `mummy1_resto_sin_analizar.bin` (el tramo del motor pendiente).
 - `build/` — binarios compilados (gitignored).
 
 ## Convenciones
 
 - **Nombres descriptivos en español**, no inglés ni abreviaturas
   crípticas — ver `.github/CONTRIBUTING.md` para el detalle completo y
-  la disciplina de verificación byte a byte.
-- Cuando una rutina resulte equivalente a una ya resuelta en los
-  proyectos hermanos (MSX/Spectrum de *Mad Mix Game*), eso sería pura
-  coincidencia de mecánica de juego (Pac-Man-like) y no un mismo
-  origen de código — no se comparte nombrado automáticamente entre
-  proyectos de juegos distintos. Los nombres se deciden por lo que la
-  rutina hace en este binario concreto.
+  la disciplina de verificación byte a byte. Todavía no aplica: el
+  único tramo desensamblado (`$6000`-`$6400`) sigue sin nombres
+  semánticos (reconstrucción mecánica de primera pasada).
+- No se comparte nombrado con los proyectos hermanos de MSX/Spectrum:
+  *Oh Mummy* no tiene relación de código con *Mad Mix Game* (juegos
+  distintos, plataformas distintas) — solo coincide el género (laberinto/
+  arcade). Los nombres se deciden por lo que la rutina hace en este
+  binario concreto.
+- Cuando un dato de la cabecera AMSDOS o del propio binario admite
+  varias interpretaciones, se verifica contra el código que lo usa de
+  verdad (p. ej. el `CALL &6000` de `mummy_bas.bas`) antes de darlo
+  por bueno — no se confía en una tabla recordada de memoria sin
+  contrastar (ver `../FINDINGS.md`, Sesión 1 y 2).

@@ -25,50 +25,52 @@ notice.
 
 Current status
 ---------------
-**Session 1 — environment only.** For now this repository only
-contains the project skeleton and the first tools to read the `.dsk`
-(AMSDOS catalogue). Not a single routine has been disassembled yet.
-See `FINDINGS.md` for the discovery log, which starts by documenting
-the disk itself.
+**Session 2 — build pipeline working, disassembly started.** The
+disk's AMSDOS catalogue (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816
+bytes, standard CPCEMU format, 40 tracks x 1 side, 9x512 data format,
+sector IDs `C1`-`C9`) only has **2 files**:
 
-What we do know about the disk
-(`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU
-format, 40 tracks x 1 side, 9x512 data format, sector IDs `C1`-`C9`)
-is its complete AMSDOS catalogue — only **2 files**:
-
-| File | Allocated blocks | AMSDOS header |
+| File | Allocated blocks | Status |
 |---|---|---|
-| `MUMMY.BAS` | 3 (3072 bytes) | valid (checksum verified) |
-| `MUMMY1.BIN` | 14 (14336 bytes) | valid (checksum verified) |
+| `MUMMY.BAS` | 3 (3072 bytes) | **detokenized and byte-verified** — `src/load_disk/mummy_bas.bas` |
+| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled and verified**, rest (12165 bytes) pending |
 
-`MUMMY.BAS` is almost certainly the loader (draws the title screen in
-BASIC and loads/launches the real engine); `MUMMY1.BIN` is expected to
-be the game engine in machine code. The internal fields of the
-128-byte AMSDOS header (load address, execution address, type, real
-length) **have not been decoded yet** — the checksum confirms the
-header is valid, but decoding each field's meaning is left for the
-first disassembly session, cross-checked against `MUMMY.BAS` itself
-rather than trusting a memory-recalled table (see `FINDINGS.md`).
+`MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
+the "AMSOFT" logo, the "Oh Mummy" title with a particle effect, the
+credit **"PRESENTS 1984 GEM SOFTWARE"** (the studio that developed the
+game — see `AVISO-LEGAL.md`) and "LOADING......", then ends with
+`MEMORY 15000:LOAD"!mummy1",&6000:CALL &6000` — that's where the
+engine's confirmed load **and** execution address comes from (`$6000`),
+verified against the BASIC itself rather than the AMSDOS header, which
+turned out ambiguous. The engine's first stretch ($6000-$6400) is
+already hand-disassembled — it repeatedly calls fixed CPC firmware ROM
+routines (`$BBxx`/`$BCxx`/`$BDxx`) and its own internal subroutines,
+not yet identified; the rest (`$6401`-`$9385`) is included as-is via
+`INCBIN` while it gets analyzed session by session — see
+`FINDINGS.md` for the full detail and the mechanical disassembly
+methodology used.
 
 Building
 --------
-There is nothing to build yet — no assembler source exists. The only
-things runnable today are the disk-reading tools:
+```
+py tools/build_all.py
+```
+
+Assembles `src/main.asm` with SjASMPlus (engine into
+`src/build/mummy1.bin`) and tokenizes `src/load_disk/mummy_bas.bas`
+(into `src/build/mummy.bas`), and **automatically verifies both
+results byte-for-byte** against what was extracted from the original
+`.dsk` — as of today: **0 differences** in both. Read-only disk tools,
+separately:
 
 ```
 py tools/dsk_catalog.py
 py tools/dsk_extract.py
 ```
 
-The first script lists the AMSDOS catalogue of the `.dsk` in
-`FISICO/`. The second extracts every file as-is to
-`FISICO/extraido/` (including its raw header) and leaves an
-extraction log.
-
-Once assembler source exists, this section will be updated with the
-equivalent of `py tools/build_all.py` plus regeneration of the
-reconstructed `.dsk`, automatically verified byte-for-byte against the
-original (same discipline as the sibling projects).
+Pending: packaging the result back into a full `.dsk` (equivalent to
+the sibling projects' `gen_tzx_file.py`) — for now verification is
+per-file, not whole-disk.
 
 Repository structure
 ---------------------
@@ -76,28 +78,40 @@ Repository structure
   (`extraido/`, AMSDOS catalogue, extraction log; later also the raw
   disassembly). Not version-controlled (see `.gitignore` and
   `AVISO-LEGAL.md`).
-- `src/` — reconstructed assembler source (still empty) — see
+- `src/` — reconstructed assembler source: `main.asm` (single build
+  entry point), `mummy1_body.asm` (engine, `$6000` onward) — see
   `src/README.md`/`FINDINGS.md`.
-- `src/build/` — compiled binaries (once `tools/build_all.py` exists).
+- `src/build/` — compiled binaries (`py tools/build_all.py`, not
+  version-controlled).
 - `src/data/` — resources already identified and extracted to
   individual files, included in the source via `INCBIN`:
   `img/sprites/`, `img/tiles/`, `img/logo/`, `img/marco_decorativo/`,
-  `img/texto/`, `niveles/`, `sound/` — all empty for now, to be filled
-  in as disassembly progresses.
+  `img/texto/`, `niveles/`, `sound/` (all empty for now) and
+  `mummy1_resto_sin_analizar.bin` (the 12165 still-undisassembled
+  engine bytes, `$6401`-`$9385`) — promoted to real source as analysis
+  progresses.
 - `src/load_disk/` — disk loader (Amstrad equivalent of the sibling
-  tape projects' `load_cas/`) — still empty.
+  tape projects' `load_cas/`): `mummy_bas.bas`, the loader's BASIC
+  detokenized into editable text.
 - `build/` — final deliverable (reconstructed `.dsk`), once it exists.
 - `tools/` — custom Python tooling: `dsk_common.py` (reading CPCEMU
   `.dsk` images and the AMSDOS catalogue), `dsk_catalog.py` (list
-  catalogue), `dsk_extract.py` (extract raw files).
+  catalogue), `dsk_extract.py` (extract raw files),
+  `amsdos_basic_tool.py` (detokenize/tokenize Locomotive BASIC),
+  `z80_disasm.py` (mechanical Z80 disassembler), `build_all.py`
+  (build everything and verify byte-for-byte).
 - `manuales/` — technical reference manuals, one per subsystem,
   written as each piece is closed out (no content yet).
 - `recursos/` — self-contained HTML pages (viewers/inventories):
   `mapa_memoria.html`, `graficos.html` (tiles), `sprites.html`,
   `portada.html` (loading screen), `flujo_programa.html` (routine
-  inventory) and `flujo_secuencial.html` (execution order). For now
-  they are data-free templates — each one says so explicitly — filled
-  in progressively session by session.
+  inventory) and `flujo_secuencial.html` (execution order) — templates
+  filled in progressively session by session. Also
+  `ohmummy_referencia_binario.html`: a supporting document (provided
+  by the author, not derived from the binary) with a generic
+  hypothesis of what subsystems to expect in a 1984 CPC maze arcade
+  game — orients the search, doesn't replace verification against the
+  real bytes.
 - `dump/` — memory/screen dumps from a real emulator, used as
   evidence when verifying findings (yet to be created).
 
