@@ -25,17 +25,19 @@ notice.
 
 Current status
 ---------------
-**Session 7 — 38 routines reconstructed with functional names (1681
-bytes in a single contiguous block, including a ~20-table sprite
-dispatcher), firmware identified, full `.dsk` regenerated from
-scratch.** The disk's AMSDOS catalogue (`FISICO/Oh Mummy
-(1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU format, 40 tracks x
-1 side, 9x512 data format, sector IDs `C1`-`C9`) only has **2 files**:
+**Session 8 — only ONE stretch of the engine is left unanalyzed
+(`$6401`-`$786B`, 5227 bytes). Everything else is reconstructed**: 38
+code routines (1681 bytes) and 35 data tables/text blocks (5257
+bytes, including the game's actual text), firmware identified, full
+`.dsk` regenerated from scratch. The disk's AMSDOS catalogue
+(`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU
+format, 40 tracks x 1 side, 9x512 data format, sector IDs `C1`-`C9`)
+only has **2 files**:
 
 | File | Allocated blocks | Status |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenized and byte-verified** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled and verified**, rest (12165 bytes) pending |
+| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$6401`-`$786B` (5227 bytes) pending |
 
 `MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
 the "AMSOFT" logo (191 strokes, now rendered in
@@ -75,12 +77,24 @@ self-modifying code; corrects an earlier hypothesis that called these
 "AND/OR mask variants" — there is no actual AND/OR instruction in the
 block). **All names are provisional** (each with its hypothesis and
 confidence level in the code itself, see `FINDINGS.md`) — none
-verified yet by running the game in an emulator. The rest of the
-engine (10484 bytes across 2 stretches) is still included as-is via
-`INCBIN` (offset and length computed automatically around the
-reconstructed code) while it gets analyzed session by session — see
-`FINDINGS.md` for the full call map, the per-routine confidence table,
-and the methodology used.
+verified yet by running the game in an emulator.
+
+Beyond the code, **Session 8** closed off the rest of the engine
+(`$7EFD`-`$9385`, 5257 bytes) entirely, confirming it is **data, not
+code** — no already-reconstructed `CALL`/`JP` lands inside it. That's
+where the game's **actual text** lives: the options screen (speed,
+difficulty, music and sound effects), the attract-mode "STOP PRESS"
+newspaper screen (the Egyptian pyramid excavation), the HI-SCORE table
+with its 5 ranks ("Stupendous", "Excellent"...) and score thresholds,
+the main menu, and the real copyright string **`"OH MUMMY" (c) 1984
+GEM SOFTWARE`** (confirms `AVISO-LEGAL.md`). Also the 6 sound
+envelopes, the 4 decorative-frame tables (72 bytes each, boundaries
+confirmed by the code that uses them), and the circular sound script
+(90 9-byte records, running right up to the engine's last byte). Only
+**one** stretch of the engine is still unanalyzed (`$6401`-`$786B`,
+5227 bytes), included as-is via `INCBIN` — see `FINDINGS.md` for the
+full call map, the per-routine/data confidence table, and the
+methodology used.
 
 Building
 --------

@@ -25,10 +25,11 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 7 — 38 rutinas reconstruidas con nombre funcional (1681
-bytes en un único bloque contiguo, incluido un dispatcher de sprites
-de ~20 tablas), firmware identificado, `.dsk` completo regenerado
-desde cero.** El catálogo AMSDOS del disco (`FISICO/Oh Mummy
+**Sesión 8 — solo queda UN tramo del motor sin analizar (`$6401`-`$786B`,
+5227 bytes). Todo lo demás está reconstruido**: 38 rutinas de código
+(1681 bytes) y 35 tablas/textos de datos (5257 bytes, incluido el
+texto real del juego), firmware identificado, `.dsk` completo
+regenerado desde cero. El catálogo AMSDOS del disco (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
 x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 **2 ficheros**:
@@ -36,7 +37,7 @@ x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 | Fichero | Bloques asignados | Estado |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenizado y verificado byte a byte** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado y verificado**, resto (12165 bytes) pendiente |
+| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado**, **`$786C`-`$7EFC` (1681 bytes) reconstruido como código**, **`$7EFD`-`$9385` (5257 bytes) reconstruido como datos**, solo `$6401`-`$786B` (5227 bytes) pendiente |
 
 `MUMMY.BAS` es el cargador: dibuja a mano (con `PLOT`/`DRAW`
 relativos) el logo "AMSOFT" (191 trazos, ya visibles en
@@ -78,12 +79,24 @@ hipótesis previa que las daba por "variantes de máscara AND/OR" — no
 hay ninguna instrucción AND/OR real en el bloque). **Todos los nombres
 son provisionales** (cada uno con su comentario de hipótesis y nivel de
 confianza en el propio código, ver `FINDINGS.md`) — ninguno verificado
-todavía ejecutando el juego en un emulador. El resto del motor (10484
-bytes en 2 tramos) se incluye tal cual con `INCBIN` (offset y
-longitud calculados automáticamente alrededor del código ya
-reconstruido) mientras se va analizando sesión a sesión — ver
+todavía ejecutando el juego en un emulador.
+
+Más allá del código, la **Sesión 8** cerró por completo el resto del
+motor (`$7EFD`-`$9385`, 5257 bytes) confirmando que es **dato, no
+código** — ningún `CALL`/`JP` ya reconstruido aterriza ahí dentro. Ahí
+vive el **texto real del juego**: la pantalla de opciones (velocidad,
+dificultad, música y efectos de sonido), el "STOP PRESS" del modo
+atracción (la excavación de la pirámide egipcia), la tabla HI-SCORE
+con sus 5 rangos ("Stupendous", "Excellent"...) y umbrales de
+puntuación, el menú principal, y el copyright real **`"OH MUMMY" (c)
+1984 GEM SOFTWARE`** (confirma `AVISO-LEGAL.md`). También las 6
+envolventes de sonido, las 4 tablas del marco decorativo (72 bytes
+cada una, límites confirmados por el propio código que las usa), y el
+guión de sonido circular (90 registros de 9 bytes, hasta el último
+byte del motor). Solo queda **un** tramo sin analizar en todo el motor
+(`$6401`-`$786B`, 5227 bytes), incluido tal cual con `INCBIN` — ver
 `FINDINGS.md` para el mapa de llamadas completo, la tabla de confianza
-por rutina, y la metodología usada.
+por rutina/dato, y la metodología usada.
 
 Compilar
 --------

@@ -48,69 +48,70 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 ; = envolventes de tono 1/2/3) ----
     CALL FIRM_SOUND_RESET         ; 6000: cda7bc
     LD A,$01                     ; 6003: 3e01
-    LD HL,$7FCA                  ; 6005: 21ca7f
+    LD HL,ENVOLVENTE_AMPLITUD_1   ; 6005: 21ca7f
     CALL FIRM_SOUND_AMPL_ENV                   ; 6008: cdbcbc
     LD A,$01                     ; 600B: 3e01
-    LD HL,$7FE5                  ; 600D: 21e57f
+    LD HL,ENVOLVENTE_TONO_1       ; 600D: 21e57f
     CALL FIRM_SOUND_TONE_ENV                   ; 6010: cdbfbc
     LD A,$02                     ; 6013: 3e02
-    LD HL,$7FD4                  ; 6015: 21d47f
+    LD HL,ENVOLVENTE_AMPLITUD_2   ; 6015: 21d47f
     CALL FIRM_SOUND_AMPL_ENV                   ; 6018: cdbcbc
     LD A,$02                     ; 601B: 3e02
-    LD HL,$7FF5                  ; 601D: 21f57f
+    LD HL,ENVOLVENTE_TONO_2       ; 601D: 21f57f
     CALL FIRM_SOUND_TONE_ENV                   ; 6020: cdbfbc
     LD A,$03                     ; 6023: 3e03
-    LD HL,$7FDE                  ; 6025: 21de7f
+    LD HL,ENVOLVENTE_AMPLITUD_3   ; 6025: 21de7f
     CALL FIRM_SOUND_AMPL_ENV                   ; 6028: cdbcbc
     LD A,$03                     ; 602B: 3e03
-    LD HL,$7FF9                  ; 602D: 21f97f
+    LD HL,ENVOLVENTE_TONO_3       ; 602D: 21f97f
     CALL FIRM_SOUND_TONE_ENV                   ; 6030: cdbfbc
-    LD HL,$905C                  ; 6033: 215c90
-    LD ($905A),HL                ; 6036: 225a90
+    LD HL,GUION_SONIDO_CIRCULAR   ; 6033: 215c90
+    LD (PUNTERO_GUION_SONIDO),HL  ; 6036: 225a90
     CALL FIRM_KL_TIME_PLEASE                   ; 6039: cd0dbd
     LD ($8151),HL                ; 603C: 225181  ; hipotesis: semilla de aleatoriedad a partir del reloj del sistema
-; $78D1 se llama decenas de veces en todo este bloque, siempre suelta
-; entre otras llamadas -- hipotesis (ver FINDINGS.md Sesion 3): bombea
-; una cola/guion de sonido (referencia $905A/$905C, avanza de 9 en 9
-; bytes hasta $937D, y puede llamar a SOUND QUEUE del firmware). No
-; renombrada todavia -- sin confirmar con evidencia mas fuerte.
-    CALL $78D1                   ; 603F: cdd178
-    CALL $78D1                   ; 6042: cdd178
-    CALL $78D1                   ; 6045: cdd178
-    CALL $78D1                   ; 6048: cdd178
-; $7EAB: hipotesis "borrar bloque de estado" -- pone a 0 el byte $8172
-; y lo propaga con LDIR (truco clasico de Z80: origen=destino-1) a lo
-; largo de 1181 bytes mas ($8172-$85EE). Ver FINDINGS.md Sesion 3.
+; ACTUALIZAR_SECUENCIA_SONIDO se llama decenas de veces en todo este
+; bloque, siempre suelta entre otras llamadas -- confirmado (Sesion 8):
+; bombea GUION_SONIDO_CIRCULAR via PUNTERO_GUION_SONIDO, avanzando de 9
+; en 9 bytes hasta GUION_SONIDO_ULTIMO_REGISTRO, y llama a SOUND QUEUE
+; del firmware cuando FLAG_MUSICA_FONDO='Y'.
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;603F: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6042: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6045: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6048: cdd178
+; BORRAR_BLOQUE_ESTADO: pone a 0 el byte ARRAY_ENTIDADES+5 ($8172) y lo
+; propaga con LDIR (truco clasico de Z80: origen=destino-1) a lo largo
+; de 1181 bytes mas -- confirmado (Sesion 8) que cubre el resto de
+; ARRAY_ENTIDADES, y ESTADO_PARTIDA/VENTANA_TEXTO_HUD/MAPA_CASILLAS
+; completos (el rango termina justo en el ultimo byte de MAPA_CASILLAS).
     CALL BORRAR_BLOQUE_ESTADO                   ; 604B: cdab7e
-    CALL $78D1                   ; 604E: cdd178
-    CALL $78D1                   ; 6051: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;604E: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6051: cdd178
     LD A,$06                     ; 6054: 3e06
     LD ($8169),A                 ; 6056: 326981
     XOR A                        ; 6059: af
     LD ($816C),A                 ; 605A: 326c81
     LD ($8168),A                 ; 605D: 326881
-    CALL $78D1                   ; 6060: cdd178
-    CALL $78D1                   ; 6063: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6060: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6063: cdd178
 ; $7EF4: hipotesis "repetir un caracter N veces por FIRM_TXT_OUTPUT" --
 ; lee (HL)=contador, (HL+1)=caracter, y saca ese caracter "contador"
 ; veces sin avanzar mas el puntero (formato de datos de 2 bytes por
 ; llamada: cuenta+caracter). Encaja con dibujar tramos rectos de un
 ; marco/borde decorativo. Ver FINDINGS.md Sesion 3.
-    LD HL,$8653                  ; 6066: 215386
+    LD HL,TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8 ; 6066: 215386
     CALL REPETIR_CARACTER                   ; 6069: cdf47e
-    CALL $78D1                   ; 606C: cdd178
-    CALL $78D1                   ; 606F: cdd178
-    CALL $78D1                   ; 6072: cdd178
-    CALL $78D1                   ; 6075: cdd178
-    LD IX,$8ECA                  ; 6078: dd21ca8e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;606C: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;606F: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6072: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6075: cdd178
+    LD IX,TABLA_DIRECCIONES_PANTALLA ; 6078: dd21ca8e
     LD B,$C8                     ; 607C: 06c8
     LD DE,$0000                  ; 607E: 110000
-; Bucle $607E-$6093: hipotesis "tabla de direcciones de pantalla por
-; fila" -- 200 iteraciones (B=$C8), cada una calcula con el firmware
-; FIRM_SCR_DOT_POSITION la direccion de pantalla de una fila y la
-; guarda en una tabla de 400 bytes en $8ECA-$905A (200 entradas x 2
-; bytes). Tecnica muy comun en juegos de CPC para acelerar el acceso
-; a filas de pantalla. Ver FINDINGS.md Sesion 3.
+; Bucle $607E-$6093: confirmado (Sesion 8) -- 200 iteraciones (B=$C8),
+; cada una calcula con el firmware FIRM_SCR_DOT_POSITION la direccion
+; de pantalla de una fila y la guarda en TABLA_DIRECCIONES_PANTALLA
+; (200 entradas x 2 bytes). Tecnica muy comun en juegos de CPC para
+; acelerar el acceso a filas de pantalla.
     LD H,D                       ; 6081: 62
     LD L,B                       ; 6082: 68
     DEC L                        ; 6083: 2d
@@ -122,85 +123,85 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     INC IX                       ; 6090: dd23
     POP BC                       ; 6092: c1
     DJNZ $607E                   ; 6093: 10e9
-    CALL $78D1                   ; 6095: cdd178
-    CALL $78D1                   ; 6098: cdd178
-    CALL $78D1                   ; 609B: cdd178
-    CALL $78D1                   ; 609E: cdd178
-    LD HL,$8740                  ; 60A1: 214087
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6095: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6098: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;609B: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;609E: cdd178
+    LD HL,TEXTO_COPYRIGHT_Y_HUD   ; 60A1: 214087
     CALL REPETIR_CARACTER                   ; 60A4: cdf47e
-    CALL $78D1                   ; 60A7: cdd178
-    CALL $78D1                   ; 60AA: cdd178
-; $7EB9, llamada 14 veces seguidas con pares HL/DE distintos: hipotesis
-; "borrar un rectangulo de la ventana de texto" -- HL/DE parecen ser
-; (fila,columna) de inicio y (ancho,alto) o esquina opuesta; recorre
-; una tabla en $81D8 (con paso de 40 = $28 bytes por fila, el ancho de
-; pantalla en modo texto) escribiendo espacios. Consistente con ir
-; despejando varios paneles de HUD/marco antes de dibujarlos. Ver
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60A7: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60AA: cdd178
+; BORRAR_RECTANGULO_VENTANA, llamada 14 veces seguidas con pares HL/DE
+; distintos: hipotesis "borrar un rectangulo de la ventana de texto" --
+; HL/DE parecen ser (fila,columna) de inicio y (ancho,alto) o esquina
+; opuesta; recorre VENTANA_TEXTO_HUD (paso de 40 = $28 bytes por fila,
+; el ancho de pantalla en modo texto) escribiendo espacios. Consistente
+; con ir despejando varios paneles de HUD/marco antes de dibujarlos. Ver
 ; FINDINGS.md Sesion 3.
     LD HL,$0203                  ; 60AD: 210302
     LD DE,$2604                  ; 60B0: 110426
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60B3: cdb97e
-    CALL $78D1                   ; 60B6: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60B6: cdd178
     LD HL,$0408                  ; 60B9: 210804
     LD DE,$2409                  ; 60BC: 110924
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60BF: cdb97e
-    CALL $78D1                   ; 60C2: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60C2: cdd178
     LD HL,$040D                  ; 60C5: 210d04
     LD DE,$080E                  ; 60C8: 110e08
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60CB: cdb97e
-    CALL $78D1                   ; 60CE: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60CE: cdd178
     LD HL,$0D0D                  ; 60D1: 210d0d
     LD DE,$1B0E                  ; 60D4: 110e1b
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60D7: cdb97e
-    CALL $78D1                   ; 60DA: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60DA: cdd178
     LD HL,$200D                  ; 60DD: 210d20
     LD DE,$240E                  ; 60E0: 110e24
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60E3: cdb97e
-    CALL $78D1                   ; 60E6: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60E6: cdd178
     LD HL,$0412                  ; 60E9: 211204
     LD DE,$2413                  ; 60EC: 111324
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60EF: cdb97e
-    CALL $78D1                   ; 60F2: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60F2: cdd178
     LD HL,$0417                  ; 60F5: 211704
     LD DE,$2418                  ; 60F8: 111824
     CALL BORRAR_RECTANGULO_VENTANA                   ; 60FB: cdb97e
-    CALL $78D1                   ; 60FE: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;60FE: cdd178
     LD HL,$0205                  ; 6101: 210502
     LD DE,$0318                  ; 6104: 111803
     CALL BORRAR_RECTANGULO_VENTANA                   ; 6107: cdb97e
-    CALL $78D1                   ; 610A: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;610A: cdd178
     LD HL,$0905                  ; 610D: 210509
     LD DE,$0A18                  ; 6110: 11180a
     CALL BORRAR_RECTANGULO_VENTANA                   ; 6113: cdb97e
-    CALL $78D1                   ; 6116: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6116: cdd178
     LD HL,$1005                  ; 6119: 210510
     LD DE,$1107                  ; 611C: 110711
     CALL BORRAR_RECTANGULO_VENTANA                   ; 611F: cdb97e
-    CALL $78D1                   ; 6122: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6122: cdd178
     LD HL,$1705                  ; 6125: 210517
     LD DE,$1807                  ; 6128: 110718
     CALL BORRAR_RECTANGULO_VENTANA                   ; 612B: cdb97e
-    CALL $78D1                   ; 612E: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;612E: cdd178
     LD HL,$1E05                  ; 6131: 21051e
     LD DE,$1F18                  ; 6134: 11181f
     CALL BORRAR_RECTANGULO_VENTANA                   ; 6137: cdb97e
-    CALL $78D1                   ; 613A: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;613A: cdd178
     LD HL,$2505                  ; 613D: 210525
     LD DE,$2618                  ; 6140: 111826
     CALL BORRAR_RECTANGULO_VENTANA                   ; 6143: cdb97e
-    CALL $78D1                   ; 6146: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6146: cdd178
     LD HL,$1014                  ; 6149: 211410
     LD DE,$1116                  ; 614C: 111611
     CALL BORRAR_RECTANGULO_VENTANA                   ; 614F: cdb97e
-    CALL $78D1                   ; 6152: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6152: cdd178
     LD HL,$1714                  ; 6155: 211417
     LD DE,$1816                  ; 6158: 111618
     CALL BORRAR_RECTANGULO_VENTANA                   ; 615B: cdb97e
-    CALL $78D1                   ; 615E: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;615E: cdd178
     LD HL,$0000                  ; 6161: 210000
     LD DE,$2718                  ; 6164: 111827
     CALL FIRM_TXT_WIN_ENABLE                   ; 6167: cd66bb
-    CALL $78D1                   ; 616A: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;616A: cdd178
 ; $616D-$61E5: hipotesis "dibujar el marco decorativo" -- $7D85/$7D9D/
 ; $7DB5/$7DCD preparan una posicion+tabla y llaman a una rutina comun
 ; ($7E73) que a su vez usa uno de los 6 puntos de entrada de mascaras
@@ -213,46 +214,46 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL DIBUJAR_TRAMO_MARCO_1                   ; 6170: cd857d
     LD HL,$2816                  ; 6173: 211628
     CALL $7DFC                   ; 6176: cdfc7d
-    CALL $78D1                   ; 6179: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6179: cdd178
     LD HL,$2824                  ; 617C: 212428
     CALL DIBUJAR_TRAMO_MARCO_4                   ; 617F: cdcd7d
     LD HL,$2832                  ; 6182: 213228
     CALL $7E0E                   ; 6185: cd0e7e
-    CALL $78D1                   ; 6188: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6188: cdd178
     LD HL,$2840                  ; 618B: 214028
     CALL DIBUJAR_TRAMO_MARCO_2                   ; 618E: cd9d7d
     LD HL,$5008                  ; 6191: 210850
     CALL $7E29                   ; 6194: cd297e
-    CALL $78D1                   ; 6197: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6197: cdd178
     LD HL,$889D                  ; 619A: 219d88
     CALL REPETIR_CARACTER                   ; 619D: cdf47e
     LD HL,$5040                  ; 61A0: 214050
     CALL $7E29                   ; 61A3: cd297e
-    CALL $78D1                   ; 61A6: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61A6: cdd178
     LD HL,$7808                  ; 61A9: 210878
     CALL $7E29                   ; 61AC: cd297e
     LD HL,$8906                  ; 61AF: 210689
     CALL REPETIR_CARACTER                   ; 61B2: cdf47e
-    CALL $78D1                   ; 61B5: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61B5: cdd178
     LD HL,$7840                  ; 61B8: 214078
     CALL $7E29                   ; 61BB: cd297e
     LD HL,$A008                  ; 61BE: 2108a0
     CALL DIBUJAR_TRAMO_MARCO_4                   ; 61C1: cdcd7d
-    CALL $78D1                   ; 61C4: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61C4: cdd178
     LD HL,$A016                  ; 61C7: 2116a0
     CALL $7E17                   ; 61CA: cd177e
     LD HL,$A024                  ; 61CD: 2124a0
     CALL DIBUJAR_TRAMO_MARCO_3                   ; 61D0: cdb57d
-    CALL $78D1                   ; 61D3: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61D3: cdd178
     LD HL,$A032                  ; 61D6: 2132a0
     CALL $7E05                   ; 61D9: cd057e
     LD HL,$A040                  ; 61DC: 2140a0
     CALL DIBUJAR_TRAMO_MARCO_4                   ; 61DF: cdcd7d
-    CALL $78D1                   ; 61E2: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61E2: cdd178
     LD HL,$860F                  ; 61E5: 210f86
     LD ($8645),HL                ; 61E8: 224586
     CALL INICIALIZAR_ENTIDADES                   ; 61EB: cd4f79
-    CALL $78D1                   ; 61EE: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;61EE: cdd178
     LD HL,$6828                  ; 61F1: 212868
     LD ($8155),HL                ; 61F4: 225581
     LD A,$02                     ; 61F7: 3e02
@@ -279,13 +280,13 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     JR NZ,$6223                  ; 621C: 2005
     CALL ESPERAR_TECLA_2C                   ; 621E: cd9378
     JR $6201                     ; 6221: 18de
-    CALL $78D1                   ; 6223: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6223: cdd178
     CALL FIRM_KM_READ_CHAR                   ; 6226: cd09bb
     JR C,$6223                   ; 6229: 38f8
     LD HL,$866D                  ; 622B: 216d86
     CALL REPETIR_CARACTER                   ; 622E: cdf47e
     CALL BORRAR_BLOQUE_ESTADO                   ; 6231: cdab7e
-    CALL $78D1                   ; 6234: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;6234: cdd178
     XOR A                        ; 6237: af
     LD ($816C),A                 ; 6238: 326c81
     LD A,$06                     ; 623B: 3e06
@@ -300,7 +301,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     LD DE,$1B07                  ; 6253: 11071b
     CALL FIRM_TXT_WIN_ENABLE                   ; 6256: cd66bb
     CALL FIRM_TXT_CLEAR_WINDOW                   ; 6259: cd6cbb
-    CALL $78D1                   ; 625C: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;625C: cdd178
     LD HL,$0A08                  ; 625F: 21080a
     LD DE,$1D12                  ; 6262: 11121d
     CALL FIRM_TXT_WIN_ENABLE                   ; 6265: cd66bb
@@ -322,14 +323,14 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     LD HL,$0601                  ; 6292: 210106
     LD DE,$0716                  ; 6295: 111607
     CALL BORRAR_RECTANGULO_VENTANA                   ; 6298: cdb97e
-    CALL $78D1                   ; 629B: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;629B: cdd178
     LD HL,$2001                  ; 629E: 210120
     LD DE,$2116                  ; 62A1: 111621
     CALL BORRAR_RECTANGULO_VENTANA                   ; 62A4: cdb97e
     LD HL,$0801                  ; 62A7: 210108
     LD DE,$1F02                  ; 62AA: 11021f
     CALL BORRAR_RECTANGULO_VENTANA                   ; 62AD: cdb97e
-    CALL $78D1                   ; 62B0: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;62B0: cdd178
     LD HL,$0815                  ; 62B3: 211508
     LD DE,$1F16                  ; 62B6: 11161f
     CALL BORRAR_RECTANGULO_VENTANA                   ; 62B9: cdb97e
@@ -338,7 +339,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL FIRM_TXT_WIN_ENABLE                   ; 62C2: cd66bb
     LD HL,$8676                  ; 62C5: 217686
     CALL REPETIR_CARACTER                   ; 62C8: cdf47e
-    CALL $78D1                   ; 62CB: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;62CB: cdd178
     LD HL,$0C0A                  ; 62CE: 210a0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62D1: cd75bb
     LD HL,($868C)                ; 62D4: 2a8c86
@@ -351,7 +352,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL $786C                   ; 62E9: cd6c78
     LD HL,$86A0                  ; 62EC: 21a086
     CALL REPETIR_CARACTER                   ; 62EF: cdf47e
-    CALL $78D1                   ; 62F2: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;62F2: cdd178
     LD HL,$0C0E                  ; 62F5: 210e0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62F8: cd75bb
     LD HL,($86B0)                ; 62FB: 2ab086
@@ -360,7 +361,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL REPETIR_CARACTER                   ; 6304: cdf47e
     LD HL,$0C10                  ; 6307: 21100c
     CALL FIRM_TXT_SET_CURSOR                   ; 630A: cd75bb
-    CALL $78D1                   ; 630D: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;630D: cdd178
     LD HL,($86C2)                ; 6310: 2ac286
     CALL $786C                   ; 6313: cd6c78
     LD HL,$86C4                  ; 6316: 21c486
@@ -376,7 +377,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL INICIALIZAR_ENTIDADES                   ; 6334: cd4f79
     LD HL,$6828                  ; 6337: 212868
     LD ($8155),HL                ; 633A: 225581
-    CALL $78D1                   ; 633D: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ;633D: cdd178
     LD A,($8168)                 ; 6340: 3a6881
     OR A                         ; 6343: b7
     JR Z,$636C                   ; 6344: 2826
@@ -501,7 +502,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 ; del mapa. Ver FINDINGS.md Sesion 6.
 IMPRIMIR_NUMERO_HL:
     LD B,$04                         ; 786C: 0604
-    LD IY,$8736                      ; 786E: fd213687
+    LD IY,TABLA_POSICIONES_DECIMALES-2 ; 786E: fd213687
     INC IY                           ; 7872: fd23
     INC IY                           ; 7874: fd23
     LD E,(IY+0)                      ; 7876: fd5e00
@@ -552,24 +553,24 @@ ANIMAR_OPCION_MENU:
     JR C,ANIMAR_OPCION_MENU          ; 78CE: 38e7
     RET                              ; 78D0: c9
 ACTUALIZAR_SECUENCIA_SONIDO:
-    LD HL,($905A)                    ; 78D1: 2a5a90
+    LD HL,(PUNTERO_GUION_SONIDO)     ; 78D1: 2a5a90
     PUSH HL                          ; 78D4: e5
-    LD A,($7FC4)                     ; 78D5: 3ac47f
+    LD A,(FLAG_MUSICA_FONDO)         ; 78D5: 3ac47f
     CP $59                           ; 78D8: fe59
     CALL Z,FIRM_SOUND_QUEUE          ; 78DA: ccaabc
     POP HL                           ; 78DD: e1
     RET NC                           ; 78DE: d0
-    LD DE,$937D                      ; 78DF: 117d93
+    LD DE,GUION_SONIDO_ULTIMO_REGISTRO ; 78DF: 117d93
     XOR A                            ; 78E2: af
     EX DE,HL                         ; 78E3: eb
     SBC HL,DE                        ; 78E4: ed52
     JR Z,$78F0                       ; 78E6: 2808
     LD HL,$0009                      ; 78E8: 210900
     ADD HL,DE                        ; 78EB: 19
-    LD ($905A),HL                    ; 78EC: 225a90
+    LD (PUNTERO_GUION_SONIDO),HL     ; 78EC: 225a90
     RET                              ; 78EF: c9
-    LD HL,$905C                      ; 78F0: 215c90
-    LD ($905A),HL                    ; 78F3: 225a90
+    LD HL,GUION_SONIDO_CIRCULAR      ; 78F0: 215c90
+    LD (PUNTERO_GUION_SONIDO),HL     ; 78F3: 225a90
     RET                              ; 78F6: c9
 MOVER_INDICADOR_MENU:
     LD A,($8155)                     ; 78F7: 3a5581
@@ -625,7 +626,7 @@ INICIALIZAR_UNA_ENTIDAD:
     INC A                            ; 795E: 3c
     LD ($816C),A                     ; 795F: 326c81
     LD B,A                           ; 7962: 47
-    LD IX,$816D                      ; 7963: dd216d81
+    LD IX,ARRAY_ENTIDADES             ; 7963: dd216d81
     LD DE,$0005                      ; 7967: 110500
     ADD IX,DE                        ; 796A: dd19
     DJNZ $796A                       ; 796C: 10fc
@@ -650,7 +651,7 @@ INICIALIZAR_UNA_ENTIDAD:
     LD (IX+3),E                      ; 7992: dd7303
     RET                              ; 7995: c9
 COLOCAR_ENTIDAD:
-    LD IX,$816D                      ; 7996: dd216d81
+    LD IX,ARRAY_ENTIDADES             ; 7996: dd216d81
     LD DE,$0005                      ; 799A: 110500
     ADD IX,DE                        ; 799D: dd19
     DJNZ $799D                       ; 799F: 10fc
@@ -714,7 +715,7 @@ HAY_COLISION:
     CALL CALCULAR_CASILLA_ADYACENTE  ; 7A16: cd957a
     XOR A                            ; 7A19: af
     LD ($8610),A                     ; 7A1A: 321086
-    LD IY,$816D                      ; 7A1D: fd216d81
+    LD IY,ARRAY_ENTIDADES             ; 7A1D: fd216d81
     LD A,($816C)                     ; 7A21: 3a6c81
     LD B,A                           ; 7A24: 47
     PUSH BC                          ; 7A25: c5
@@ -750,7 +751,7 @@ HAY_COLISION:
     XOR A                            ; 7A62: af
     RET                              ; 7A63: c9
     LD ($8166),DE                    ; 7A64: ed536681
-    LD IY,$8200                      ; 7A68: fd210082
+    LD IY,MAPA_CASILLAS               ; 7A68: fd210082
     LD A,E                           ; 7A6C: 7b
     SRL A                            ; 7A6D: cb3f
     LD B,$00                         ; 7A6F: 0600
@@ -876,7 +877,7 @@ DIBUJAR_ENTIDAD:
     JP Z,$7C2F                       ; 7B4F: ca2f7c
     CP $4F                           ; 7B52: fe4f
     JP Z,$7C7C                       ; 7B54: ca7c7c
-    LD IY,$8919                      ; 7B57: fd211989
+    LD IY,TABLAS_SPRITE_CASILLA       ; 7B57: fd211989
     JP $7CC4                         ; 7B5B: c3c47c
     LD IY,$8959                      ; 7B5E: fd215989
     JP $7CC4                         ; 7B62: c3c47c
@@ -1087,7 +1088,7 @@ DIBUJAR_CASILLA_MAPA:
     JR $7CC4                         ; 7D3C: 1886
 CONSULTAR_CASILLA_MAPA:
     PUSH DE                          ; 7D3E: d5
-    LD HL,$8200                      ; 7D3F: 210082
+    LD HL,MAPA_CASILLAS               ; 7D3F: 210082
     LD A,E                           ; 7D42: 7b
     SRL A                            ; 7D43: cb3f
     LD B,$00                         ; 7D45: 0600
@@ -1138,7 +1139,7 @@ DIBUJAR_TRAMO_MARCO_1:
     LD BC,$0602                      ; 7D8E: 010206
     ADD HL,BC                        ; 7D91: 09
     LD ($8645),HL                    ; 7D92: 224586
-    LD IY,$877D                      ; 7D95: fd217d87
+    LD IY,TABLA_MARCO_1               ; 7D95: fd217d87
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7D99: cd737e
     RET                              ; 7D9C: c9
 DIBUJAR_TRAMO_MARCO_2:
@@ -1148,7 +1149,7 @@ DIBUJAR_TRAMO_MARCO_2:
     LD BC,$0602                      ; 7DA6: 010206
     ADD HL,BC                        ; 7DA9: 09
     LD ($8645),HL                    ; 7DAA: 224586
-    LD IY,$87C5                      ; 7DAD: fd21c587
+    LD IY,TABLA_MARCO_2               ; 7DAD: fd21c587
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DB1: cd737e
     RET                              ; 7DB4: c9
 DIBUJAR_TRAMO_MARCO_3:
@@ -1158,7 +1159,7 @@ DIBUJAR_TRAMO_MARCO_3:
     LD BC,$0602                      ; 7DBE: 010206
     ADD HL,BC                        ; 7DC1: 09
     LD ($8645),HL                    ; 7DC2: 224586
-    LD IY,$880D                      ; 7DC5: fd210d88
+    LD IY,TABLA_MARCO_3               ; 7DC5: fd210d88
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DC9: cd737e
     RET                              ; 7DCC: c9
 DIBUJAR_TRAMO_MARCO_4:
@@ -1168,7 +1169,7 @@ DIBUJAR_TRAMO_MARCO_4:
     LD BC,$0602                      ; 7DD6: 010206
     ADD HL,BC                        ; 7DD9: 09
     LD ($8645),HL                    ; 7DDA: 224586
-    LD IY,$8855                      ; 7DDD: fd215588
+    LD IY,TABLA_MARCO_4               ; 7DDD: fd215588
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DE1: cd737e
     RET                              ; 7DE4: c9
 ; ---- RELLENAR_MARCO_MEDIO / RELLENAR_MARCO_SOLIDO / RELLENAR_MARCO_VACIO /
@@ -1300,7 +1301,7 @@ COPIAR_BLOQUE_A_LIENZO:
     RET                              ; 7E91: c9
 CASILLA_A_DIRECCION_PANTALLA:
     PUSH IX                          ; 7E92: dde5
-    LD IX,$8ECA                      ; 7E94: dd21ca8e
+    LD IX,TABLA_DIRECCIONES_PANTALLA  ; 7E94: dd21ca8e
     LD B,$00                         ; 7E98: 0600
     LD C,L                           ; 7E9A: 4d
     LD D,B                           ; 7E9B: 50
@@ -1314,7 +1315,7 @@ CASILLA_A_DIRECCION_PANTALLA:
     RET                              ; 7EAA: c9
 BORRAR_BLOQUE_ESTADO:
     XOR A                            ; 7EAB: af
-    LD HL,$8172                      ; 7EAC: 217281
+    LD HL,ARRAY_ENTIDADES+5           ; 7EAC: 217281
     LD (HL),A                        ; 7EAF: 77
     PUSH HL                          ; 7EB0: e5
     POP DE                           ; 7EB1: d1
@@ -1324,7 +1325,7 @@ BORRAR_BLOQUE_ESTADO:
     RET                              ; 7EB8: c9
 BORRAR_RECTANGULO_VENTANA:
     PUSH HL                          ; 7EB9: e5
-    LD IY,$81D8                      ; 7EBA: fd21d881
+    LD IY,VENTANA_TEXTO_HUD           ; 7EBA: fd21d881
     LD B,$00                         ; 7EBE: 0600
     LD C,H                           ; 7EC0: 4c
     ADD IY,BC                        ; 7EC1: fd09
@@ -1365,4 +1366,490 @@ REPETIR_CARACTER:
     CALL FIRM_TXT_OUTPUT             ; 7EF7: cd5abb
     DJNZ $7EF5                       ; 7EFA: 10f9
     RET                              ; 7EFC: c9
-    INCBIN "data/mummy1_resto_sin_analizar.bin", 6908, 5257  ; $7EFD-$9385, sin analizar todavia
+; ---- TEXTO_MENU_OPCIONES / FLAG_MUSICA_FONDO / FLAG_EFECTOS_SONIDO /
+; ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3 / TEXTO_HISTORIA_ATRACCION /
+; TABLA_DESCONOCIDA_GAME_OVER / VARIABLES_INICIO_ENTIDADES / ARRAY_ENTIDADES /
+; ESTADO_PARTIDA / TABLA_OFFSETS_DIAMANTE / VARIABLES_DIBUJO_MARCO /
+; TABLA_PARAMETROS_TRANSICION_PUNTUACIONES / TEXTO_TABLA_PUNTUACIONES /
+; TEXTO_MENU_PRINCIPAL / TABLA_POSICIONES_DECIMALES / TEXTO_COPYRIGHT_Y_HUD /
+; TABLA_MARCO_1..4 / DATOS_MARCO_Y_TEXTO_CONTINUAR / TABLAS_SPRITE_CASILLA /
+; TABLA_DIRECCIONES_PANTALLA / PUNTERO_GUION_SONIDO / GUION_SONIDO_CIRCULAR ----
+; Cierra el ultimo hueco INCBIN (Sesion 8): $7EFD-$9385, el resto del
+; motor tras el bloque de codigo de la Sesion 7. Es DATO, no codigo --
+; no se encontro ningun CALL/JP de codigo ya reconstruido que aterrice
+; aqui dentro (regla base: no convertir datos en codigo sin evidencia).
+; Contiene texto literal legible (confirmado por lectura directa, sin
+; hipotesis: menu de opciones, texto de "STOP PRESS" tipo periodico de
+; la excavacion de la piramide, tabla HI-SCORE con 5 rangos, menu
+; principal Instructions/Options/Play, y el copyright real del juego),
+; mas varias tablas cuyos limites SI estan confirmados por las
+; instrucciones que ya las referencian por direccion en el codigo ya
+; reconstruido (envolventes de sonido, tabla de posiciones decimales,
+; las 4 tablas del marco decorativo -- offsets exactos de 72 bytes
+; confirmados por las 4 LD IY,$87xx de DIBUJAR_TRAMO_MARCO_1..4 --,
+; el bloque de estado que borra BORRAR_BLOQUE_ESTADO, el array de
+; entidades de $816D, y el guion de sonido circular de $905C).
+; Algunas tablas menores (offsets tipo "diamante" en $8611, parametros
+; antes de HI-SCORE-TABLE, cola de bytes tras "GAME OVER", las
+; ~29 tablas de sprite/casilla de $8919) quedan como bytes en bruto
+; con hipotesis de confianza baja/media -- limites confirmados por
+; los huecos de texto/tablas vecinas, contenido interno sin descifrar
+; del todo. Ver FINDINGS.md Sesion 8.
+TEXTO_MENU_OPCIONES:
+    DB $4E,$0E,$01,$0F,$02,$0C,$1F,$0C,$03 ; 7EFD
+    DB "OH MUMMY - OPTIONS"             ; 7F06
+    DB $1F,$09,$07,$0F,$00             ; 7F18
+    DB "SPEED OF GAME (1-5) ?"          ; 7F1D
+    DB $1F,$0C,$08,$0F,$03             ; 7F32
+    DB "(1 IS FASTEST)"                 ; 7F37
+    DB $1F,$1F,$07,$8F,$08,$0F,$00,$35,$1F,$08,$0B ; 7F45
+    DB "DIFFICULTY LEVEL (1-5) ?"       ; 7F50
+    DB $1F,$0C,$0C,$0F,$03             ; 7F68
+    DB "(1 IS HARDEST)"                 ; 7F6D
+    DB $1F,$21,$0B,$8F,$08,$0F,$00,$1E,$1F,$08,$0F ; 7F7B
+    DB "BACKGROUND MUSIC (Y-N) ? "      ; 7F86
+    DB $8F,$08,$1B,$1F,$09,$13         ; 7F9F
+    DB "SOUND EFFECTS (Y-N) ? "         ; 7FA5
+    DB $8F,$08,$03                     ; 7FBB
+    DB "YES"                            ; 7FBE
+    DB $02,$4E,$4F                     ; 7FC1
+FLAG_MUSICA_FONDO:
+    DB "Y"                            ; 7FC4 confirmado: ACTUALIZAR_SECUENCIA_SONIDO hace LD A,($7FC4):CP $59
+FLAG_EFECTOS_SONIDO:
+    DB "Y"                            ; 7FC5 hipotesis (media): simetria con FLAG_MUSICA_FONDO, sin CALL que la lea todavia localizado
+RELLENO_FLAGS_OPCIONES:
+    DB $00,$00,$00,$00                               ; 7FC6
+; Confirmado: $6005 LD HL,$7FCA + LD A,$01 + CALL FIRM_SOUND_AMPL_ENV
+ENVOLVENTE_AMPLITUD_1:
+    DB $03,$00,$05,$01,$0A,$01,$02,$00,$00,$0A       ; 7FCA
+; Confirmado: $6015 LD HL,$7FD4 + LD A,$02 + CALL FIRM_SOUND_AMPL_ENV
+ENVOLVENTE_AMPLITUD_2:
+    DB $03,$00,$0A,$01,$05,$01,$01,$05,$FD,$01       ; 7FD4
+; Confirmado: $6025 LD HL,$7FDE + LD A,$03 + CALL FIRM_SOUND_AMPL_ENV
+ENVOLVENTE_AMPLITUD_3:
+    DB $02,$00,$0A,$01,$05,$01,$02                   ; 7FDE
+; Confirmado: $600D LD HL,$7FE5 + LD A,$01 + CALL FIRM_SOUND_TONE_ENV
+ENVOLVENTE_TONO_1:
+    DB $05,$F1,$7B,$1E,$F1,$92,$1E,$F1,$AA,$1E,$F1,$C3,$1E,$F1,$DE,$1E ; 7FE5
+; Confirmado: $601D LD HL,$7FF5 + LD A,$02 + CALL FIRM_SOUND_TONE_ENV
+ENVOLVENTE_TONO_2:
+    DB $01,$0A,$FB,$01                               ; 7FF5
+; Confirmado: $602D LD HL,$7FF9 + LD A,$03 + CALL FIRM_SOUND_TONE_ENV
+ENVOLVENTE_TONO_3:
+    DB $02,$F0,$8C,$01,$0A,$FB,$01,$04,$01,$01,$00,$00,$00,$00,$FA,$FF ; 7FF9
+    DB $04,$02,$02,$64,$00,$00,$00,$00,$00,$04,$03,$03,$00,$00,$00,$00 ; 8009
+    DB $FC,$FF,$24,$0E                               ; 8019
+; Texto literal confirmado (attract mode / pantalla "periodico"):
+; "STOP PRESS!! British Museum today announced successful excavation
+; of ancient Egyptian pyramid. Leader of team given bonus for his
+; efforts of 200 points. extra man for next dig. Press "C" or Fire
+; Button to Continue" ... "GAME OVER".
+TEXTO_HISTORIA_ATRACCION:
+    DB $01,$0F,$02,$0C,$1F,$07,$05     ; 801D
+    DB "!!  S T O P    P R E S S  !!#"  ; 8024
+    DB $0F,$00,$1F,$07,$0A             ; 8041
+    DB "British Museum today announced#" ; 8046
+    DB $1F,$05,$0B                     ; 8065
+    DB "successful excavation of ancient" ; 8068
+    DB $14,$1F,$05,$0C                 ; 8088
+    DB "Egyptian pyramid."              ; 808C
+    DB $1A,$0F,$03,$1F,$07,$11         ; 809D
+    DB "Leader of team given "          ; 80A3
+    DB $09                             ; 80B8
+    DB "bonus for"                      ; 80B9
+    DB $1D,$1F,$05,$12                 ; 80C2
+    DB "his efforts of 200 points."     ; 80C6
+    DB $09                             ; 80E0
+    DB "extra man"                      ; 80E1
+    DB $10,$1F,$05,$12                 ; 80EA
+    DB "for next dig.)"                 ; 80EE
+    DB $0F,$02,$1F,$03,$17             ; 80FC
+    DB "Press "                         ; 8101
+    DB $22,$43,$22                     ; 8107
+    DB " or Fire Button to Continue"    ; 810A
+    DB $07,$0E,$01,$0F,$02,$1F,$0C,$0D ; 8125
+    DB "GAME OVER"                      ; 812D
+    DB $00,$00,$00,$00                 ; 8136
+; Hipotesis baja: tabla de valores pequenos tras el texto GAME OVER,
+; con progresiones aritmeticas visibles en varios tramos (+/-6, +/-14,
+; +/-40 segun el tramo) -- posibles umbrales de puntuacion/bonus, sin
+; ningun CALL/LD conocido que la referencie todavia.
+TABLA_DESCONOCIDA_GAME_OVER:
+    DB $18,$40,$68,$90,$B8,$04,$12,$20,$2E,$3C,$4A,$45,$48,$16,$4B,$47 ; 813A
+    DB $49,$1E,$4A,$00,$00,$00,$00,$00,$00,$00,$04,$00,$00,$00,$00,$00 ; 814A
+    DB $00,$00,$00,$00,$00,$00,$00,$1F,$00,$00,$00,$00,$00,$00 ; 815A
+; Confirmado por el arranque ($6054-$605D): LD A,$06:LD ($8169),A
+; (CONTADOR_ENTIDADES=6, confianza media-alta -- encaja con "6
+; enemigos/coleccionables" de ARRAY_ENTIDADES) + XOR A:LD ($816C),A +
+; LD ($8168),A (dos flags puestos a 0, confianza baja en su papel
+; exacto). Los bytes de fichero no tienen por que coincidir con el
+; valor real de arranque (se sobrescriben antes de leerse).
+VARIABLES_INICIO_ENTIDADES:
+    DB $00,$04,$00,$00,$00                           ; 8168
+; Confirmado por 3 referencias directas ya reconstruidas: LD IX,$816D
+; en INICIALIZAR_UNA_ENTIDAD/COLOCAR_ENTIDAD, LD IY,$816D en
+; HAY_COLISION. Hipotesis (media): 6 registros de 5 bytes -- entidades
+; (enemigos/coleccionables). Todo el array esta a 0 en el fichero
+; compilado (se rellena en tiempo de ejecucion via INICIALIZAR_ENTIDADES).
+ARRAY_ENTIDADES:
+    DEFS 30                              ; 816D 30 bytes, todo cero
+; Confirmado: es la continuacion exacta de lo que borra
+; BORRAR_BLOQUE_ESTADO (XOR A:LD ($8172),A + LDIR con BC=$049D,
+; 1182 bytes desde $8172 -- de los cuales los primeros 5 son los
+; ultimos bytes de ARRAY_ENTIDADES, ya declarados arriba). Resto de
+; "estado de partida" sin desglosar en variables individuales todavia.
+ESTADO_PARTIDA:
+    DEFS 77                              ; 818B 77 bytes, todo cero
+; Confirmado por BORRAR_RECTANGULO_VENTANA: LD IY,$81D8 ($7EBA).
+; Hipotesis previa (Sesion 3-5, media): tabla/buffer de texto o
+; atributos, paso de 40 bytes/fila. Solo caben aqui 40 bytes (una
+; fila) antes de MAPA_CASILLAS -- posible solapamiento de uso: esta
+; zona parece reutilizarse para el buffer de ventanas de texto (menus)
+; y para el mapa del laberinto (fuera de menus), sin confirmar.
+VENTANA_TEXTO_HUD:
+    DEFS 40                              ; 81D8 40 bytes, todo cero
+; Confirmado por HAY_COLISION (LD IY,$8200, $7A68) y
+; CONSULTAR_CASILLA_MAPA (LD HL,$8200, $7D3F). Hipotesis previa
+; (Sesion 6, media): estructura de paso 5 bytes, entradas de 42 bytes
+; totales (offset 40/41 = estado de colision/accesibilidad). 1040
+; bytes disponibles / 42 no es una division exacta -- limite real de
+; la estructura sin confirmar del todo.
+MAPA_CASILLAS:
+    DEFS 1040                              ; 8200 1040 bytes, todo cero
+RELLENO_TRAS_ESTADO:
+    DEFS 1                            ; 8610 1 byte cero, justo tras el rango que limpia BORRAR_BLOQUE_ESTADO
+; Hipotesis baja-media: pares de bytes con patron ascendente/
+; descendente de paso 6 (posibles offsets de pantalla en forma de
+; diamante/piramide, byte alto $B8/$90/$A8), sin CALL/LD conocido
+; que la referencie todavia.
+TABLA_OFFSETS_DIAMANTE:
+    DB $04,$B8,$4A,$B8,$0A,$B8,$44,$B8,$10,$B8,$3E,$B8,$16,$B8,$38,$B8 ; 8611
+    DB $1C,$B8,$32,$B8,$22,$B8,$2C,$B8,$0A,$90,$44,$90,$10,$90,$3E,$90 ; 8621
+    DB $16,$90,$38,$90,$1C,$90,$32,$90,$16,$A8,$38,$A8,$1C,$A8,$32,$A8 ; 8631
+    DB $22,$A8,$2C,$A8                               ; 8641
+; $8645 y $8647: variables HL usadas por DIBUJAR_TRAMO_MARCO_1..4
+; ("LD ($8645),HL") y por COPIAR_BLOQUE_A_LIENZO/RELLENAR_FILAS_MASCARA
+; ("LD ($8647),HL"). $8649/$864A: variables de 1 byte usadas por
+; RELLENAR_FILAS_MASCARA (fila/mascara). Reserva de variable, el
+; valor de fichero es irrelevante en tiempo de ejecucion.
+VARIABLES_DIBUJO_MARCO:
+    DB $00,$00,$00,$00,$00,$00                       ; 8645
+; Hipotesis baja: pequena tabla de parametros justo antes de
+; TEXTO_TABLA_PUNTUACIONES, con grupos cortos repetidos -- posible
+; animacion/temporizado de la transicion a la pantalla de
+; puntuaciones, sin descifrar.
+TABLA_PARAMETROS_TRANSICION_PUNTUACIONES:
+    DB $03,$04,$01,$02,$03,$04,$01,$02,$19,$1D,$18,$18,$1C,$00,$18,$18 ; 864B
+    DB $1C,$01,$00,$00,$1C,$02,$0F,$0F,$1C,$03,$0B,$0B,$0E,$00,$04,$01 ; 865B
+    DB $0F,$01,$08,$1D,$0B,$0B,$0E,$03,$0C,$0E,$02,$15,$0E,$00,$0F,$01 ; 866B
+    DB $1F,$0E,$07                                   ; 867B
+; Texto literal confirmado: "HI-SCORE-TABLE" + 5 rangos con su
+; umbral de puntuacion en 16 bits little-endian intercalado --
+; "Stupendous !"=2000, "Excellent ! "=1500, "Very Good ! "=1000,
+; "Quite Good  "=500 (valores leidos directamente de los bytes,
+; sin CALL que los consuma localizado todavia).
+TEXTO_TABLA_PUNTUACIONES:
+    DB "HI-SCORE-TABLE"                 ; 867E
+    DB $C4,$09,$0F,$1F,$12,$0A         ; 868C
+    DB "Stupendous !"                   ; 8692
+    DB $D0,$07,$0F,$1F,$12,$0C         ; 869E
+    DB "Excellent ! "                   ; 86A4
+    DB $DC,$05,$0F,$1F,$12,$0E         ; 86B0
+    DB "Very Good ! "                   ; 86B6
+    DB $E8,$03,$0F,$1F,$12,$10         ; 86C2
+    DB "Quite Good  "                   ; 86C8
+    DB $F4,$01,$11,$1F,$12,$12         ; 86D4
+    DB "Not Bad     "                   ; 86DA
+    DB $0E,$03,$27                     ; 86E6
+; Texto literal confirmado: "I-Instructions  O-Options  P-Play  ?"
+; (coincide con MOVER_INDICADOR_MENU/ANIMAR_OPCION_MENU) y "Well
+; done !!  Please enter your name" (pantalla de posicion en el
+; ranking).
+TEXTO_MENU_PRINCIPAL:
+    DB $1F,$03,$19                     ; 86E9
+    DB "I-Instructions  O-Options  P-Play  ?'" ; 86EC
+    DB $1F,$03,$19                     ; 8711
+    DB "Well done !!  Please enter your name" ; 8714
+; Confirmado por IMPRIMIR_NUMERO_HL ($786E LD IY,$8736 + 2x INC IY
+; -> primera lectura real en $8738): tabla de 4 valores de 16 bits,
+; potencias de diez para imprimir HL como texto decimal por resta
+; repetida (10000,1000,100,10 -- el digito de las unidades se anade
+; aparte al final de la rutina). Corrige la hipotesis previa de
+; FINDINGS.md/mapa_memoria.html, que databa el inicio en $8736 (son
+; en realidad los 2 ultimos bytes de TEXTO_MENU_PRINCIPAL, "me" de
+; "name").
+TABLA_POSICIONES_DECIMALES:
+    DW 10000,1000,100,10  ; 8738
+; Texto literal confirmado: copyright real del juego ("OH MUMMY" (c)
+; 1984 GEM SOFTWARE, confirma AVISO-LEGAL.md) y las etiquetas de HUD
+; "SCORE"/"MEN". Confirmado por REPETIR_CARACTER: $6066 LD HL,$8653
+; y $60A1 LD HL,$8740 leen (cuenta,caracter) de aqui dentro.
+TEXTO_COPYRIGHT_Y_HUD:
+    DB $23,$1F,$06,$02,$22             ; 8740
+    DB "OH MUMMY"                       ; 8745
+    DB $22,$20,$A4                     ; 874D
+    DB " 1984 GEM SOFTWARE"             ; 8750
+    DB $0E,$01,$18,$1D,$18,$18,$0E,$00,$0F,$02,$0C,$1F ; 8762
+    DB $03,$01                         ; 876E
+    DB "SCORE"                          ; 8770
+    DB $1F,$17,$01                     ; 8775
+    DB "MEN"                            ; 8778
+    DB $0F,$03                         ; 877B
+; Confirmado por DIBUJAR_TRAMO_MARCO_1: LD IY,$877D. 72 bytes exactos
+; = lo que consume COPIAR_BLOQUE_A_LIENZO (12 filas x 6 bytes).
+; Mascara/bitmap de un tramo del marco decorativo, sin decodificar
+; a nivel de pixel.
+TABLA_MARCO_1:
+    DB $33,$FF,$FF,$FF,$CC,$77,$00,$FF,$FF,$00,$00,$33,$00,$00,$00,$01 ; 877D
+    DB $08,$01,$00,$00,$00,$00,$07,$0E,$00,$00,$00,$00,$00,$00,$00,$00 ; 878D
+    DB $00,$00,$00,$00,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F ; 879D
+    DB $88,$00,$00,$00,$00,$11,$EE,$77,$FF,$FF,$EE,$77,$CC,$00,$00,$00 ; 87AD
+    DB $00,$33,$EE,$77,$FF,$FF,$EE,$77               ; 87BD
+; Confirmado por DIBUJAR_TRAMO_MARCO_2: LD IY,$87C5. 72 bytes exactos.
+TABLA_MARCO_2:
+    DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$77,$FF,$FF,$FF,$FF ; 87C5
+    DB $88,$33,$FF,$FF,$FF,$FF,$11,$11,$00,$00,$00,$00,$33,$88,$00,$00 ; 87D5
+    DB $00,$00,$33,$88,$CC,$11,$FF,$FF,$11,$11,$88,$00,$FF,$FF,$88,$33 ; 87E5
+    DB $88,$88,$FF,$FF,$CC,$77,$AA,$AA,$FF,$FF,$FF,$FF,$BB,$EE,$FF,$FF ; 87F5
+    DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF               ; 8805
+; Confirmado por DIBUJAR_TRAMO_MARCO_3: LD IY,$880D. 72 bytes exactos.
+TABLA_MARCO_3:
+    DB $FF,$F8,$FF,$FF,$F1,$FF,$FF,$FA,$F7,$FE,$F5,$FF,$FF,$FA,$F7,$FE ; 880D
+    DB $F5,$FF,$F9,$FA,$F8,$F1,$F5,$F9,$F6,$F2,$00,$00,$F4,$F6,$F7,$FA ; 881D
+    DB $00,$00,$F5,$FE,$F7,$FA,$00,$00,$F5,$FE,$F6,$F2,$00,$00,$F4,$F6 ; 882D
+    DB $F9,$FA,$F8,$F1,$F5,$F9,$FF,$FA,$F7,$FE,$F5,$FF,$FF,$FA,$F7,$FE ; 883D
+    DB $F5,$FF,$FF,$F8,$FF,$FF,$F1,$FF               ; 884D
+; Confirmado por DIBUJAR_TRAMO_MARCO_4: LD IY,$8855. 72 bytes exactos.
+TABLA_MARCO_4:
+    DB $0F,$00,$00,$00,$00,$0F,$0E,$03,$0F,$0F,$0C,$07,$0C,$0C,$C3,$CF ; 8855
+    DB $03,$03,$09,$0F,$0F,$0F,$0F,$09,$00,$00,$00,$00,$00,$00,$30,$F0 ; 8865
+    DB $F0,$F0,$F0,$C0,$08,$00,$00,$00,$00,$01,$09,$0F,$0F,$0F,$0F,$09 ; 8875
+    DB $0C,$0C,$CC,$33,$03,$03,$0C,$0C,$CC,$33,$03,$03,$0E,$07,$0F,$0F ; 8885
+    DB $0E,$07,$0E,$00,$00,$00,$00,$07               ; 8895
+; Hipotesis baja-media: mezcla sin separar con precision -- mas bytes
+; de mascara/grafico de estilo similar a las 4 tablas de marco de
+; arriba, seguidos del texto literal confirmado '"C" TO CONTINUE'.
+DATOS_MARCO_Y_TEXTO_CONTINUAR:
+    DB $68,$1F,$0C,$0B,$0E,$00,$0F,$02,$88,$8C,$88,$88,$20,$20,$8C,$8C ; 889D
+    DB $84,$84,$84,$8C,$8C,$84,$8C,$8C,$84,$84,$84,$08,$08,$08,$08,$08 ; 88AD
+    DB $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$0A,$8A ; 88BD
+    DB $8A,$8A,$8F,$20,$20,$87,$87,$85,$8D,$85,$87,$87,$85,$87,$87,$85 ; 88CD
+    DB $8F,$85,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08 ; 88DD
+    DB $08,$08,$08,$08,$08,$0A,$82,$83,$82,$82,$20,$20,$81,$20,$81,$83 ; 88ED
+    DB $81,$81,$20,$81,$81,$20,$81,$20,$81,$12,$1F,$0E,$11,$22,$43,$22 ; 88FD
+    DB $20,$54,$4F,$20,$43,$4F,$4E,$54,$49,$4E,$55,$45 ; 890D
+; Confirmado que empieza aqui: DIBUJAR_ENTIDAD hace LD IY,$8919
+; ($7B57). Hipotesis media: ~20 tablas de sprite de 4x16 bytes
+; (dispatcher de DIBUJAR_ENTIDAD, por tipo+direccion+fotograma) + 9
+; tablas de casilla de 2x8 bytes (DIBUJAR_CASILLA_MAPA) -- limites de
+; cada tabla individual sin desglosar todavia. Patron de bytes
+; consistente con mascaras de pantalla CPC modo 1 (bloques solidos
+; $00/$FF/$F0 alternando con datos variables).
+TABLAS_SPRITE_CASILLA:
+    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8919
+    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8929
+    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8939
+    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8949
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8959
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8969
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8979
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8989
+    DB $F0,$87,$F0,$F0,$F0,$87,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 8999
+    DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 89A9
+    DB $F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0 ; 89B9
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 89C9
+    DB $F0,$87,$F0,$87,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0 ; 89D9
+    DB $1E,$F0,$1E,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0 ; 89E9
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$96,$0F,$96,$0F,$F0,$C3 ; 89F9
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A09
+    DB $F0,$C3,$96,$0F,$96,$0F,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A19
+    DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A29
+    DB $F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$87,$F0,$F0,$F0,$87,$F0,$F0 ; 8A39
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 8A49
+    DB $F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0 ; 8A59
+    DB $F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$87,$F0,$87 ; 8A69
+    DB $F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$1E,$F0,$1E,$F0 ; 8A79
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$0F,$96,$0F,$96,$3C,$F0 ; 8A89
+    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A99
+    DB $3C,$F0,$0F,$96,$0F,$96,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8AA9
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AB9
+    DB $F0,$0C,$03,$F0,$F0,$86,$16,$78,$E0,$77,$CC,$70,$C0,$77,$CC,$70 ; 8AC9
+    DB $C0,$77,$EE,$70,$C0,$77,$FF,$F0,$C3,$FE,$FF,$F0,$F1,$FE,$FF,$F0 ; 8AD9
+    DB $E1,$1E,$FF,$F0,$F0,$1E,$EF,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$1E,$F0 ; 8AE9
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AF9
+    DB $F0,$0C,$03,$F0,$E1,$86,$16,$F0,$E0,$33,$EE,$70,$E0,$33,$EE,$30 ; 8B09
+    DB $E0,$77,$EE,$30,$F0,$FF,$EE,$30,$F0,$FF,$F7,$3C,$F0,$FF,$F7,$F8 ; 8B19
+    DB $F0,$FF,$87,$78,$F0,$7F,$87,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0,$F0 ; 8B29
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B39
+    DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$F0,$00,$FE,$F0 ; 8B49
+    DB $F0,$88,$00,$3C,$F0,$CC,$00,$3C,$F1,$FF,$FB,$F0,$F3,$FF,$F7,$F8 ; 8B59
+    DB $D3,$FE,$FF,$F8,$87,$FC,$F7,$FC,$C3,$78,$C3,$3C,$E1,$3C,$C3,$1E ; 8B69
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B79
+    DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$E0,$33,$FE,$F0 ; 8B89
+    DB $E0,$00,$6F,$F0,$F0,$89,$2F,$F0,$F0,$FF,$7E,$F0,$F0,$F7,$FC,$F0 ; 8B99
+    DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$C3,$1E,$F0 ; 8BA9
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BB9
+    DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$F0,$03,$2E,$70,$E0,$67,$6E,$30 ; 8BC9
+    DB $E0,$77,$EE,$33,$E1,$FF,$EF,$30,$F0,$FF,$E7,$78,$F0,$FF,$F7,$F8 ; 8BD9
+    DB $F0,$FF,$87,$78,$F0,$EF,$C3,$78,$F0,$0F,$F0,$F0,$F0,$1E,$F0,$F0 ; 8BE9
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BF9
+    DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$E0,$47,$0C,$F0,$C0,$67,$6E,$70 ; 8C09
+    DB $C0,$77,$EE,$70,$C0,$7F,$FF,$78,$E1,$7E,$FF,$F0,$F1,$FE,$FF,$F0 ; 8C19
+    DB $E1,$1E,$FF,$F0,$E1,$3C,$7F,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0 ; 8C29
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C39
+    DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$00,$F0 ; 8C49
+    DB $C3,$00,$11,$F0,$C3,$00,$33,$F0,$F0,$FD,$FF,$F8,$F1,$FE,$FF,$FC ; 8C59
+    DB $F1,$FF,$F7,$BC,$F3,$FE,$F3,$1E,$C3,$3C,$E1,$3C,$87,$3C,$C3,$78 ; 8C69
+    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C79
+    DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$CC,$70 ; 8C89
+    DB $F0,$6F,$00,$70,$F0,$4F,$19,$F0,$F0,$E7,$FF,$F0,$F0,$F3,$FE,$F0 ; 8C99
+    DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$87,$3C,$F0 ; 8CA9
+    DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CB9
+    DB $E0,$20,$40,$70,$E0,$00,$00,$F0,$F0,$00,$00,$F0,$F0,$00,$10,$F0 ; 8CC9
+    DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8CD9
+    DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8CE9
+    DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CF9
+    DB $E0,$20,$40,$70,$F0,$00,$00,$70,$F0,$00,$00,$F0,$F0,$80,$00,$F0 ; 8D09
+    DB $F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8D19
+    DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8D29
+    DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D39
+    DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$70,$F0,$A0,$00,$30 ; 8D49
+    DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0 ; 8D59
+    DB $F0,$10,$10,$F0,$E0,$30,$10,$F0,$E0,$30,$80,$F0,$E0,$10,$80,$70 ; 8D69
+    DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D79
+    DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$F0,$F0,$A0,$00,$30 ; 8D89
+    DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D99
+    DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$10,$F0 ; 8DA9
+    DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DB9
+    DB $F0,$C0,$30,$F0,$F0,$00,$10,$F0,$E0,$00,$00,$F0,$E0,$00,$00,$F0 ; 8DC9
+    DB $C0,$40,$40,$70,$C0,$80,$20,$70,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8DD9
+    DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8DE9
+    DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DF9
+    DB $F0,$C0,$30,$F0,$F0,$80,$00,$F0,$F0,$00,$00,$70,$F0,$00,$00,$70 ; 8E09
+    DB $E0,$20,$20,$30,$E0,$40,$10,$30,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8E19
+    DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8E29
+    DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E39
+    DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E49
+    DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0 ; 8E59
+    DB $F0,$80,$80,$F0,$F0,$80,$C0,$70,$F0,$10,$C0,$70,$E0,$10,$80,$70 ; 8E69
+    DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E79
+    DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E89
+    DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E99
+    DB $F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$80,$10,$F0 ; 8EA9
+    DB $10,$1D,$01,$01,$1C,$00,$01,$01,$1C,$01,$18,$18,$0E,$00,$0F,$01 ; 8EB9
+    DB $0C                                           ; 8EC9
+; Confirmado: $6078 LD IX,$8ECA + bucle de 200 iteraciones que llama
+; a FIRM_SCR_DOT_POSITION y guarda el resultado aqui (200 entradas x
+; 2 bytes = 400 bytes). Se construye en tiempo de ejecucion -- el
+; fichero compilado la tiene a 0 porque nunca se lee antes de que
+; ese bucle la rellene.
+TABLA_DIRECCIONES_PANTALLA:
+    DEFS 400                              ; 8ECA 400 bytes, todo cero
+; Confirmado: ACTUALIZAR_SECUENCIA_SONIDO hace LD HL,($905A) y
+; LD ($905A),HL -- puntero de 2 bytes a la entrada actual de
+; GUION_SONIDO_CIRCULAR, inicializado a GUION_SONIDO_CIRCULAR en el
+; arranque ($6033-$6036).
+PUNTERO_GUION_SONIDO:
+    DB $00,$00                                       ; 905A
+; Confirmado: tabla CIRCULAR de guion de sonido consumida por
+; ACTUALIZAR_SECUENCIA_SONIDO -- avanza PUNTERO_GUION_SONIDO de 9 en
+; 9 bytes, vuelve a GUION_SONIDO_CIRCULAR al llegar a
+; GUION_SONIDO_ULTIMO_REGISTRO ($937D), y llama a FIRM_SOUND_QUEUE
+; cuando ($7FC4)=FLAG_MUSICA_FONDO='Y'. 90 registros de 9 bytes
+; exactos (810 bytes = el resto justo hasta el final del motor,
+; $9385). Hipotesis media-alta: cada registro es un bloque de
+; parametros de SOUND QUEUE del firmware (estado 2B + tono 2B +
+; volumen/envolvente 1B + duracion 2B + envolventes 2B), formato sin
+; desglosar campo a campo.
+GUION_SONIDO_CIRCULAR:
+    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 905C
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9065
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 906E
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9077
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9080
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9089
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9092
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 909B
+    DB $02,$00,$00,$7E,$03,$00,$00,$08,$00 ; 90A4
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90AD
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 90B6
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 90BF
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 90C8
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90D1
+    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 90DA
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 90E3
+    DB $11,$00,$00,$DE,$01,$00,$0C,$1F,$00 ; 90EC
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90F5
+    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 90FE
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9107
+    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 9110
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9119
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 9122
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 912B
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9134
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 913D
+    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 9146
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 914F
+    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9158
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9161
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 916A
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9173
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 917C
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9185
+    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 918E
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9197
+    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 91A0
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91A9
+    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 91B2
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91BB
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 91C4
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 91CD
+    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 91D6
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91DF
+    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 91E8
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 91F1
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 91FA
+    DB $01,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9203
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 920C
+    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9215
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 921E
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9227
+    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9230
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9239
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9242
+    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 924B
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9254
+    DB $11,$00,$00,$2D,$01,$00,$0C,$20,$00 ; 925D
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9266
+    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 926F
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9278
+    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 9281
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 928A
+    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9293
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 929C
+    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 92A5
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 92AE
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 92B7
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 92C0
+    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92C9
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 92D2
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 92DB
+    DB $01,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92E4
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 92ED
+    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92F6
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 92FF
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9308
+    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 9311
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 931A
+    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9323
+    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 932C
+    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9335
+    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 933E
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9347
+    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 9350
+    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9359
+    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9362
+    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 936B
+    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9374
+GUION_SONIDO_ULTIMO_REGISTRO:
+    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 937D

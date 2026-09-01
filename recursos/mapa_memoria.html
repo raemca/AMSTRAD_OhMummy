@@ -14,6 +14,7 @@
     --accent-basic: #6a86ae;
     --accent-codigo: #ae6a8f;
     --accent-reconstruida: #4e7ecf;
+    --accent-dato: #6aae86;
     --accent-graficos: #7fae6a;
     --accent-sonido: #cf9f4e;
     --accent-niveles: #4ea6cf;
@@ -30,6 +31,7 @@
       --accent-basic: #7f9bc4;
       --accent-codigo: #c47fa4;
       --accent-reconstruida: #5e9edf;
+      --accent-dato: #7fc49e;
       --accent-graficos: #8fc27a;
       --accent-sonido: #dfae5e;
       --accent-niveles: #5eb6df;
@@ -155,28 +157,30 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note" id="estado-nota">
-  <strong>Actualizado Sesion 7.</strong> La direccion de carga y
+  <strong>Actualizado Sesion 8.</strong> La direccion de carga y
   ejecucion del motor (<code>$6000</code>) esta confirmada desde
   Sesion 2 contra el propio <code>CALL &amp;6000</code> de
   <code>mummy_bas.bas</code>, no desde la cabecera AMSDOS (que resulto
   ambigua). El tramo <code>$6000</code>-<code>$6400</code> esta
   desensamblado y verificado (compila byte a byte identico), sin
-  nombres semanticos propios todavia. Dentro del resto del motor
-  (<code>$6401</code>-<code>$9385</code>), las Sesiones 3-7 ya
-  reconstruyeron 38 rutinas con nombre funcional (1681 bytes, un
-  unico bloque contiguo <code>$786C</code>-<code>$7EFC</code> desde
-  que la Sesion 7 cerro el hueco de 142 bytes que separaba los dos
-  bloques anteriores) que <strong>compilan byte a
-  byte identicas</strong> al original -- pero cuyos nombres siguen
-  siendo <strong>hipotesis sin verificar en emulador</strong>, asi que
-  la barra los marca en un color propio ("reconstruida"), distinto del
-  codigo mecanico ya nombrado con firmware y del resto que sigue sin
-  analizar. La barra ahora cubre <strong>las 65536 direcciones
-  completas</strong> (0000-FFFF), incluida la RAM/ROM del sistema y de
-  BASIC fuera de los dos ficheros del juego, para que cada segmento
-  quede colocado en su posicion real (ya no solo yuxtapuestos en
-  orden). Las subregiones con hipotesis de la segunda tabla siguen sin
-  aparecer como segmento propio (ver nota debajo de esa tabla).
+  nombres semanticos propios todavia. Las Sesiones 3-7 reconstruyeron
+  38 rutinas de <strong>codigo</strong> con nombre funcional (1681
+  bytes, bloque contiguo <code>$786C</code>-<code>$7EFC</code>). La
+  <strong>Sesion 8</strong> cerro el ultimo hueco <code>INCBIN</code>
+  del motor (<code>$7EFD</code>-<code>$9385</code>, 5257 bytes) y
+  confirmo que es <strong>dato, no codigo</strong> (ningun
+  <code>CALL</code>/<code>JP</code> ya reconstruido aterriza ahi
+  dentro): texto real del juego (menu de opciones, "STOP PRESS" del
+  modo atraccion, tabla HI-SCORE, menu principal, copyright), tablas
+  de sonido/marco decorativo con limites confirmados por el codigo que
+  las referencia, y bloques de estado que se limpian en el arranque.
+  Todo compila byte a byte identico -- ver la tabla de abajo para el
+  desglose de las 35 tablas/textos, con su nivel de confianza. Solo
+  queda <strong>un</strong> hueco <code>INCBIN</code> en todo el motor:
+  <code>$6401</code>-<code>$786B</code> (5227 bytes). La barra cubre
+  <strong>las 65536 direcciones completas</strong> (0000-FFFF),
+  incluida la RAM/ROM del sistema y de BASIC fuera de los dos ficheros
+  del juego, para que cada segmento quede colocado en su posicion real.
 </div>
 
 <h2>Espacio de direcciones (0000-FFFF)</h2>
@@ -187,6 +191,7 @@
   <span><span class="swatch" style="background:var(--accent-basic)"></span>cargador BASIC</span>
   <span><span class="swatch" style="background:var(--accent-codigo)"></span>codigo (motor, verificado + firmware nombrado)</span>
   <span><span class="swatch" style="background:var(--accent-reconstruida)"></span>codigo reconstruido (verificado, nombres provisionales/hipotesis)</span>
+  <span><span class="swatch" style="background:var(--accent-dato)"></span>dato confirmado (texto/tablas, limites verificados por el codigo)</span>
   <span><span class="swatch" style="background:var(--accent-graficos)"></span>datos: graficos</span>
   <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
   <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
@@ -202,12 +207,14 @@
   <tbody></tbody>
 </table>
 
-<h2>Subregiones dentro del motor (hipotesis, dentro de la zona INCBIN)</h2>
-<p class="subtitle">No forman parte de la barra de arriba (siguen dentro del
-tramo <code>$6401</code>-<code>$9385</code> sin desensamblar) -- son
-referencias localizadas por lo que las llama desde el bloque ya
-verificado. Ninguna confirmada en emulador. Ver <code>FINDINGS.md</code>
-Sesion 3.</p>
+<h2>Detalle de la zona de datos (Sesion 8, dentro de <code>$7EFD</code>-<code>$9385</code>)</h2>
+<p class="subtitle">Las 35 tablas/textos en que se desglosa el bloque
+"dato confirmado" de la barra de arriba (no aparecen como segmentos
+propios ahi, esta tabla es su detalle). Los limites de cada una estan
+verificados byte a byte al compilar; el nivel de confianza se refiere
+al significado exacto de cada campo, no a si el limite es correcto.
+Ninguna confirmada ejecutando el juego en un emulador. Ver
+<code>FINDINGS.md</code> Sesion 8.</p>
 <table id="tabla-subregiones">
   <thead>
     <tr><th>Rango aproximado</th><th>Contenido probable</th><th>Usado por</th><th>Confianza</th></tr>
@@ -243,30 +250,49 @@ const REGIONS = [
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
   { start: 0x6401, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5227 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
   { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
-  { start: 0x7EFD, end: 0x6000 + 13190, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5257 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x7EFD, end: 0x6000 + 13190, label: "MUMMY1.BIN: dato confirmado (5257 bytes) -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado. 35 bloques con nombre, ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
   { start: 0x6000 + 13190, end: 0x10000, label: "Sistema CPC / pantalla / RAM no usada por el motor -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
 ];
 
 // ============================================================
-// SUBREGIONES -- estructuras localizadas POR REFERENCIA desde el
-// bloque ya verificado ($6000-$6400), pero cuyo contenido real sigue
-// dentro de la zona INCBIN de arriba (no se han extraido a fichero
-// propio ni verificado en emulador). Cada entrada:
-// {start, end, contenido, usado_por, confianza: "media"|"media-alta"|"baja"}
+// SUBREGIONES -- las 35 tablas/textos en que la Sesion 8 desglosa el
+// bloque de datos $7EFD-$9385 (antes un unico INCBIN anonimo). Cada
+// limite esta verificado byte a byte al compilar (py tools/build_all.py,
+// 0 diferencias); el campo "confianza" es sobre el SIGNIFICADO de cada
+// campo/byte, no sobre si el limite es correcto. Cada entrada:
+// {start, end, contenido, usado_por, confianza: "alta"|"media-alta"|"media"|"baja"}
 // ============================================================
 const SUBREGIONES = [
-  { start: 0x7FCA, end: 0x7FE5, contenido: "Envolventes de amplitud 1/2/3 (datos para SOUND AMPL ENVELOPE)", usado_por: "$6000-$6030", confianza: "alta" },
-  { start: 0x7FE5, end: 0x7FFE, contenido: "Envolventes de tono 1/2/3 (datos para SOUND TONE ENVELOPE)", usado_por: "$6000-$6030", confianza: "alta" },
-  { start: 0x8172, end: 0x8172 + 1182, contenido: "Bloque de estado borrado a 0 al arrancar (hipotesis: variables de partida)", usado_por: "BORRAR_BLOQUE_ESTADO", confianza: "media" },
-  { start: 0x81D8, end: 0x81D8 + 1000, contenido: "Tabla/buffer de texto o atributos (paso de 40 bytes/fila = ancho de pantalla)", usado_por: "BORRAR_RECTANGULO_VENTANA", confianza: "media" },
-  { start: 0x8736, end: 0x873E, contenido: "Tabla de 4 valores de 16 bits (posicional, para imprimir un numero en decimal)", usado_por: "IMPRIMIR_NUMERO_HL", confianza: "media-alta" },
-  { start: 0x877D, end: 0x8855 + 0x30, contenido: "3-4 tablas de offset para tramos del marco decorativo", usado_por: "DIBUJAR_TRAMO_MARCO_1..4", confianza: "media" },
-  { start: 0x8919, end: 0x8A89 + 0x40, contenido: "Tablas usadas por el indicador de seleccion de menu", usado_por: "$7B39", confianza: "baja" },
-  { start: 0x8ECA, end: 0x905A, contenido: "Tabla de 200 direcciones de pantalla por fila (SE CONSTRUYE en tiempo de ejecucion, no es dato estatico del binario)", usado_por: "bucle $607E-$6093", confianza: "alta" },
-  { start: 0x905C, end: 0x937D, contenido: "Guion de sonido en tabla CIRCULAR (confirmado Sesion 6: al llegar al final vuelve al principio), registros de 9 bytes", usado_por: "ACTUALIZAR_SECUENCIA_SONIDO", confianza: "alta" },
-  { start: 0x8919, end: 0x8EBA, contenido: "~29 tablas de sprite/casilla (4x16 o 2x8 bytes cada una) seleccionadas por tipo+direccion+animacion (o por valor de casilla del mapa) -- rango aproximado, extremo final sin confirmar con precision. Candidatas a extraer como recurso grafico en cuanto se entienda el formato", usado_por: "DIBUJAR_ENTIDAD/DIBUJAR_CASILLA_MAPA (Sesion 6)", confianza: "media" },
-  { start: 0x816D, end: 0x816D + 30, contenido: "Array de 6 registros de 5 bytes -- hipotesis: entidades (enemigos/coleccionables). Bytes 0-1 de GENERAR_ALEATORIO, bytes 2-3 posicion, byte 4 (Sesion 6): posible bit de animacion de 2 fotogramas, alternado por DIBUJAR_ENTIDAD", usado_por: "INICIALIZAR_UNA_ENTIDAD/COLOCAR_ENTIDAD/HAY_COLISION/DIBUJAR_ENTIDAD", confianza: "media" },
-  { start: 0x8200, end: 0x8200 + 200, contenido: "Estructura con paso de fila de 5 bytes para el byte inicial de cada casilla -- hipotesis: mapa del laberinto o una subdivision. Sesion 6: cada entrada parece ocupar 42 bytes en total (offset 40/41 = estado de colision/accesibilidad comprobado por HAY_COLISION); dimensiones reales y el resto de esos 42 bytes sin confirmar", usado_por: "CONSULTAR_CASILLA_MAPA/HAY_COLISION/DIBUJAR_CASILLA_MAPA", confianza: "media" },
+  { start: 0x7EFD, end: 0x7FC4, contenido: "TEXTO_MENU_OPCIONES -- texto literal: \"OH MUMMY - OPTIONS\", velocidad/dificultad (1-5), musica de fondo y efectos de sonido (Y/N)", usado_por: "sin CALL conocido todavia (rutina de impresion de menu no localizada)", confianza: "alta (texto legible directamente)" },
+  { start: 0x7FC4, end: 0x7FC5, contenido: "FLAG_MUSICA_FONDO -- byte 'Y'/'N', doble uso como flag y como caracter a redibujar", usado_por: "ACTUALIZAR_SECUENCIA_SONIDO (LD A,($7FC4):CP $59)", confianza: "alta" },
+  { start: 0x7FC5, end: 0x7FC6, contenido: "FLAG_EFECTOS_SONIDO -- hipotesis por simetria con FLAG_MUSICA_FONDO", usado_por: "sin CALL conocido todavia", confianza: "media" },
+  { start: 0x7FCA, end: 0x7FD4, contenido: "ENVOLVENTE_AMPLITUD_1 (SOUND AMPL ENVELOPE)", usado_por: "arranque $6005-$6008", confianza: "alta" },
+  { start: 0x7FD4, end: 0x7FDE, contenido: "ENVOLVENTE_AMPLITUD_2", usado_por: "arranque $6015-$6018", confianza: "alta" },
+  { start: 0x7FDE, end: 0x7FE5, contenido: "ENVOLVENTE_AMPLITUD_3", usado_por: "arranque $6025-$6028", confianza: "alta" },
+  { start: 0x7FE5, end: 0x7FF5, contenido: "ENVOLVENTE_TONO_1 (SOUND TONE ENVELOPE)", usado_por: "arranque $600D-$6010", confianza: "alta" },
+  { start: 0x7FF5, end: 0x7FF9, contenido: "ENVOLVENTE_TONO_2", usado_por: "arranque $601D-$6020", confianza: "alta" },
+  { start: 0x7FF9, end: 0x801D, contenido: "ENVOLVENTE_TONO_3", usado_por: "arranque $602D-$6030", confianza: "alta" },
+  { start: 0x801D, end: 0x813A, contenido: "TEXTO_HISTORIA_ATRACCION -- \"STOP PRESS!! British Museum today announced successful excavation of ancient Egyptian pyramid...\" + \"GAME OVER\"", usado_por: "sin CALL conocido todavia", confianza: "alta (texto legible directamente)" },
+  { start: 0x813A, end: 0x8168, contenido: "TABLA_DESCONOCIDA_GAME_OVER -- valores con progresiones aritmeticas (+/-6, +/-14, +/-40 segun tramo), posibles umbrales de puntuacion/bonus", usado_por: "sin CALL conocido todavia", confianza: "baja" },
+  { start: 0x8168, end: 0x816D, contenido: "VARIABLES_INICIO_ENTIDADES -- CONTADOR_ENTIDADES puesto a 6 en el arranque (encaja con \"6 enemigos/coleccionables\") + 2 flags puestos a 0", usado_por: "arranque $6054-$605D", confianza: "media-alta" },
+  { start: 0x816D, end: 0x818B, contenido: "ARRAY_ENTIDADES -- 6 registros de 5 bytes, hipotesis: enemigos/coleccionables. Todo a 0 en el fichero (se rellena en tiempo de ejecucion)", usado_por: "INICIALIZAR_UNA_ENTIDAD/COLOCAR_ENTIDAD/HAY_COLISION", confianza: "media" },
+  { start: 0x818B, end: 0x8610, contenido: "ESTADO_PARTIDA + VENTANA_TEXTO_HUD + MAPA_CASILLAS -- 1157 bytes a 0, borrados enteros por BORRAR_BLOQUE_ESTADO junto con el resto de ARRAY_ENTIDADES. VENTANA_TEXTO_HUD (40 B, hipotesis: buffer de texto) y MAPA_CASILLAS (1040 B, hipotesis: mapa del laberinto, entradas de 42 B) referenciadas por su propio codigo", usado_por: "BORRAR_BLOQUE_ESTADO / BORRAR_RECTANGULO_VENTANA / HAY_COLISION / CONSULTAR_CASILLA_MAPA", confianza: "media" },
+  { start: 0x8611, end: 0x8645, contenido: "TABLA_OFFSETS_DIAMANTE -- pares byte-alto $B8/$90/$A8 con patron ascendente/descendente de paso 6", usado_por: "sin CALL conocido todavia", confianza: "baja" },
+  { start: 0x8645, end: 0x864B, contenido: "VARIABLES_DIBUJO_MARCO -- variables HL/byte usadas por DIBUJAR_TRAMO_MARCO_1..4 y RELLENAR_FILAS_MASCARA", usado_por: "DIBUJAR_TRAMO_MARCO_1..4, RELLENAR_FILAS_MASCARA", confianza: "alta" },
+  { start: 0x864B, end: 0x867E, contenido: "TABLA_PARAMETROS_TRANSICION_PUNTUACIONES -- grupos cortos repetidos, hipotesis: animacion/temporizado de la transicion a HI-SCORE-TABLE", usado_por: "sin CALL conocido todavia", confianza: "baja" },
+  { start: 0x867E, end: 0x86E9, contenido: "TEXTO_TABLA_PUNTUACIONES -- \"HI-SCORE-TABLE\" + 5 rangos con umbral en 16 bits: Stupendous=2000, Excellent=1500, Very Good=1000, Quite Good=500, Not Bad", usado_por: "sin CALL conocido todavia", confianza: "alta (texto y umbrales legibles directamente)" },
+  { start: 0x86E9, end: 0x8738, contenido: "TEXTO_MENU_PRINCIPAL -- \"I-Instructions  O-Options  P-Play  ?\" + \"Well done !!  Please enter your name\"", usado_por: "sin CALL conocido todavia (coincide con MOVER_INDICADOR_MENU/ANIMAR_OPCION_MENU)", confianza: "alta (texto legible directamente)" },
+  { start: 0x8738, end: 0x8740, contenido: "TABLA_POSICIONES_DECIMALES -- 4 valores de 16 bits: 10000,1000,100,10. Corrige la hipotesis previa (databa el inicio en $8736, que en realidad es el final de TEXTO_MENU_PRINCIPAL)", usado_por: "IMPRIMIR_NUMERO_HL (LD IY,$8736 + 2x INC IY)", confianza: "media-alta" },
+  { start: 0x8740, end: 0x877D, contenido: "TEXTO_COPYRIGHT_Y_HUD -- copyright real del juego: \"OH MUMMY\" (c) 1984 GEM SOFTWARE (confirma AVISO-LEGAL.md), mas etiquetas HUD \"SCORE\"/\"MEN\"", usado_por: "REPETIR_CARACTER ($6066, $60A1)", confianza: "alta (texto legible directamente)" },
+  { start: 0x877D, end: 0x87C5, contenido: "TABLA_MARCO_1 -- mascara/bitmap de 72 bytes (12x6) para un tramo del marco decorativo", usado_por: "DIBUJAR_TRAMO_MARCO_1 (LD IY,$877D)", confianza: "media (estructura alta, pixel sin decodificar)" },
+  { start: 0x87C5, end: 0x880D, contenido: "TABLA_MARCO_2", usado_por: "DIBUJAR_TRAMO_MARCO_2 (LD IY,$87C5)", confianza: "media" },
+  { start: 0x880D, end: 0x8855, contenido: "TABLA_MARCO_3", usado_por: "DIBUJAR_TRAMO_MARCO_3 (LD IY,$880D)", confianza: "media" },
+  { start: 0x8855, end: 0x889D, contenido: "TABLA_MARCO_4", usado_por: "DIBUJAR_TRAMO_MARCO_4 (LD IY,$8855)", confianza: "media" },
+  { start: 0x889D, end: 0x8919, contenido: "DATOS_MARCO_Y_TEXTO_CONTINUAR -- mezcla sin separar con precision: mas mascara/grafico similar a las tablas de marco, mas el texto literal '\"C\" TO CONTINUE'", usado_por: "sin CALL conocido todavia", confianza: "baja-media" },
+  { start: 0x8919, end: 0x8ECA, contenido: "TABLAS_SPRITE_CASILLA -- ~29 tablas de sprite/casilla (4x16 o 2x8 bytes) sin desglosar individualmente, patron de bytes consistente con mascaras de pantalla CPC modo 1", usado_por: "DIBUJAR_ENTIDAD (LD IY,$8919) / DIBUJAR_CASILLA_MAPA", confianza: "media" },
+  { start: 0x8ECA, end: 0x905A, contenido: "TABLA_DIRECCIONES_PANTALLA -- 400 bytes a 0 en el fichero, se rellena en tiempo de ejecucion (200 entradas x 2 bytes)", usado_por: "bucle $607E-$6093, CASILLA_A_DIRECCION_PANTALLA", confianza: "alta" },
+  { start: 0x905A, end: 0x905C, contenido: "PUNTERO_GUION_SONIDO -- puntero de 2 bytes a la entrada actual de GUION_SONIDO_CIRCULAR", usado_por: "ACTUALIZAR_SECUENCIA_SONIDO", confianza: "alta" },
+  { start: 0x905C, end: 0x9386, contenido: "GUION_SONIDO_CIRCULAR -- tabla CIRCULAR de guion de sonido, 90 registros de 9 bytes exactos (llena el motor hasta el ultimo byte). GUION_SONIDO_ULTIMO_REGISTRO ($937D) es el umbral de vuelta al principio", usado_por: "ACTUALIZAR_SECUENCIA_SONIDO", confianza: "media-alta (estructura alta, campos de cada registro sin desglosar)" },
 ];
 
 const ADDR_MAX = 0x10000;
@@ -275,6 +301,7 @@ const KIND_VAR = {
   basic: "--accent-basic",
   codigo: "--accent-codigo",
   reconstruida: "--accent-reconstruida",
+  dato: "--accent-dato",
   graficos: "--accent-graficos",
   sonido: "--accent-sonido",
   niveles: "--accent-niveles",

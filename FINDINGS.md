@@ -1208,3 +1208,169 @@ Quedan 2 huecos `INCBIN` sin analizar: `$6401`-`$786B` (5227 bytes) y
 - Numeración de teclas de firmware para `$2C`/`$3E` (pendiente desde
   Sesión 4/5).
 - Bucle principal de juego, todavía sin localizar.
+
+## Sesión 8 — 2026-09-01: cerrado el último hueco `INCBIN` del tramo `$7EFD`-`$9385` — es dato, no código, y contiene el texto real del juego
+
+Siguiendo la prioridad explícita del prompt de sesión ("priorizar el
+tramo que sigue a la sección ya resuelta en la Sesión 7"): el hueco
+`$7EFD`-`$9385` (5257 bytes, el resto del motor tras el bloque de
+código de la Sesión 7). Antes de tocar nada se comprobó que ningún
+`CALL`/`JP` del código ya reconstruido aterriza ahí dentro (regla
+base: no convertir datos en código sin evidencia) — y en efecto, tras
+un volcado hexadecimal completo y contrastarlo bloque a bloque contra
+las instrucciones que ya referencian direcciones concretas de esta
+zona, se confirma que **todo el hueco es dato**, no código: texto
+literal del juego, tablas de sonido/gráficos, y bloques de estado que
+se limpian en el arranque.
+
+### El hallazgo: texto real del juego, legible sin ambigüedad
+
+Leyendo los bytes directamente (sin necesidad de descifrar ningún
+código de control) aparecen, en orden:
+
+- **`TEXTO_MENU_OPCIONES`** (`$7EFD`-`$7FC3`): la pantalla de opciones
+  — "OH MUMMY - OPTIONS", "SPEED OF GAME (1-5) ?", "(1 IS FASTEST)",
+  "DIFFICULTY LEVEL (1-5) ?", "(1 IS HARDEST)", "BACKGROUND MUSIC
+  (Y-N) ?", "SOUND EFFECTS (Y-N) ?", "YES", "NO". Los dos bytes justo
+  después ("YY") no son parte del texto: son **`FLAG_MUSICA_FONDO`**
+  (`$7FC4`) y **`FLAG_EFECTOS_SONIDO`** (`$7FC5`), un truco clásico de
+  ahorro de memoria de 8 bits — el flag se guarda como el propio
+  carácter ASCII 'Y'/'N' que ya se necesita para redibujar la
+  respuesta en pantalla. Confirmado para `FLAG_MUSICA_FONDO`:
+  `ACTUALIZAR_SECUENCIA_SONIDO` hace `LD A,($7FC4):CP $59` (compara
+  contra 'Y') antes de encolar sonido — de ahí sale también la
+  condición exacta bajo la que esa rutina llama a `FIRM_SOUND_QUEUE`.
+- **`TEXTO_HISTORIA_ATRACCION`** (`$801D`-`$8139`): la pantalla de
+  "periódico" del modo atracción — *"STOP PRESS!! British Museum
+  today announced successful excavation of ancient Egyptian pyramid.
+  Leader of team given bonus for his efforts of 200 points. extra man
+  for next dig. Press "C" or Fire Button to Continue"* — seguido de
+  **"GAME OVER"**.
+- **`TEXTO_TABLA_PUNTUACIONES`** (`$867E`-`$86E8`): "HI-SCORE-TABLE"
+  más 5 rangos con su umbral de puntuación en 16 bits little-endian
+  intercalado, leído directamente de los bytes: "Stupendous !"=2000,
+  "Excellent ! "=1500, "Very Good ! "=1000, "Quite Good  "=500, "Not
+  Bad     " (sin umbral visible, probablemente el rango por defecto).
+- **`TEXTO_MENU_PRINCIPAL`** (`$86E9`-`$8737`): "I-Instructions
+  O-Options  P-Play  ?" (encaja con `MOVER_INDICADOR_MENU`/
+  `ANIMAR_OPCION_MENU`, ya reconstruidas) y "Well done !!  Please
+  enter your name" (pantalla de entrada de nombre para el ranking).
+- **`TEXTO_COPYRIGHT_Y_HUD`** (`$8740`-`$877C`): el copyright real del
+  juego, **`"OH MUMMY" (c) 1984 GEM SOFTWARE`** — confirma
+  directamente lo que decía `AVISO-LEGAL.md` a partir del crédito de
+  `mummy_bas.bas` (Sesión 2) — y las etiquetas de HUD "SCORE"/"MEN".
+- **`DATOS_MARCO_Y_TEXTO_CONTINUAR`** (`$889D`-`$8918`): termina con
+  `'"C" TO CONTINUE'`.
+
+### Tablas con límites confirmados por el código ya reconstruido
+
+- **`ENVOLVENTE_AMPLITUD_1..3`** / **`ENVOLVENTE_TONO_1..3`**
+  (`$7FCA`-`$801C`): las 6 definiciones de envolvente de sonido que ya
+  se sabía (Sesión 3) que cargaba el arranque — direcciones exactas
+  confirmadas porque el propio arranque hace `LD HL,$7FCA`/`$7FD4`/
+  `$7FDE`/`$7FE5`/`$7FF5`/`$7FF9` antes de cada `CALL
+  FIRM_SOUND_AMPL_ENV`/`FIRM_SOUND_TONE_ENV`. Formato variable (las
+  amplitudes miden 10/10/7 bytes, los tonos 16/4/36) — coherente con
+  el formato real de envolvente del firmware CPC (cabecera de nº de
+  pasos + N tripletas).
+- **`TABLA_MARCO_1..4`** (`$877D`-`$889C`, 72 bytes cada una): las 4
+  tablas del marco decorativo. Límite exacto confirmado por
+  aritmética: `DIBUJAR_TRAMO_MARCO_2` fija IY en `$87C5`, exactamente
+  72 bytes después de `$877D` (`DIBUJAR_TRAMO_MARCO_1`) — y lo mismo
+  para las 4, coincidiendo exacto con los 12x6 bytes que consume
+  `COPIAR_BLOQUE_A_LIENZO`. Contenido: máscaras/bitmap con patrones
+  típicos de pantalla CPC modo 1 (`$FF`/`$00`/`$CC`/`$33`/`$AA`...),
+  sin decodificar a nivel de píxel.
+- **`ARRAY_ENTIDADES`** (`$816D`-`$818A`, 30 bytes, todo cero) /
+  **`ESTADO_PARTIDA`** / **`VENTANA_TEXTO_HUD`** / **`MAPA_CASILLAS`**
+  (`$818B`-`$860F`, todo cero): confirmado que `BORRAR_BLOQUE_ESTADO`
+  limpia exactamente desde `ARRAY_ENTIDADES+5` (`$8172`) hasta el
+  último byte de `MAPA_CASILLAS` (`$860F`), 1182 bytes. El arranque
+  también confirma variables sueltas justo antes del array:
+  `CONTADOR_ENTIDADES` (`$8169`, puesto a 6 — encaja con la hipótesis
+  "6 enemigos/coleccionables" de sesiones anteriores) y dos flags de 1
+  byte puestos a 0. `VENTANA_TEXTO_HUD` y `MAPA_CASILLAS` mantienen
+  las hipótesis previas (Sesiones 3-6) de "buffer de texto" y
+  "estructura de mapa" respectivamente, aunque el hueco real entre
+  ambas direcciones (40 bytes) es más pequeño de lo que sugería la
+  hipótesis original de `VENTANA_TEXTO_HUD` (~1000 bytes) — posible
+  solapamiento de uso entre menús y partida, sin confirmar.
+- **`TABLA_DIRECCIONES_PANTALLA`** (`$8ECA`-`$9059`, 400 bytes, todo
+  cero) / **`PUNTERO_GUION_SONIDO`** (`$905A`-`$905B`): confirmado que
+  el arranque rellena la tabla en tiempo de ejecución (bucle de 200
+  iteraciones con `FIRM_SCR_DOT_POSITION`, ya documentado desde la
+  Sesión 3) — el fichero la tiene a 0 porque nunca se lee antes de que
+  ese bucle la rellene. Los últimos 2 bytes de ese rango resultaron
+  ser en realidad una variable aparte: el puntero de
+  `GUION_SONIDO_CIRCULAR`.
+- **`GUION_SONIDO_CIRCULAR`** (`$905C`-`$9385`, 810 bytes = **90
+  registros de 9 bytes exactos**, llena el hueco justo hasta el último
+  byte del motor): confirma y cierra del todo la hipótesis "tabla
+  circular de guion de sonido" de la Sesión 6. `GUION_SONIDO_ULTIMO_REGISTRO`
+  (`$937D`) es el registro nº90, el umbral exacto que usa
+  `ACTUALIZAR_SECUENCIA_SONIDO` (`LD DE,$937D`) para saber cuándo
+  volver a `GUION_SONIDO_CIRCULAR`. 9 bytes por registro encaja con el
+  formato extendido de `SOUND QUEUE` del firmware (estado+tono+
+  volumen/envolvente+duración+envolventes), sin desglosar campo a
+  campo todavía.
+- **`TABLA_POSICIONES_DECIMALES`** (`$8738`-`$873F`, 4 valores de 16
+  bits: `10000,1000,100,10`): **corrige** la hipótesis previa de
+  `mapa_memoria.html` (que databa esta tabla en `$8736`) — esos 2
+  bytes son en realidad el final del texto "na**me**" de
+  `TEXTO_MENU_PRINCIPAL`; `IMPRIMIR_NUMERO_HL` hace `LD IY,$8736` pero
+  incrementa IY dos veces antes de la primera lectura real (en
+  `$8738`), así que la tabla en sí no empieza donde decía la hipótesis
+  vieja. Confirma que la rutina imprime HL como un número de hasta 5
+  cifras decimales (4 restas repetidas + el resto final), no 4 como se
+  dijo antes.
+
+### Sin descifrar del todo (bytes en bruto, con hipótesis)
+
+`TABLA_DESCONOCIDA_GAME_OVER` (tras el texto "GAME OVER", con
+progresiones aritméticas visibles), `TABLA_OFFSETS_DIAMANTE` (pares
+byte-alto `$B8`/`$90`/`$A8` con patrón ascendente/descendente),
+`TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (justo antes de
+"HI-SCORE-TABLE"), y `TABLAS_SPRITE_CASILLA` (`$8919`-`$8EC9`, 1457
+bytes — confirmado que empieza justo donde `DIBUJAR_ENTIDAD` fija
+`IY`, con patrones de bytes consistentes con máscaras de pantalla CPC
+modo 1, pero sin desglosar las ~29 tablas individuales de sprite/
+casilla todavía). Todas quedan documentadas en el ASM con su
+hipótesis y nivel de confianza, no como `INCBIN` anónimo.
+
+### Verificación
+
+`py tools/build_all.py` y `py tools/dsk_build.py`: **0 diferencias**
+en los tres (motor 13190 bytes, cargador 2564 bytes, `.dsk` completo
+194816 bytes) — cada uno de los 35 nuevos bloques de datos (`DB`/`DW`/
+`DEFS`), y cada `LD`/`CALL` renombrado a la nueva etiqueta simbólica
+(incluidas expresiones con aritmética de etiqueta como
+`TABLA_POSICIONES_DECIMALES-2`, `ARRAY_ENTIDADES+5` y
+`TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8`), se verificó además con
+un script independiente que reconstruye los bytes a partir del propio
+texto ASM y los compara contra el binario original antes de tocar
+`mummy1_body.asm`.
+
+### Documentación actualizada en esta sesión
+
+`FINDINGS.md` (esta entrada), `README.md`/`README.en.md`/
+`src/README.md` (el motor ya no tiene ningún tramo de código sin
+analizar más allá del bloque `$6401`-`$786B`; el resto del motor está
+reconstruido como código o como dato con nombre), `recursos/
+flujo_programa.html` (sin cambios de rutinas de código esta sesión —
+todo lo nuevo es dato) y `recursos/mapa_memoria.html` (la región
+`$7EFD`-`$9385`, antes "sin analizar", pasa a una nueva categoría
+`"dato"` con el detalle de las 35 tablas/textos nuevas).
+
+### Pendiente para próximas sesiones
+
+- El único hueco `INCBIN` que queda: `$6401`-`$786B` (5227 bytes).
+- Descifrar las ~29 tablas individuales dentro de `TABLAS_SPRITE_CASILLA`
+  (límites de cada tabla de sprite/casilla, actualmente un solo bloque).
+- `TABLA_DESCONOCIDA_GAME_OVER`, `TABLA_OFFSETS_DIAMANTE` y
+  `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES`: localizar el código que
+  las lee (ninguna tiene todavía un `CALL`/`LD` conocido).
+- Localizar el llamador de `RELLENAR_MARCO_VACIO` y de las 6 variantes
+  `RELLENAR_MARCO_DIAGONAL_*` (pendiente desde la Sesión 7).
+- Numeración de teclas de firmware para `$2C`/`$3E` (pendiente desde
+  Sesión 4/5).
+- Bucle principal de juego, todavía sin localizar.

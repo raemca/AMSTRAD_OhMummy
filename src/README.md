@@ -31,24 +31,35 @@ dirección de carga y ejecución real del motor.
   tramo. Este tramo en sí sigue sin nombres semánticos propios
   (reconstrucción mecánica de primera pasada, solo llama a otras
   rutinas ya nombradas).
-- **`$6401`-`$9385`** (12165 bytes originalmente): **38 subrutinas
-  (1681 bytes, el 12.7% del motor) ya están reconstruidas con nombre
-  funcional real**, formando un único bloque contiguo de 1681 bytes
-  (`$786C`-`$7EFC`, cerrado en la Sesión 7 al fusionarse el bloque de
-  la Sesión 6 con el de la Sesión 3) — `GENERAR_ALEATORIO`,
-  `ACTUALIZAR_SECUENCIA_SONIDO`, `HAY_COLISION`, `DIBUJAR_ENTIDAD`
-  (dispatcher de sprites), `RELLENAR_MARCO_DIAGONAL_1..6`... (lista
-  completa más abajo). **Todos los nombres son provisionales**, cada
-  uno con su hipótesis y nivel de confianza en un comentario junto a
-  la etiqueta — ninguno verificado ejecutando el juego en un emulador
-  (ver `prompts/_base_reconstruccion.md`, reglas globales desde la
-  Sesión 6). El resto (10484 bytes, en 2 huecos: `$6401`-`$786B` y
-  `$7EFD`-`$9385`) sigue sin analizar, incluido tal cual con
-  `INCBIN "data/mummy1_resto_sin_analizar.bin", offset, longitud` —
-  el offset/longitud de cada hueco se calcula automáticamente (no a
-  mano) para que la compilación siga reproduciendo el binario completo
-  byte a byte mientras se va desensamblando de verdad, sesión a
-  sesión.
+- **`$6401`-`$786B`** (5227 bytes): el único tramo del motor que
+  sigue sin analizar, incluido tal cual con
+  `INCBIN "data/mummy1_resto_sin_analizar.bin", 0, 5227`.
+- **`$786C`-`$7EFC`** (1681 bytes, el 12.7% del motor): **38
+  subrutinas de código ya reconstruidas con nombre funcional real**,
+  en un único bloque contiguo (cerrado en la Sesión 7) —
+  `GENERAR_ALEATORIO`, `ACTUALIZAR_SECUENCIA_SONIDO`, `HAY_COLISION`,
+  `DIBUJAR_ENTIDAD` (dispatcher de sprites),
+  `RELLENAR_MARCO_DIAGONAL_1..6`... (lista completa más abajo).
+- **`$7EFD`-`$9385`** (5257 bytes, el resto del motor hasta el
+  final): **cerrado por completo en la Sesión 8** como **dato, no
+  código** (ningún `CALL`/`JP` ya reconstruido aterriza ahí dentro) —
+  35 tablas/textos con nombre, incluyendo el **texto real del juego**
+  (menú de opciones, la pantalla "STOP PRESS" del modo atracción, la
+  tabla HI-SCORE con sus 5 rangos y umbrales, el menú principal, y el
+  copyright `"OH MUMMY" (c) 1984 GEM SOFTWARE`), las 6 envolventes de
+  sonido, las 4 tablas del marco decorativo, el guión de sonido
+  circular (90 registros de 9 bytes) y varios bloques de estado de
+  partida que se limpian en el arranque. Ver `FINDINGS.md` Sesión 8
+  para el desglose completo.
+
+**Todos los nombres son provisionales**, cada uno con su hipótesis y
+nivel de confianza en un comentario junto a la etiqueta — ninguno
+verificado ejecutando el juego en un emulador (ver
+`prompts/_base_reconstruccion.md`, reglas globales desde la Sesión 6).
+El offset/longitud del único `INCBIN` que queda se calcula
+automáticamente (no a mano) para que la compilación siga reproduciendo
+el binario completo byte a byte mientras se va desensamblando de
+verdad, sesión a sesión.
 
 ### Rutinas reconstruidas (nombres provisionales, Sesiones 3-6)
 
