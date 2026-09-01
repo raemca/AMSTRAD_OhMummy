@@ -1374,3 +1374,48 @@ todo lo nuevo es dato) y `recursos/mapa_memoria.html` (la región
 - Numeración de teclas de firmware para `$2C`/`$3E` (pendiente desde
   Sesión 4/5).
 - Bucle principal de juego, todavía sin localizar.
+
+## Sesión 8 (continuación) — 2026-09-01: `recursos/sprites.html` — explorador interactivo de `TABLAS_SPRITE_CASILLA`
+
+A petición del usuario: convertir `sprites.html` (plantilla vacía
+desde la Sesión 1) en una herramienta real para ir acotando el formato
+de `TABLAS_SPRITE_CASILLA` (`$8919`-`$8EC9`, 1457 bytes, localizada
+esta misma sesión) — todavía no se sabe con certeza el modo de
+pantalla del CPC, ni el ancho/alto real de cada sprite, ni dónde
+empieza cada tabla individual dentro del bloque.
+
+La página incrusta los 1457 bytes tal cual (verificado byte a byte
+contra `src/mummy1_body.asm` con un script de comparación antes de
+publicar el fichero) y los decodifica en el navegador con la
+codificación de bits **real** del hardware CPC para los 3 modos de
+pantalla (Modo 0: 2 píxeles/byte, 4 bits/píxel; Modo 1: 4 píxeles/byte,
+2 bits/píxel; Modo 2: 8 píxeles/byte, 1 bit/píxel — el reparto de bits
+de cada modo es el documentado en el firmware, no inventado). Controles
+editables: modo, ancho en bytes/fila, alto en filas, offset inicial,
+salto entre sprites (por si hay padding entre tablas), cantidad a
+mostrar, zoom y paleta (la paleta de color SÍ es inventada — el binario
+no guarda qué tinta va con cada índice de píxel). Dos botones de preset
+cargan la hipótesis de trabajo de las Sesiones 3-6 (Modo 1, ~20
+sprites de personaje de 4x16 bytes = 16x16 píxeles, seguidos de 9
+casillas de mapa de 2x8 bytes = 8x8 píxeles).
+
+Comprobación rápida en Python (fuera de la página, solo para validar
+el decodificador antes de publicarlo): con Modo 1 y 4x16 bytes, la
+mayoría de los sprites muestran un fondo uniforme de índice 2 (byte
+$F0, ya visto en Sesión 8 como relleno del marco decorativo) con un
+puñado de píxeles de otro índice formando una silueta pequeña — patrón
+compatible con un personaje/glifo simple de 16x16, aunque **ninguna
+combinación de parámetros está confirmada todavía** (ni contra una
+captura real del juego en emulador, ni contra ninguna otra evidencia
+independiente). Sin impacto en `mummy1_body.asm` — no requiere
+`py tools/build_all.py`.
+
+### Pendiente
+
+- Confirmar el modo de pantalla y las dimensiones reales de sprite
+  contrastando contra una captura de pantalla del juego en emulador
+  (pendiente desde sesiones anteriores, ver "Numeración de teclas" y
+  otros pendientes de arriba).
+- Una vez confirmado el formato, extraer los sprites individuales a
+  `src/data/img/sprites/*.spr` y sustituir el placeholder de esta
+  página por el array `SPRITES` ya poblado.

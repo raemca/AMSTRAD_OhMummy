@@ -164,8 +164,10 @@ Repository structure
   `flujo_programa.html` (routine inventory, firmware + hypotheses),
   `flujo_secuencial.html` (boot execution order) and `portada.html`
   (the "AMSOFT" logo now rendered from the BASIC's 191 real strokes)
-  have real content since Session 3. `graficos.html` (tiles) and
-  `sprites.html` are still empty — no tile/sprite graphics have been
+  have real content since Session 3. `sprites.html` (Session 8:
+  interactive explorer for `TABLAS_SPRITE_CASILLA` with adjustable
+  width/height/CPC mode — the real format is not confirmed yet).
+  `graficos.html` (tiles) is still empty — no tile graphics have been
   extracted yet. Also `ohmummy_referencia_binario.html`: a supporting
   document (provided
   by the author, not derived from the binary) with a generic

@@ -167,8 +167,10 @@ Estructura del repositorio
   `flujo_secuencial.html` (orden de ejecución del arranque) y
   `portada.html` (el logo "AMSOFT" ya renderizado a partir de los 191
   trazos reales del BASIC) tienen contenido real desde la Sesión 3.
-  `graficos.html` (losetas) y `sprites.html` siguen vacíos — no se ha
-  extraído ningún gráfico de tiles/sprites todavía. También
+  `sprites.html` (Sesión 8: explorador interactivo de
+  `TABLAS_SPRITE_CASILLA` con ancho/alto/modo CPC ajustables — el
+  formato real todavía no está confirmado). `graficos.html` (losetas)
+  sigue vacío — no se ha extraído ningún gráfico de tiles todavía. También
   `ohmummy_referencia_binario.html`: documento de apoyo
   (aportado por el autor, no derivado del binario) con la hipótesis
   genérica de qué subsistemas esperar en un arcade de laberinto de

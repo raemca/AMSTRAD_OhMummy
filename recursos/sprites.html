@@ -16,6 +16,7 @@
     --accent-item: #7fae6a;
     --accent-unknown: #b08a3e;
     --pixel-off: #f5f3ef;
+    --input-bg: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -29,6 +30,7 @@
       --accent-item: #8fc27a;
       --accent-unknown: #cf9f4e;
       --pixel-off: #262320;
+      --input-bg: #1c1a17;
     }
   }
   * { box-sizing: border-box; }
@@ -54,24 +56,66 @@
     font-size: 0.92rem;
   }
   .note.pending { border-left-color: var(--muted); }
-  .legend {
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+
+  /* --- panel de control del explorador --- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.4rem 0;
+  }
+  .panel .row {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
-    margin: 0.8rem 0 1.2rem 0;
+    gap: 1rem 1.6rem;
+    align-items: flex-end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+  .field label { color: var(--muted); font-weight: 600; }
+  .field input, .field select {
+    font: inherit;
     font-size: 0.85rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    color: var(--fg);
+    width: 8.5rem;
   }
-  .legend span.swatch {
-    display: inline-block;
-    width: 0.8em;
-    height: 0.8em;
-    border-radius: 3px;
-    margin-right: 0.4em;
-    vertical-align: middle;
+  .field .hint { color: var(--muted); font-size: 0.72rem; font-weight: 400; }
+  .presets {
+    margin-top: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
+  button.preset {
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--fg);
+    cursor: pointer;
+  }
+  button.preset:hover { border-color: var(--accent-jugador); }
+  .status {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 0.6rem 0 0 0;
+  }
+
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
     gap: 0.6rem;
   }
   .tile {
@@ -80,20 +124,19 @@
     border-radius: 8px;
     padding: 0.4rem;
     text-align: center;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
   }
   .tile canvas {
     image-rendering: pixelated;
     width: 100%;
-    aspect-ratio: 1 / 1;
     background: var(--pixel-off);
     border-radius: 3px;
     display: block;
+    border: 1px solid var(--border);
   }
-  .tile .idx { font-family: "SFMono-Regular", Consolas, monospace; color: var(--muted); margin-top: 0.3rem; }
-  .tile .label { font-weight: 600; min-height: 1.4em; }
-  .tile .label.unknown { color: var(--muted); font-weight: 400; font-style: italic; }
-  .tile .bar { height: 4px; border-radius: 2px; margin-bottom: 0.35rem; }
+  .tile.out-of-range canvas { opacity: 0.35; }
+  .tile .idx { font-family: "SFMono-Regular", Consolas, monospace; color: var(--fg); margin-top: 0.35rem; font-weight: 600; }
+  .tile .addr { font-family: "SFMono-Regular", Consolas, monospace; color: var(--muted); }
   .empty-state {
     color: var(--muted);
     font-style: italic;
@@ -109,7 +152,6 @@
     border-top: 1px solid var(--border);
     padding-top: 1rem;
   }
-  code { font-family: "SFMono-Regular", Consolas, monospace; }
 </style>
 </head>
 <body>
@@ -119,87 +161,278 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo.</p>
 
 <div class="note pending">
-  <strong>Plantilla de Sesion 1 -- sin sprites extraidos todavia.</strong>
-  Ni siquiera se ha confirmado si el motor usa sprites por software
-  (mascaras AND/OR, como los proyectos hermanos de MSX/Spectrum) o si
-  el Amstrad CPC de este binario dibuja los personajes de otra forma.
-  Cuando se identifiquen en <code>MUMMY1.BIN</code> y se extraigan a
-  <code>src/data/img/sprites/*.spr</code>, se rellenara aqui el array
-  <code>SPRITES</code> del script de abajo.
+  <strong>Explorador interactivo -- formato de sprite SIN CONFIRMAR.</strong>
+  La Sesion 8 localizo y acoto con precision <code>TABLAS_SPRITE_CASILLA</code>
+  (<code>$8919</code>-<code>$8EC9</code>, 1457 bytes en
+  <code>src/mummy1_body.asm</code>) -- confirmado que es aqui donde
+  <code>DIBUJAR_ENTIDAD</code> e indirectamente <code>DIBUJAR_CASILLA_MAPA</code>
+  buscan sus graficos, pero <strong>no</strong> como se decodifica cada
+  byte a pixeles (modo de pantalla, ancho/alto real de cada sprite, ni
+  donde empieza cada tabla individual). La hipotesis de trabajo (Sesiones
+  3-6) es <strong>Modo 1 CPC</strong> (4 pixeles/byte, 4 colores), con
+  ~20 sprites de personaje de 4x16 bytes (16x16 pixeles) seguidos de 9
+  casillas de mapa de 2x8 bytes (8x8 pixeles) -- los dos botones de
+  "preset" de abajo cargan esa hipotesis tal cual. Cambia los campos
+  para ir probando combinaciones hasta que aparezcan formas reconocibles
+  (el jugador, las momias, el hipopotamo, el avion... ver
+  <code>recursos/ohmummy_referencia_binario.html</code> para la lista de
+  personajes esperada) -- <strong>ninguna combinacion esta confirmada
+  todavia</strong>, y la paleta de color es inventada (el binario no
+  guarda que color de tinta va con cada indice de pixel). Ver
+  <code>FINDINGS.md</code> Sesion 8.
 </div>
 
-<h2>Personajes (jugador, momias, items...)</h2>
-<div class="legend">
-  <span><span class="swatch" style="background:var(--accent-jugador)"></span>jugador</span>
-  <span><span class="swatch" style="background:var(--accent-enemigo)"></span>enemigo (momia)</span>
-  <span><span class="swatch" style="background:var(--accent-item)"></span>item / puntuacion</span>
-  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin identificar</span>
+<h2>Parametros de lectura</h2>
+<div class="panel">
+  <div class="row">
+    <div class="field">
+      <label for="f-modo">Modo grafico CPC</label>
+      <select id="f-modo">
+        <option value="1" selected>Modo 1 (4 px/byte, 4 colores)</option>
+        <option value="0">Modo 0 (2 px/byte, 16 colores)</option>
+        <option value="2">Modo 2 (8 px/byte, 2 colores)</option>
+      </select>
+      <span class="hint">como se reparten los bits de cada byte en pixeles</span>
+    </div>
+    <div class="field">
+      <label for="f-ancho">Ancho (bytes/fila)</label>
+      <input type="number" id="f-ancho" min="1" max="32" value="4">
+      <span class="hint" id="hint-ancho-px">= 16 px en Modo 1</span>
+    </div>
+    <div class="field">
+      <label for="f-alto">Alto (filas)</label>
+      <input type="number" id="f-alto" min="1" max="64" value="16">
+      <span class="hint">scanlines por sprite</span>
+    </div>
+    <div class="field">
+      <label for="f-offset">Offset inicial (bytes)</label>
+      <input type="number" id="f-offset" min="0" max="1456" value="0">
+      <span class="hint" id="hint-offset-addr">= $8919</span>
+    </div>
+    <div class="field">
+      <label for="f-stride">Salto entre sprites (bytes)</label>
+      <input type="number" id="f-stride" min="1" max="4096" value="64">
+      <span class="hint">por defecto ancho x alto (sin huecos)</span>
+    </div>
+    <div class="field">
+      <label for="f-frames">Cantidad a mostrar</label>
+      <input type="number" id="f-frames" min="1" max="200" value="24">
+    </div>
+    <div class="field">
+      <label for="f-zoom">Zoom (px por pixel)</label>
+      <input type="number" id="f-zoom" min="1" max="16" value="8">
+    </div>
+    <div class="field">
+      <label for="f-paleta">Paleta (inventada)</label>
+      <select id="f-paleta">
+        <option value="gris" selected>Escala de grises</option>
+        <option value="color">Colores distintivos</option>
+        <option value="bn">Blanco / negro (solo bit mas significativo)</option>
+      </select>
+    </div>
+  </div>
+  <div class="presets">
+    <button class="preset" id="preset-personajes">Preset: personajes (Modo 1, 4x16 bytes = 16x16 px)</button>
+    <button class="preset" id="preset-casillas">Preset: casillas de mapa (Modo 1, 2x8 bytes = 8x8 px)</button>
+    <button class="preset" id="preset-reset">Volver al offset 0</button>
+  </div>
+  <p class="status" id="status-line"></p>
 </div>
+
+<h2>Sprites decodificados con los parametros de arriba</h2>
 <div id="grid-sprites"></div>
 
 <footer>
-  Cuando existan, los datos se extraeran a ficheros individuales en
-  <code>src/data/img/sprites/*.spr</code>, incluidos en la fuente
-  reconstruida via <code>INCBIN</code>. Todavia no hay ningun fichero
-  ahi.
+  Datos de <code>TABLAS_SPRITE_CASILLA</code> (<code>$8919</code>-<code>$8EC9</code>,
+  1457 bytes), extraidos de <code>src/mummy1_body.asm</code> (Sesion 8).
+  Cuando el formato quede confirmado (por ejemplo comparando contra una
+  captura de pantalla real del juego en emulador), estos sprites se
+  extraeran a ficheros individuales en <code>src/data/img/sprites/*.spr</code>.
 </footer>
 
 <script>
 // ============================================================
-// SPRITES -- ir anadiendo aqui conforme se extraigan e identifiquen.
-// Cada entrada: { hex, label, kind, ancho, alto }
-//   hex   = bytes crudos del sprite en hexadecimal
-//   label = "" si no esta identificado todavia
-//   kind  = "jugador" | "enemigo" | "item" | "unknown"
+// DATOS CRUDOS -- TABLAS_SPRITE_CASILLA completa ($8919-$8EC9, 1457
+// bytes), copiada byte a byte de src/mummy1_body.asm (Sesion 8). Ver
+// FINDINGS.md Sesion 8 para como se acoto este rango.
 // ============================================================
-const SPRITES = [
-  // ejemplo, formato aun sin decidir:
-  // { hex: "....", label: "jugador mirando derecha", kind: "jugador", ancho: 16, alto: 16 },
-];
+const SPRITE_DATA_START_ADDR = 0x8919;
+const SPRITE_DATA_HEX =
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f087f0f0f087f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f096f0f0f0f01ef0f0f01ef0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f087f087f096f096f0f0f096f096f0f01ef01ef096f096f0f0f096f096f0f0f0f0f0f0f0f0f0f0f0f0f0960f960ff0c3f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0c3960f960ff0f0f0f0f0f0f0f0f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f087f0f0f087f0f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f01ef0f0f01ef0f0f0f096f096f0f0f096f096f087f087f0f096f096f0f0f096f096f01ef01ef0f0f0f0f0f0f0f0f0f0f00f960f963cf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f03cf00f960f96f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0f0861678e077cc70c077cc70c077ee70c077fff0c3fefff0f1fefff0e11efff0f01eeff0f0f00ff0f0f01ef0f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0e18616f0e033ee70e033ee30e077ee30f0ffee30f0fff73cf0fff7f8f0ff8778f07f87f0f00ff0f0f087f0f0f0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0f000fef0f088003cf0cc003cf1fffbf0f3fff7f8d3fefff887fcf7fcc378c33ce13cc31ef0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0e033fef0e0006ff0f0892ff0f0ff7ef0f0f7fcf0f0f3fcf0f0f3fcf0f0c33cf0f0c31ef0f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0f0032e70e0676e30e077ee33e1ffef30f0ffe778f0fff7f8f0ff8778f0efc378f00ff0f0f01ef0f0f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0e0470cf0c0676e70c077ee70c07fff78e17efff0f1fefff0e11efff0e13c7ff0f0f00ff0f0f087f0f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f700f0c30011f0c30033f0f0fdfff8f1fefffcf1fff7bcf3fef31ec33ce13c873cc378f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f7cc70f06f0070f04f19f0f0e7fff0f0f3fef0f0f3fcf0f0f3fcf0f0c33cf0f0873cf0f0f0f0f0e0204070e0402070e0402070e0204070e00000f0f00000f0f00010f0f08030f0f08030f0f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0f0f0f0f0e0204070e0402070e0402070e0204070f0000070f00000f0f08000f0f0c010f0f0c010f0f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f0800070f0a00030f080b030f08030f0f08030f0f00030f0f01010f0e03010f0e03080f0e0108070f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f08000f0f0a00030f080b030f08030f0f08030f0f08030f0f08030f0f08030f0f08030f0f08010f0f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f00010f0e00000f0e00000f0c0404070c0802070f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f08000f0f0000070f0000070e0202030e0401030f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c000f0f08080f0f080c070f010c070e0108070f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f08010f0101d01011c0001011c0118180e000f010c";
 
-const KIND_VAR = { jugador: "--accent-jugador", enemigo: "--accent-enemigo", item: "--accent-item", unknown: "--accent-unknown" };
+const SPRITE_BYTES = (function () {
+  const clean = SPRITE_DATA_HEX.trim();
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+})();
 
-function drawSpritePlaceholder(canvas) {
-  canvas.width = 16;
-  canvas.height = 16;
+// ============================================================
+// DECODIFICACION DE PIXELES CPC -- mapeo de bits real del hardware
+// (no inventado): cada modo reparte los 8 bits de un byte de pantalla
+// en N pixeles con este orden de bits especifico (documentado en el
+// firmware/hardware del CPC), independientemente de que tabla de
+// colores (paleta) se use para pintarlos despues.
+// Devuelve un array de indices de color (0..2^bits-1) por byte.
+// ============================================================
+function decodeByteMode0(b) {
+  // 2 pixeles, 4 bits/pixel
+  const p0 = ((b >> 7) & 1) << 3 | ((b >> 3) & 1) << 2 | ((b >> 5) & 1) << 1 | ((b >> 1) & 1);
+  const p1 = ((b >> 6) & 1) << 3 | ((b >> 2) & 1) << 2 | ((b >> 4) & 1) << 1 | (b & 1);
+  return [p0, p1];
+}
+function decodeByteMode1(b) {
+  // 4 pixeles, 2 bits/pixel
+  const p0 = ((b >> 7) & 1) << 1 | ((b >> 3) & 1);
+  const p1 = ((b >> 6) & 1) << 1 | ((b >> 2) & 1);
+  const p2 = ((b >> 5) & 1) << 1 | ((b >> 1) & 1);
+  const p3 = ((b >> 4) & 1) << 1 | (b & 1);
+  return [p0, p1, p2, p3];
+}
+function decodeByteMode2(b) {
+  // 8 pixeles, 1 bit/pixel
+  const out = [];
+  for (let i = 7; i >= 0; i--) out.push((b >> i) & 1);
+  return out;
+}
+const MODE_DECODERS = { 0: decodeByteMode0, 1: decodeByteMode1, 2: decodeByteMode2 };
+const MODE_PX_PER_BYTE = { 0: 2, 1: 4, 2: 8 };
+const MODE_MAX_INDEX = { 0: 15, 1: 3, 2: 1 };
+
+function paletteColor(paletteName, mode, index) {
+  const max = MODE_MAX_INDEX[mode];
+  if (paletteName === "bn") {
+    return index > max / 2 ? "#14110d" : "#f5f3ef";
+  }
+  if (paletteName === "color") {
+    const COLORS = ["#00000000", "#c0392b", "#2980b9", "#27ae60", "#f39c12", "#8e44ad", "#16a085", "#d35400",
+      "#2c3e50", "#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c", "#e67e22"];
+    if (index === 0) return "transparent";
+    return COLORS[index % COLORS.length];
+  }
+  // escala de grises por defecto
+  if (index === 0) return "transparent";
+  const v = Math.round((index / max) * 200) + 30;
+  return "rgb(" + v + "," + v + "," + v + ")";
+}
+
+function decodeSprite(offset, widthBytes, heightRows, mode) {
+  const decoder = MODE_DECODERS[mode];
+  const pxPerByte = MODE_PX_PER_BYTE[mode];
+  const widthPx = widthBytes * pxPerByte;
+  const rows = [];
+  let anyInRange = false;
+  for (let y = 0; y < heightRows; y++) {
+    const row = [];
+    for (let xb = 0; xb < widthBytes; xb++) {
+      const byteOff = offset + y * widthBytes + xb;
+      const b = (byteOff >= 0 && byteOff < SPRITE_BYTES.length) ? SPRITE_BYTES[byteOff] : 0;
+      if (byteOff < SPRITE_BYTES.length) anyInRange = true;
+      row.push(...decoder(b));
+    }
+    rows.push(row);
+  }
+  return { rows, widthPx, heightPx: heightRows, anyInRange };
+}
+
+function drawSprite(canvas, decoded, zoom, paletteName, mode) {
+  canvas.width = decoded.widthPx * zoom;
+  canvas.height = decoded.heightPx * zoom;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pixel-off").trim();
-  ctx.fillRect(0, 0, 16, 16);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let y = 0; y < decoded.rows.length; y++) {
+    const row = decoded.rows[y];
+    for (let x = 0; x < row.length; x++) {
+      const color = paletteColor(paletteName, mode, row[x]);
+      if (color === "transparent") continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
+    }
+  }
 }
 
-function buildSpriteCard(s, i) {
-  const card = document.createElement("div");
-  card.className = "tile";
+function hexAddr(n) { return "$" + n.toString(16).toUpperCase().padStart(4, "0"); }
 
-  const bar = document.createElement("div");
-  bar.className = "bar";
-  bar.style.background = "var(" + (KIND_VAR[s.kind] || KIND_VAR.unknown) + ")";
-  card.appendChild(bar);
-
-  const canvas = document.createElement("canvas");
-  drawSpritePlaceholder(canvas);
-  card.appendChild(canvas);
-
-  const labelDiv = document.createElement("div");
-  labelDiv.className = "label" + (s.label ? "" : " unknown");
-  labelDiv.textContent = s.label || "sin identificar";
-  card.appendChild(labelDiv);
-
-  const idx = document.createElement("div");
-  idx.className = "idx";
-  idx.textContent = "#" + i;
-  card.appendChild(idx);
-
-  return card;
+function readParams() {
+  return {
+    modo: parseInt(document.getElementById("f-modo").value, 10),
+    ancho: Math.max(1, parseInt(document.getElementById("f-ancho").value, 10) || 1),
+    alto: Math.max(1, parseInt(document.getElementById("f-alto").value, 10) || 1),
+    offset: Math.max(0, parseInt(document.getElementById("f-offset").value, 10) || 0),
+    stride: Math.max(1, parseInt(document.getElementById("f-stride").value, 10) || 1),
+    frames: Math.max(1, parseInt(document.getElementById("f-frames").value, 10) || 1),
+    zoom: Math.max(1, parseInt(document.getElementById("f-zoom").value, 10) || 1),
+    paleta: document.getElementById("f-paleta").value,
+  };
 }
 
-const gridSprites = document.getElementById("grid-sprites");
-if (SPRITES.length === 0) {
-  gridSprites.innerHTML = '<div class="empty-state">Sin sprites extraidos todavia -- ver la nota de arriba.</div>';
-} else {
-  gridSprites.className = "grid";
-  SPRITES.forEach((s, i) => gridSprites.appendChild(buildSpriteCard(s, i)));
+function render() {
+  const p = readParams();
+  const pxPerByte = MODE_PX_PER_BYTE[p.modo];
+  document.getElementById("hint-ancho-px").textContent = "= " + (p.ancho * pxPerByte) + " px en este modo";
+  document.getElementById("hint-offset-addr").textContent = "= " + hexAddr(SPRITE_DATA_START_ADDR + p.offset);
+
+  const grid = document.getElementById("grid-sprites");
+  grid.innerHTML = "";
+  grid.className = "grid";
+
+  const spriteBytes = p.ancho * p.alto;
+  let outCount = 0;
+  for (let i = 0; i < p.frames; i++) {
+    const off = p.offset + i * p.stride;
+    const decoded = decodeSprite(off, p.ancho, p.alto, p.modo);
+
+    const card = document.createElement("div");
+    card.className = "tile" + (decoded.anyInRange ? "" : " out-of-range");
+    if (!decoded.anyInRange) outCount++;
+
+    const canvas = document.createElement("canvas");
+    drawSprite(canvas, decoded, p.zoom, p.paleta, p.modo);
+    card.appendChild(canvas);
+
+    const idx = document.createElement("div");
+    idx.className = "idx";
+    idx.textContent = "#" + i;
+    card.appendChild(idx);
+
+    const addr = document.createElement("div");
+    addr.className = "addr";
+    addr.textContent = hexAddr(SPRITE_DATA_START_ADDR + off) + " (+" + off + ")";
+    card.appendChild(addr);
+
+    grid.appendChild(card);
+  }
+
+  const totalBytesUsed = Math.min(p.frames * p.stride, p.frames * spriteBytes);
+  document.getElementById("status-line").textContent =
+    "Cada sprite ocupa " + spriteBytes + " bytes (" + (p.ancho * pxPerByte) + "x" + p.alto + " px). " +
+    "Mostrando " + p.frames + " sprites desde " + hexAddr(SPRITE_DATA_START_ADDR + p.offset) +
+    " (offset +" + p.offset + " de " + SPRITE_BYTES.length + " bytes totales)" +
+    (outCount > 0 ? " -- " + outCount + " se salen del rango de datos disponible (atenuados)." : ".");
 }
+
+function setPreset(ancho, alto, offset, stride) {
+  document.getElementById("f-modo").value = "1";
+  document.getElementById("f-ancho").value = ancho;
+  document.getElementById("f-alto").value = alto;
+  document.getElementById("f-offset").value = offset;
+  document.getElementById("f-stride").value = stride;
+  render();
+}
+
+document.getElementById("preset-personajes").addEventListener("click", () => setPreset(4, 16, 0, 4 * 16));
+document.getElementById("preset-casillas").addEventListener("click", () => setPreset(2, 8, 20 * 4 * 16, 2 * 8));
+document.getElementById("preset-reset").addEventListener("click", () => {
+  document.getElementById("f-offset").value = 0;
+  render();
+});
+
+["f-modo", "f-ancho", "f-alto", "f-offset", "f-stride", "f-frames", "f-zoom", "f-paleta"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", render);
+  document.getElementById(id).addEventListener("change", render);
+});
+
+render();
 </script>
 
 </body>
