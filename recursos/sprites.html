@@ -57,6 +57,29 @@
   }
   .note.pending { border-left-color: var(--muted); }
   code { font-family: "SFMono-Regular", Consolas, monospace; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+  }
+  .legend span.swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    border-radius: 3px;
+    margin-right: 0.4em;
+    vertical-align: middle;
+  }
+  .confirmed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.7rem;
+  }
+  .confirmed-grid .tile.jugador { border-top: 3px solid var(--accent-jugador); }
+  .confirmed-grid .tile.enemigo { border-top: 3px solid var(--accent-enemigo); }
+  .confirmed-grid .tile .label { font-weight: 600; margin-top: 0.35rem; }
 
   /* --- panel de control del explorador --- */
   .panel {
@@ -186,7 +209,21 @@
   <code>FINDINGS.md</code> Sesion 8.
 </div>
 
-<h2>Parametros de lectura</h2>
+<h2>Sprites confirmados</h2>
+<p class="subtitle">Extraidos byte a byte a <code>src/data/img/sprites/*.spr</code>
+e incluidos en <code>src/mummy1_body.asm</code> via <code>INCBIN</code>
+(<code>py tools/build_all.py</code>: 0 diferencias). La posicion y el
+formato (Modo 1, 4x16 bytes) estan confirmados por el codigo de
+<code>DIBUJAR_ENTIDAD</code>; la identidad "jugador"/"momia" es
+hipotesis (confianza media-alta, confirmada visualmente por el usuario
+probando este mismo explorador -- ver <code>FINDINGS.md</code> Sesion 8).</p>
+<div class="legend">
+  <span><span class="swatch" style="background:var(--accent-jugador)"></span>jugador (hipotesis)</span>
+  <span><span class="swatch" style="background:var(--accent-enemigo)"></span>momia / zombie (hipotesis)</span>
+</div>
+<div class="confirmed-grid" id="grid-confirmados"></div>
+
+<h2>Explorador general (todo el bloque de datos, $8919-$8EC9)</h2>
 <div class="panel">
   <div class="row">
     <div class="field">
@@ -201,7 +238,7 @@
     <div class="field">
       <label for="f-ancho">Ancho (bytes/fila)</label>
       <input type="number" id="f-ancho" min="1" max="32" value="4">
-      <span class="hint" id="hint-ancho-px">= 16 px en Modo 1</span>
+      <span class="hint" id="f-hint-ancho-px">= 16 px en Modo 1</span>
     </div>
     <div class="field">
       <label for="f-alto">Alto (filas)</label>
@@ -211,12 +248,12 @@
     <div class="field">
       <label for="f-offset">Offset inicial (bytes)</label>
       <input type="number" id="f-offset" min="0" max="1456" value="0">
-      <span class="hint" id="hint-offset-addr">= $8919</span>
+      <span class="hint" id="f-hint-offset-addr">= $8919</span>
     </div>
     <div class="field">
       <label for="f-vdesp">Desplazamiento vertical (bytes, +/-)</label>
       <input type="number" id="f-vdesp" min="-256" max="256" value="0">
-      <span class="hint" id="hint-vdesp-filas">= 0 filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente</span>
+      <span class="hint" id="f-hint-vdesp-filas">= 0 filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente</span>
     </div>
     <div class="field">
       <label for="f-stride">Salto entre sprites (bytes)</label>
@@ -252,6 +289,85 @@
 <h2>Sprites decodificados con los parametros de arriba</h2>
 <div id="grid-sprites"></div>
 
+<h2>TABLAS_SPRITE_CASILLA sin identificar (offset 0-415, antes de $8AB9)</h2>
+<p class="subtitle">Zona dedicada al tramo que <strong>todavia no tiene composicion clara</strong>:
+lo que usa <code>DIBUJAR_ENTIDAD</code> para los tipos <code>' '</code> (espacio),
+<code>'T'</code> y por defecto, mas 8 de las 9 casillas de <code>DIBUJAR_CASILLA_MAPA</code>
+(la novena, en <code>$8959</code>, cae aqui tambien). Los 9 botones saltan
+directo a cada direccion de casilla YA CONOCIDA por el codigo (pero no
+contiguas entre si -- por eso son botones sueltos, no un preset con
+salto fijo). Ajusta ancho/alto/offset libremente para lo que quede
+entre ellas.</p>
+<div class="panel">
+  <div class="row">
+    <div class="field">
+      <label for="g-modo">Modo grafico CPC</label>
+      <select id="g-modo">
+        <option value="1" selected>Modo 1 (4 px/byte, 4 colores)</option>
+        <option value="0">Modo 0 (2 px/byte, 16 colores)</option>
+        <option value="2">Modo 2 (8 px/byte, 2 colores)</option>
+      </select>
+      <span class="hint">como se reparten los bits de cada byte en pixeles</span>
+    </div>
+    <div class="field">
+      <label for="g-ancho">Ancho (bytes/fila)</label>
+      <input type="number" id="g-ancho" min="1" max="32" value="2">
+      <span class="hint" id="g-hint-ancho-px">= 8 px en Modo 1</span>
+    </div>
+    <div class="field">
+      <label for="g-alto">Alto (filas)</label>
+      <input type="number" id="g-alto" min="1" max="64" value="8">
+      <span class="hint">scanlines por sprite</span>
+    </div>
+    <div class="field">
+      <label for="g-offset">Offset inicial (bytes)</label>
+      <input type="number" id="g-offset" min="0" max="415" value="0">
+      <span class="hint" id="g-hint-offset-addr">= $8919</span>
+    </div>
+    <div class="field">
+      <label for="g-vdesp">Desplazamiento vertical (bytes, +/-)</label>
+      <input type="number" id="g-vdesp" min="-256" max="256" value="0">
+      <span class="hint" id="g-hint-vdesp-filas">= 0 filas</span>
+    </div>
+    <div class="field">
+      <label for="g-stride">Salto entre sprites (bytes)</label>
+      <input type="number" id="g-stride" min="1" max="4096" value="16">
+      <span class="hint">por defecto ancho x alto (sin huecos)</span>
+    </div>
+    <div class="field">
+      <label for="g-frames">Cantidad a mostrar</label>
+      <input type="number" id="g-frames" min="1" max="200" value="26">
+    </div>
+    <div class="field">
+      <label for="g-zoom">Zoom (px por pixel)</label>
+      <input type="number" id="g-zoom" min="1" max="16" value="8">
+    </div>
+    <div class="field">
+      <label for="g-paleta">Paleta (inventada)</label>
+      <select id="g-paleta">
+        <option value="gris" selected>Escala de grises</option>
+        <option value="color">Colores distintivos</option>
+        <option value="bn">Blanco / negro (solo bit mas significativo)</option>
+      </select>
+    </div>
+  </div>
+  <div class="presets">
+    <button class="preset" id="preset-g-8919">Entidad por defecto ($8919, 4x16)</button>
+    <button class="preset" id="preset-g-8959">Entidad ' ' / casilla #1 ($8959, 4x16 o 2x8)</button>
+    <button class="preset" id="preset-g-89d9">Casilla #2 ($89D9, 2x8)</button>
+    <button class="preset" id="preset-g-89e9">Casilla #3 ($89E9, 2x8)</button>
+    <button class="preset" id="preset-g-89f9">Casilla #4 ($89F9, 2x8)</button>
+    <button class="preset" id="preset-g-8a19">Casilla #5 ($8A19, 2x8)</button>
+    <button class="preset" id="preset-g-8a69">Casilla #6 ($8A69, 2x8)</button>
+    <button class="preset" id="preset-g-8a79">Casilla #7 ($8A79, 2x8)</button>
+    <button class="preset" id="preset-g-8a89">Casilla #8 ($8A89, 2x8)</button>
+    <button class="preset" id="preset-g-8aa9">Casilla #9 ($8AA9, 2x8)</button>
+    <button class="preset" id="preset-g-reset">Ver el tramo completo (offset 0, salto 16)</button>
+  </div>
+  <p class="status" id="status-line-g"></p>
+</div>
+<div id="grid-sprites-g"></div>
+
 <footer>
   Datos de <code>TABLAS_SPRITE_CASILLA</code> (<code>$8919</code>-<code>$8EC9</code>,
   1457 bytes), extraidos de <code>src/mummy1_body.asm</code> (Sesion 8).
@@ -276,6 +392,31 @@ const SPRITE_BYTES = (function () {
   for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
   return out;
 })();
+
+// ============================================================
+// SPRITES CONFIRMADOS -- los 16 sprites de DIBUJAR_ENTIDAD (tipos 'A'
+// y 'O'), ya extraidos a src/data/img/sprites/*.spr e incluidos en
+// mummy1_body.asm via INCBIN (Sesion 8). hex = copia exacta de cada
+// fichero .spr (64 bytes, Modo 1, 4x16). Ver FINDINGS.md Sesion 8.
+// ============================================================
+const SPRITES_CONFIRMADOS = [
+  { addr: 0x8AB9, nombre: "sprite_jugador_g1_f1", kind: "jugador", grupo: 1, fotograma: 1, hex: "f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0f0861678e077cc70c077cc70c077ee70c077fff0c3fefff0f1fefff0e11efff0f01eeff0f0f00ff0f0f01ef0" },
+  { addr: 0x8AF9, nombre: "sprite_jugador_g1_f2", kind: "jugador", grupo: 1, fotograma: 2, hex: "f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0e18616f0e033ee70e033ee30e077ee30f0ffee30f0fff73cf0fff7f8f0ff8778f07f87f0f00ff0f0f087f0f0" },
+  { addr: 0x8B39, nombre: "sprite_jugador_g2_f1", kind: "jugador", grupo: 2, fotograma: 1, hex: "f0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0f000fef0f088003cf0cc003cf1fffbf0f3fff7f8d3fefff887fcf7fcc378c33ce13cc31e" },
+  { addr: 0x8B79, nombre: "sprite_jugador_g2_f2", kind: "jugador", grupo: 2, fotograma: 2, hex: "f0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0e033fef0e0006ff0f0892ff0f0ff7ef0f0f7fcf0f0f3fcf0f0f3fcf0f0c33cf0f0c31ef0" },
+  { addr: 0x8BB9, nombre: "sprite_jugador_g3_f1", kind: "jugador", grupo: 3, fotograma: 1, hex: "f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0f0032e70e0676e30e077ee33e1ffef30f0ffe778f0fff7f8f0ff8778f0efc378f00ff0f0f01ef0f0" },
+  { addr: 0x8BF9, nombre: "sprite_jugador_g3_f2", kind: "jugador", grupo: 3, fotograma: 2, hex: "f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0e0470cf0c0676e70c077ee70c07fff78e17efff0f1fefff0e11efff0e13c7ff0f0f00ff0f0f087f0" },
+  { addr: 0x8C39, nombre: "sprite_jugador_g4_f1", kind: "jugador", grupo: 4, fotograma: 1, hex: "f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f700f0c30011f0c30033f0f0fdfff8f1fefffcf1fff7bcf3fef31ec33ce13c873cc378" },
+  { addr: 0x8C79, nombre: "sprite_jugador_g4_f2", kind: "jugador", grupo: 4, fotograma: 2, hex: "f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f7cc70f06f0070f04f19f0f0e7fff0f0f3fef0f0f3fcf0f0f3fcf0f0c33cf0f0873cf0" },
+  { addr: 0x8CB9, nombre: "sprite_momia_g1_f1", kind: "enemigo", grupo: 1, fotograma: 1, hex: "f0f0f0f0e0204070e0402070e0402070e0204070e00000f0f00000f0f00010f0f08030f0f08030f0f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0" },
+  { addr: 0x8CF9, nombre: "sprite_momia_g1_f2", kind: "enemigo", grupo: 1, fotograma: 2, hex: "f0f0f0f0e0204070e0402070e0402070e0204070f0000070f00000f0f08000f0f0c010f0f0c010f0f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0" },
+  { addr: 0x8D39, nombre: "sprite_momia_g2_f1", kind: "enemigo", grupo: 2, fotograma: 1, hex: "f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f0800070f0a00030f080b030f08030f0f08030f0f00030f0f01010f0e03010f0e03080f0e0108070" },
+  { addr: 0x8D79, nombre: "sprite_momia_g2_f2", kind: "enemigo", grupo: 2, fotograma: 2, hex: "f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f08000f0f0a00030f080b030f08030f0f08030f0f08030f0f08030f0f08030f0f08030f0f08010f0" },
+  { addr: 0x8DB9, nombre: "sprite_momia_g3_f1", kind: "enemigo", grupo: 3, fotograma: 1, hex: "f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f00010f0e00000f0e00000f0c0404070c0802070f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0" },
+  { addr: 0x8DF9, nombre: "sprite_momia_g3_f2", kind: "enemigo", grupo: 3, fotograma: 2, hex: "f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f08000f0f0000070f0000070e0202030e0401030f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0" },
+  { addr: 0x8E39, nombre: "sprite_momia_g4_f1", kind: "enemigo", grupo: 4, fotograma: 1, hex: "f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c000f0f08080f0f080c070f010c070e0108070" },
+  { addr: 0x8E79, nombre: "sprite_momia_g4_f2", kind: "enemigo", grupo: 4, fotograma: 2, hex: "f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f08010f0" },
+];
 
 // ============================================================
 // DECODIFICACION DE PIXELES CPC -- mapeo de bits real del hardware
@@ -363,79 +504,100 @@ function drawSprite(canvas, decoded, zoom, paletteName, mode) {
 
 function hexAddr(n) { return "$" + n.toString(16).toUpperCase().padStart(4, "0"); }
 
-function readParams() {
-  return {
-    modo: parseInt(document.getElementById("f-modo").value, 10),
-    ancho: Math.max(1, parseInt(document.getElementById("f-ancho").value, 10) || 1),
-    alto: Math.max(1, parseInt(document.getElementById("f-alto").value, 10) || 1),
-    offset: Math.max(0, parseInt(document.getElementById("f-offset").value, 10) || 0),
-    vdesp: parseInt(document.getElementById("f-vdesp").value, 10) || 0,
-    stride: Math.max(1, parseInt(document.getElementById("f-stride").value, 10) || 1),
-    frames: Math.max(1, parseInt(document.getElementById("f-frames").value, 10) || 1),
-    zoom: Math.max(1, parseInt(document.getElementById("f-zoom").value, 10) || 1),
-    paleta: document.getElementById("f-paleta").value,
-  };
-}
+// ============================================================
+// FABRICA DE EXPLORADOR -- crea un panel de lectura independiente
+// (sus propios campos, su propia rejilla) a partir de un prefijo de
+// id ("f" o "g"). Permite tener varios exploradores en la misma
+// pagina sin que compartan estado. Devuelve {render, setPreset}.
+// ============================================================
+function makeExplorer(pfx, gridId, statusId) {
+  const el = (name) => document.getElementById(pfx + "-" + name);
 
-function render() {
-  const p = readParams();
-  const pxPerByte = MODE_PX_PER_BYTE[p.modo];
-  document.getElementById("hint-ancho-px").textContent = "= " + (p.ancho * pxPerByte) + " px en este modo";
-  document.getElementById("hint-offset-addr").textContent = "= " + hexAddr(SPRITE_DATA_START_ADDR + p.offset);
-  const vdespFilas = p.vdesp / p.ancho;
-  document.getElementById("hint-vdesp-filas").textContent =
-    "= " + (Number.isInteger(vdespFilas) ? vdespFilas : vdespFilas.toFixed(2)) +
-    " filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente";
-
-  const grid = document.getElementById("grid-sprites");
-  grid.innerHTML = "";
-  grid.className = "grid";
-
-  const spriteBytes = p.ancho * p.alto;
-  let outCount = 0;
-  for (let i = 0; i < p.frames; i++) {
-    const off = p.offset + p.vdesp + i * p.stride;
-    const decoded = decodeSprite(off, p.ancho, p.alto, p.modo);
-
-    const card = document.createElement("div");
-    card.className = "tile" + (decoded.anyInRange ? "" : " out-of-range");
-    if (!decoded.anyInRange) outCount++;
-
-    const canvas = document.createElement("canvas");
-    drawSprite(canvas, decoded, p.zoom, p.paleta, p.modo);
-    card.appendChild(canvas);
-
-    const idx = document.createElement("div");
-    idx.className = "idx";
-    idx.textContent = "#" + i;
-    card.appendChild(idx);
-
-    const addr = document.createElement("div");
-    addr.className = "addr";
-    addr.textContent = hexAddr(SPRITE_DATA_START_ADDR + off) + " (+" + off + ")";
-    card.appendChild(addr);
-
-    grid.appendChild(card);
+  function readParams() {
+    return {
+      modo: parseInt(el("modo").value, 10),
+      ancho: Math.max(1, parseInt(el("ancho").value, 10) || 1),
+      alto: Math.max(1, parseInt(el("alto").value, 10) || 1),
+      offset: Math.max(0, parseInt(el("offset").value, 10) || 0),
+      vdesp: parseInt(el("vdesp").value, 10) || 0,
+      stride: Math.max(1, parseInt(el("stride").value, 10) || 1),
+      frames: Math.max(1, parseInt(el("frames").value, 10) || 1),
+      zoom: Math.max(1, parseInt(el("zoom").value, 10) || 1),
+      paleta: el("paleta").value,
+    };
   }
 
-  const totalBytesUsed = Math.min(p.frames * p.stride, p.frames * spriteBytes);
-  document.getElementById("status-line").textContent =
-    "Cada sprite ocupa " + spriteBytes + " bytes (" + (p.ancho * pxPerByte) + "x" + p.alto + " px). " +
-    "Mostrando " + p.frames + " sprites desde " + hexAddr(SPRITE_DATA_START_ADDR + p.offset) +
-    " (offset +" + p.offset + " de " + SPRITE_BYTES.length + " bytes totales)" +
-    (outCount > 0 ? " -- " + outCount + " se salen del rango de datos disponible (atenuados)." : ".");
+  function render() {
+    const p = readParams();
+    const pxPerByte = MODE_PX_PER_BYTE[p.modo];
+    el("hint-ancho-px") && (el("hint-ancho-px").textContent = "= " + (p.ancho * pxPerByte) + " px en este modo");
+    el("hint-offset-addr") && (el("hint-offset-addr").textContent = "= " + hexAddr(SPRITE_DATA_START_ADDR + p.offset));
+    const hintV = el("hint-vdesp-filas");
+    if (hintV) {
+      const vdespFilas = p.vdesp / p.ancho;
+      hintV.textContent = "= " + (Number.isInteger(vdespFilas) ? vdespFilas : vdespFilas.toFixed(2)) +
+        " filas -- se suma a TODOS los sprites por igual, sin mover los limites entre uno y el siguiente";
+    }
+
+    const grid = document.getElementById(gridId);
+    grid.innerHTML = "";
+    grid.className = "grid";
+
+    const spriteBytes = p.ancho * p.alto;
+    let outCount = 0;
+    for (let i = 0; i < p.frames; i++) {
+      const off = p.offset + p.vdesp + i * p.stride;
+      const decoded = decodeSprite(off, p.ancho, p.alto, p.modo);
+
+      const card = document.createElement("div");
+      card.className = "tile" + (decoded.anyInRange ? "" : " out-of-range");
+      if (!decoded.anyInRange) outCount++;
+
+      const canvas = document.createElement("canvas");
+      drawSprite(canvas, decoded, p.zoom, p.paleta, p.modo);
+      card.appendChild(canvas);
+
+      const idx = document.createElement("div");
+      idx.className = "idx";
+      idx.textContent = "#" + i;
+      card.appendChild(idx);
+
+      const addr = document.createElement("div");
+      addr.className = "addr";
+      addr.textContent = hexAddr(SPRITE_DATA_START_ADDR + off) + " (+" + off + ")";
+      card.appendChild(addr);
+
+      grid.appendChild(card);
+    }
+
+    document.getElementById(statusId).textContent =
+      "Cada sprite ocupa " + spriteBytes + " bytes (" + (p.ancho * pxPerByte) + "x" + p.alto + " px). " +
+      "Mostrando " + p.frames + " sprites desde " + hexAddr(SPRITE_DATA_START_ADDR + p.offset) +
+      " (offset +" + p.offset + " de " + SPRITE_BYTES.length + " bytes totales)" +
+      (outCount > 0 ? " -- " + outCount + " se salen del rango de datos disponible (atenuados)." : ".");
+  }
+
+  function setPreset(ancho, alto, offset, stride, frames) {
+    el("modo").value = "1";
+    el("ancho").value = ancho;
+    el("alto").value = alto;
+    el("offset").value = offset;
+    el("vdesp").value = 0;
+    el("stride").value = stride;
+    if (frames) el("frames").value = frames;
+    render();
+  }
+
+  ["modo", "ancho", "alto", "offset", "vdesp", "stride", "frames", "zoom", "paleta"].forEach((name) => {
+    el(name).addEventListener("input", render);
+    el(name).addEventListener("change", render);
+  });
+
+  return { render, setPreset };
 }
 
-function setPreset(ancho, alto, offset, stride, frames) {
-  document.getElementById("f-modo").value = "1";
-  document.getElementById("f-ancho").value = ancho;
-  document.getElementById("f-alto").value = alto;
-  document.getElementById("f-offset").value = offset;
-  document.getElementById("f-vdesp").value = 0;
-  document.getElementById("f-stride").value = stride;
-  if (frames) document.getElementById("f-frames").value = frames;
-  render();
-}
+// --- explorador general (todo el bloque, sin restriccion) ---
+const explorerGeneral = makeExplorer("f", "grid-sprites", "status-line");
 
 // Direcciones CONFIRMADAS por DIBUJAR_ENTIDAD (Sesion 8, ver
 // FINDINGS.md): SPRITE_JUGADOR_G1_F1 en $8AB9 y SPRITE_MOMIA_G1_F1 en
@@ -444,21 +606,84 @@ const ADDR_JUGADOR = 0x8AB9 - SPRITE_DATA_START_ADDR; // 416
 const ADDR_MOMIA = 0x8CB9 - SPRITE_DATA_START_ADDR;   // 928
 const ADDR_CASILLA_8959 = 0x8959 - SPRITE_DATA_START_ADDR; // 64
 
-document.getElementById("preset-jugador").addEventListener("click", () => setPreset(4, 16, ADDR_JUGADOR, 64, 8));
-document.getElementById("preset-momia").addEventListener("click", () => setPreset(4, 16, ADDR_MOMIA, 64, 8));
-document.getElementById("preset-casillas").addEventListener("click", () => setPreset(2, 8, ADDR_CASILLA_8959, 16, 1));
-document.getElementById("preset-reset").addEventListener("click", () => {
-  document.getElementById("f-offset").value = 0;
-  document.getElementById("f-vdesp").value = 0;
-  render();
-});
+document.getElementById("preset-jugador").addEventListener("click", () => explorerGeneral.setPreset(4, 16, ADDR_JUGADOR, 64, 8));
+document.getElementById("preset-momia").addEventListener("click", () => explorerGeneral.setPreset(4, 16, ADDR_MOMIA, 64, 8));
+document.getElementById("preset-casillas").addEventListener("click", () => explorerGeneral.setPreset(2, 8, ADDR_CASILLA_8959, 16, 1));
+document.getElementById("preset-reset").addEventListener("click", () => explorerGeneral.setPreset(4, 16, 0, 64, 24));
 
-["f-modo", "f-ancho", "f-alto", "f-offset", "f-vdesp", "f-stride", "f-frames", "f-zoom", "f-paleta"].forEach((id) => {
-  document.getElementById(id).addEventListener("input", render);
-  document.getElementById(id).addEventListener("change", render);
-});
+explorerGeneral.render();
 
-render();
+// --- explorador dedicado a TABLAS_SPRITE_CASILLA sin identificar
+// (offset 0-415, antes de SPRITE_JUGADOR_G1_F1) -- las 9 direcciones
+// de casilla de DIBUJAR_CASILLA_MAPA, confirmadas por el codigo pero
+// NO contiguas entre si, ver FINDINGS.md Sesion 8 ---
+const explorerCasillas = makeExplorer("g", "grid-sprites-g", "status-line-g");
+
+const CASILLA_ADDRS = {
+  "preset-g-8919": [4, 16, 0x8919],
+  "preset-g-8959": [2, 8, 0x8959],
+  "preset-g-89d9": [2, 8, 0x89D9],
+  "preset-g-89e9": [2, 8, 0x89E9],
+  "preset-g-89f9": [2, 8, 0x89F9],
+  "preset-g-8a19": [2, 8, 0x8A19],
+  "preset-g-8a69": [2, 8, 0x8A69],
+  "preset-g-8a79": [2, 8, 0x8A79],
+  "preset-g-8a89": [2, 8, 0x8A89],
+  "preset-g-8aa9": [2, 8, 0x8AA9],
+};
+Object.keys(CASILLA_ADDRS).forEach((id) => {
+  const [ancho, alto, addr] = CASILLA_ADDRS[id];
+  document.getElementById(id).addEventListener("click", () =>
+    explorerCasillas.setPreset(ancho, alto, addr - SPRITE_DATA_START_ADDR, ancho * alto, 1));
+});
+document.getElementById("preset-g-reset").addEventListener("click", () => explorerCasillas.setPreset(2, 8, 0, 16, 26));
+
+explorerCasillas.render();
+
+// --- galeria de sprites confirmados (arriba del todo, siempre Modo 1
+// 4x16 -- son datos fijos, no dependen del panel de parametros) ---
+function buildConfirmedCard(s) {
+  const bytes = new Uint8Array(s.hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(s.hex.substr(i * 2, 2), 16);
+
+  const card = document.createElement("div");
+  card.className = "tile " + s.kind;
+
+  const decoded = decodeSpriteFromBytes(bytes, 4, 16, 1);
+  const canvas = document.createElement("canvas");
+  drawSprite(canvas, decoded, 6, "gris", 1);
+  card.appendChild(canvas);
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.textContent = (s.kind === "jugador" ? "Jugador" : "Momia") + " G" + s.grupo + " F" + s.fotograma;
+  card.appendChild(label);
+
+  const addr = document.createElement("div");
+  addr.className = "addr";
+  addr.textContent = hexAddr(s.addr) + " -- " + s.nombre + ".spr";
+  card.appendChild(addr);
+
+  return card;
+}
+
+function decodeSpriteFromBytes(bytes, widthBytes, heightRows, mode) {
+  const decoder = MODE_DECODERS[mode];
+  const pxPerByte = MODE_PX_PER_BYTE[mode];
+  const rows = [];
+  for (let y = 0; y < heightRows; y++) {
+    const row = [];
+    for (let xb = 0; xb < widthBytes; xb++) {
+      const b = bytes[y * widthBytes + xb] || 0;
+      row.push(...decoder(b));
+    }
+    rows.push(row);
+  }
+  return { rows, widthPx: widthBytes * pxPerByte, heightPx: heightRows, anyInRange: true };
+}
+
+const gridConfirmados = document.getElementById("grid-confirmados");
+SPRITES_CONFIRMADOS.forEach((s) => gridConfirmados.appendChild(buildConfirmedCard(s)));
 </script>
 
 </body>

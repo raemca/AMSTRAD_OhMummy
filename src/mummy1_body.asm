@@ -1698,85 +1698,37 @@ TABLAS_SPRITE_CASILLA:
 ; estructura (16 sprites de 64 bytes perfectamente contiguos) esta
 ; confirmada al 100% por el codigo. Ver FINDINGS.md Sesion 8.
 SPRITE_JUGADOR_G1_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AB9
-    DB $F0,$0C,$03,$F0,$F0,$86,$16,$78,$E0,$77,$CC,$70,$C0,$77,$CC,$70 ; 8AC9
-    DB $C0,$77,$EE,$70,$C0,$77,$FF,$F0,$C3,$FE,$FF,$F0,$F1,$FE,$FF,$F0 ; 8AD9
-    DB $E1,$1E,$FF,$F0,$F0,$1E,$EF,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$1E,$F0 ; 8AE9
+    INCBIN "data/img/sprites/sprite_jugador_g1_f1.spr"  ; 8AB9, 64 bytes
 SPRITE_JUGADOR_G1_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8AF9
-    DB $F0,$0C,$03,$F0,$E1,$86,$16,$F0,$E0,$33,$EE,$70,$E0,$33,$EE,$30 ; 8B09
-    DB $E0,$77,$EE,$30,$F0,$FF,$EE,$30,$F0,$FF,$F7,$3C,$F0,$FF,$F7,$F8 ; 8B19
-    DB $F0,$FF,$87,$78,$F0,$7F,$87,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0,$F0 ; 8B29
+    INCBIN "data/img/sprites/sprite_jugador_g1_f2.spr"  ; 8AF9, 64 bytes
 SPRITE_JUGADOR_G2_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B39
-    DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$F0,$00,$FE,$F0 ; 8B49
-    DB $F0,$88,$00,$3C,$F0,$CC,$00,$3C,$F1,$FF,$FB,$F0,$F3,$FF,$F7,$F8 ; 8B59
-    DB $D3,$FE,$FF,$F8,$87,$FC,$F7,$FC,$C3,$78,$C3,$3C,$E1,$3C,$C3,$1E ; 8B69
+    INCBIN "data/img/sprites/sprite_jugador_g2_f1.spr"  ; 8B39, 64 bytes
 SPRITE_JUGADOR_G2_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$FC,$F0,$EE,$25,$F0 ; 8B79
-    DB $F0,$80,$0F,$3C,$F0,$E6,$2D,$F0,$F0,$11,$9E,$F0,$E0,$33,$FE,$F0 ; 8B89
-    DB $E0,$00,$6F,$F0,$F0,$89,$2F,$F0,$F0,$FF,$7E,$F0,$F0,$F7,$FC,$F0 ; 8B99
-    DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$C3,$1E,$F0 ; 8BA9
+    INCBIN "data/img/sprites/sprite_jugador_g2_f2.spr"  ; 8B79, 64 bytes
 SPRITE_JUGADOR_G3_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BB9
-    DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$F0,$03,$2E,$70,$E0,$67,$6E,$30 ; 8BC9
-    DB $E0,$77,$EE,$33,$E1,$FF,$EF,$30,$F0,$FF,$E7,$78,$F0,$FF,$F7,$F8 ; 8BD9
-    DB $F0,$FF,$87,$78,$F0,$EF,$C3,$78,$F0,$0F,$F0,$F0,$F0,$1E,$F0,$F0 ; 8BE9
+    INCBIN "data/img/sprites/sprite_jugador_g3_f1.spr"  ; 8BB9, 64 bytes
 SPRITE_JUGADOR_G3_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F0,$FF,$FF,$F0,$F0,$7F,$EF,$F0 ; 8BF9
-    DB $F0,$7F,$EF,$F0,$F0,$97,$9E,$F0,$E0,$47,$0C,$F0,$C0,$67,$6E,$70 ; 8C09
-    DB $C0,$77,$EE,$70,$C0,$7F,$FF,$78,$E1,$7E,$FF,$F0,$F1,$FE,$FF,$F0 ; 8C19
-    DB $E1,$1E,$FF,$F0,$E1,$3C,$7F,$F0,$F0,$F0,$0F,$F0,$F0,$F0,$87,$F0 ; 8C29
+    INCBIN "data/img/sprites/sprite_jugador_g3_f2.spr"  ; 8BF9, 64 bytes
 SPRITE_JUGADOR_G4_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C39
-    DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$00,$F0 ; 8C49
-    DB $C3,$00,$11,$F0,$C3,$00,$33,$F0,$F0,$FD,$FF,$F8,$F1,$FE,$FF,$FC ; 8C59
-    DB $F1,$FF,$F7,$BC,$F3,$FE,$F3,$1E,$C3,$3C,$E1,$3C,$87,$3C,$C3,$78 ; 8C69
+    INCBIN "data/img/sprites/sprite_jugador_g4_f1.spr"  ; 8C39, 64 bytes
 SPRITE_JUGADOR_G4_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$F7,$FE,$F0,$F3,$FF,$FF,$F0,$F0,$4A,$77,$F0 ; 8C79
-    DB $C3,$0F,$10,$F0,$F0,$4B,$76,$F0,$F0,$97,$88,$F0,$F0,$F7,$CC,$70 ; 8C89
-    DB $F0,$6F,$00,$70,$F0,$4F,$19,$F0,$F0,$E7,$FF,$F0,$F0,$F3,$FE,$F0 ; 8C99
-    DB $F0,$F3,$FC,$F0,$F0,$F3,$FC,$F0,$F0,$C3,$3C,$F0,$F0,$87,$3C,$F0 ; 8CA9
+    INCBIN "data/img/sprites/sprite_jugador_g4_f2.spr"  ; 8C79, 64 bytes
 SPRITE_MOMIA_G1_F1:
-    DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CB9
-    DB $E0,$20,$40,$70,$E0,$00,$00,$F0,$F0,$00,$00,$F0,$F0,$00,$10,$F0 ; 8CC9
-    DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8CD9
-    DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8CE9
+    INCBIN "data/img/sprites/sprite_momia_g1_f1.spr"  ; 8CB9, 64 bytes
 SPRITE_MOMIA_G1_F2:
-    DB $F0,$F0,$F0,$F0,$E0,$20,$40,$70,$E0,$40,$20,$70,$E0,$40,$20,$70 ; 8CF9
-    DB $E0,$20,$40,$70,$F0,$00,$00,$70,$F0,$00,$00,$F0,$F0,$80,$00,$F0 ; 8D09
-    DB $F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8D19
-    DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8D29
+    INCBIN "data/img/sprites/sprite_momia_g1_f2.spr"  ; 8CF9, 64 bytes
 SPRITE_MOMIA_G2_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D39
-    DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$70,$F0,$A0,$00,$30 ; 8D49
-    DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$00,$30,$F0 ; 8D59
-    DB $F0,$10,$10,$F0,$E0,$30,$10,$F0,$E0,$30,$80,$F0,$E0,$10,$80,$70 ; 8D69
+    INCBIN "data/img/sprites/sprite_momia_g2_f1.spr"  ; 8D39, 64 bytes
 SPRITE_MOMIA_G2_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$C0,$70,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D79
-    DB $F0,$C0,$30,$F0,$F0,$80,$70,$F0,$F0,$80,$00,$F0,$F0,$A0,$00,$30 ; 8D89
-    DB $F0,$80,$B0,$30,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0 ; 8D99
-    DB $F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$30,$F0,$F0,$80,$10,$F0 ; 8DA9
+    INCBIN "data/img/sprites/sprite_momia_g2_f2.spr"  ; 8D79, 64 bytes
 SPRITE_MOMIA_G3_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DB9
-    DB $F0,$C0,$30,$F0,$F0,$00,$10,$F0,$E0,$00,$00,$F0,$E0,$00,$00,$F0 ; 8DC9
-    DB $C0,$40,$40,$70,$C0,$80,$20,$70,$F0,$00,$30,$F0,$F0,$10,$10,$F0 ; 8DD9
-    DB $E0,$10,$10,$F0,$E0,$30,$10,$F0,$F0,$F0,$00,$F0,$F0,$F0,$00,$F0 ; 8DE9
+    INCBIN "data/img/sprites/sprite_momia_g3_f1.spr"  ; 8DB9, 64 bytes
 SPRITE_MOMIA_G3_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$E0,$70,$F0,$F0,$C0,$30,$F0,$F0,$C0,$30,$F0 ; 8DF9
-    DB $F0,$C0,$30,$F0,$F0,$80,$00,$F0,$F0,$00,$00,$70,$F0,$00,$00,$70 ; 8E09
-    DB $E0,$20,$20,$30,$E0,$40,$10,$30,$F0,$C0,$00,$F0,$F0,$80,$80,$F0 ; 8E19
-    DB $F0,$80,$80,$70,$F0,$80,$C0,$70,$F0,$00,$F0,$F0,$F0,$00,$F0,$F0 ; 8E29
+    INCBIN "data/img/sprites/sprite_momia_g3_f2.spr"  ; 8DF9, 64 bytes
 SPRITE_MOMIA_G4_F1:
-    DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E39
-    DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E49
-    DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$00,$F0 ; 8E59
-    DB $F0,$80,$80,$F0,$F0,$80,$C0,$70,$F0,$10,$C0,$70,$E0,$10,$80,$70 ; 8E69
+    INCBIN "data/img/sprites/sprite_momia_g4_f1.spr"  ; 8E39, 64 bytes
 SPRITE_MOMIA_G4_F2:
-    DB $F0,$F0,$F0,$F0,$F0,$E0,$30,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E79
-    DB $F0,$C0,$30,$F0,$F0,$E0,$10,$F0,$E0,$00,$10,$F0,$C0,$00,$50,$F0 ; 8E89
-    DB $C0,$D0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0 ; 8E99
-    DB $F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$C0,$10,$F0,$F0,$80,$10,$F0 ; 8EA9
+    INCBIN "data/img/sprites/sprite_momia_g4_f2.spr"  ; 8E79, 64 bytes
     DB $10,$1D,$01,$01,$1C,$00,$01,$01,$1C,$01,$18,$18,$0E,$00,$0F,$01 ; 8EB9
     DB $0C                                           ; 8EC9
 ; Confirmado: $6078 LD IX,$8ECA + bucle de 200 iteraciones que llama

@@ -1511,3 +1511,40 @@ compilan a los mismos bytes exactos.
   (encaja con el tema del juego y con las escrituras a mapa vistas en
   su código) — hipótesis nueva, sin evidencia todavía más allá de la
   coincidencia temática.
+
+## Sesión 8 (continuación 3) — 2026-09-01: los 16 sprites confirmados, extraídos a `src/data/img/sprites/*.spr`
+
+Paso siguiente natural tras confirmar `SPRITE_JUGADOR_G1_F1`..`G4_F2` y
+`SPRITE_MOMIA_G1_F1`..`G4_F2`: se extraen los 16 sprites (64 bytes cada
+uno) a ficheros individuales (`sprite_jugador_g1_f1.spr` ..
+`sprite_momia_g4_f2.spr`) y se sustituye cada bloque `DB` en
+`mummy1_body.asm` por `INCBIN "data/img/sprites/<nombre>.spr"`,
+manteniendo las 16 etiquetas. Verificado con `py tools/build_all.py` y
+`py tools/dsk_build.py`: **0 diferencias** — cada fichero reproduce
+exactamente los mismos 64 bytes que tenía el `DB` que sustituye.
+
+`recursos/sprites.html` gana una sección **"Sprites confirmados"**
+(galería fija con los 16, coloreados por hipótesis jugador/momia) y
+una **segunda sección dedicada** a la parte de `TABLAS_SPRITE_CASILLA`
+que sigue sin identificar (offset 0-415, antes de `$8AB9`): un
+explorador independiente del general, con 10 botones que saltan
+directo a cada dirección ya conocida por el código (`$8919` por
+defecto de `DIBUJAR_ENTIDAD`, `$8959` y las 8 restantes de
+`DIBUJAR_CASILLA_MAPA`) — no contiguas entre sí, por eso son botones
+sueltos en vez de un preset con salto fijo. Ambos exploradores
+(general y dedicado) comparten el mismo motor de lectura/decodificado
+(refactorizado a una fábrica `makeExplorer(prefijo, ...)` para no
+duplicar código ni mezclar el estado de los dos paneles).
+
+### Verificación
+
+`py tools/build_all.py` y `py tools/dsk_build.py`: **0 diferencias**.
+
+### Pendiente
+
+- Usar el nuevo explorador dedicado para ir nombrando lo que hay entre
+  las 9 direcciones de casilla conocidas y en la rama `'T'`/por
+  defecto de `DIBUJAR_ENTIDAD`.
+- Extraer a fichero también las casillas de `DIBUJAR_CASILLA_MAPA` en
+  cuanto se decida su formato definitivo (2x8 confirmado por el código
+  que las usa, contenido visual sin confirmar todavía).

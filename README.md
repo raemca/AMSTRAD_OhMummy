@@ -140,11 +140,12 @@ Estructura del repositorio
 - `src/build/` — binarios compilados (`py tools/build_all.py`, no se
   versiona).
 - `src/data/` — recursos ya identificados y extraídos a fichero
-  individual, incluidos en la fuente vía `INCBIN`: `img/sprites/`,
-  `img/tiles/`, `img/logo/`, `img/marco_decorativo/`, `img/texto/`,
-  `niveles/`, `sound/` (todos vacíos por ahora) y
-  `mummy1_resto_sin_analizar.bin` (los 12165 bytes del motor todavía
-  sin desensamblar, `$6401`-`$9385`) — se irán promoviendo a fuente
+  individual, incluidos en la fuente vía `INCBIN`: `img/sprites/`
+  (Sesión 8: los 16 sprites de `DIBUJAR_ENTIDAD` — `sprite_jugador_*`/
+  `sprite_momia_*`, 64 bytes cada uno), `img/tiles/`, `img/logo/`,
+  `img/marco_decorativo/`, `img/texto/`, `niveles/`, `sound/` (estos
+  vacíos por ahora) y `mummy1_resto_sin_analizar.bin` (los 5227 bytes
+  del motor todavía sin desensamblar, `$6401`-`$786B`) — se irán promoviendo a fuente
   real a medida que avance el análisis.
 - `src/load_disk/` — cargador de disco (equivalente Amstrad al
   `load_cas/` de los proyectos hermanos de cinta): `mummy_bas.bas`, el

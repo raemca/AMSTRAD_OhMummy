@@ -139,10 +139,12 @@ Repository structure
   version-controlled).
 - `src/data/` — resources already identified and extracted to
   individual files, included in the source via `INCBIN`:
-  `img/sprites/`, `img/tiles/`, `img/logo/`, `img/marco_decorativo/`,
-  `img/texto/`, `niveles/`, `sound/` (all empty for now) and
-  `mummy1_resto_sin_analizar.bin` (the 12165 still-undisassembled
-  engine bytes, `$6401`-`$9385`) — promoted to real source as analysis
+  `img/sprites/` (Session 8: the 16 `DIBUJAR_ENTIDAD` sprites —
+  `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each), `img/tiles/`,
+  `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/`,
+  `sound/` (these still empty for now) and
+  `mummy1_resto_sin_analizar.bin` (the 5227 still-undisassembled
+  engine bytes, `$6401`-`$786B`) — promoted to real source as analysis
   progresses.
 - `src/load_disk/` — disk loader (Amstrad equivalent of the sibling
   tape projects' `load_cas/`): `mummy_bas.bas`, the loader's BASIC
