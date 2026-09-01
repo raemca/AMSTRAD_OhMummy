@@ -895,7 +895,7 @@ DIBUJAR_ENTIDAD:
     JR Z,$7BD1                       ; 7B6D: 2862
     CP $03                           ; 7B6F: fe03
     JR Z,$7BA5                       ; 7B71: 2832
-    LD IY,$8A89                      ; 7B73: fd21898a
+    LD IY,LOSETA_MAPA_PISADA_7        ; 7B73: fd21898a
     LD A,$02                         ; 7B77: 3e02
     LD ($7CD0),A                     ; 7B79: 32d07c
     INC E                            ; 7B7C: 1c
@@ -938,7 +938,7 @@ DIBUJAR_ENTIDAD:
     DEC HL                           ; 7BCC: 2b
     LD (HL),A                        ; 7BCD: 77
     JP $7CC4                         ; 7BCE: c3c47c
-    LD IY,$89F9                      ; 7BD1: fd21f989
+    LD IY,LOSETA_MAPA_PISADA_3        ; 7BD1: fd21f989
     LD A,$02                         ; 7BD5: 3e02
     LD ($7CD0),A                     ; 7BD7: 32d07c
     CALL CONSULTAR_CASILLA_MAPA      ; 7BDA: cd3e7d
@@ -1074,21 +1074,21 @@ DIBUJAR_CASILLA_MAPA:
     JR Z,$7D04                       ; 7CFC: 2806
     LD IY,$8959                      ; 7CFE: fd215989
     JR $7D32                         ; 7D02: 182e
-    LD IY,$8A89                      ; 7D04: fd21898a
+    LD IY,LOSETA_MAPA_PISADA_7        ; 7D04: fd21898a
     JR $7D32                         ; 7D08: 1828
-    LD IY,$8AA9                      ; 7D0A: fd21a98a
+    LD IY,LOSETA_MAPA_PISADA_8        ; 7D0A: fd21a98a
     JR $7D32                         ; 7D0E: 1822
-    LD IY,$8A69                      ; 7D10: fd21698a
+    LD IY,LOSETA_MAPA_PISADA_5        ; 7D10: fd21698a
     JR $7D32                         ; 7D14: 181c
-    LD IY,$8A79                      ; 7D16: fd21798a
+    LD IY,LOSETA_MAPA_PISADA_6        ; 7D16: fd21798a
     JR $7D32                         ; 7D1A: 1816
-    LD IY,$8A19                      ; 7D1C: fd21198a
+    LD IY,LOSETA_MAPA_PISADA_4        ; 7D1C: fd21198a
     JR $7D32                         ; 7D20: 1810
-    LD IY,$89F9                      ; 7D22: fd21f989
+    LD IY,LOSETA_MAPA_PISADA_3        ; 7D22: fd21f989
     JR $7D32                         ; 7D26: 180a
-    LD IY,$89E9                      ; 7D28: fd21e989
+    LD IY,LOSETA_MAPA_PISADA_2        ; 7D28: fd21e989
     JR $7D32                         ; 7D2C: 1804
-    LD IY,$89D9                      ; 7D2E: fd21d989
+    LD IY,LOSETA_MAPA_PISADA_1        ; 7D2E: fd21d989
     LD A,$08                         ; 7D32: 3e08
     LD ($7CC6),A                     ; 7D34: 32c67c
     LD A,$02                         ; 7D37: 3e02
@@ -1683,19 +1683,51 @@ LOSETA_PISADAS_VERTICAL_1:
 LOSETA_PISADAS_VERTICAL_2:
     DB $F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0 ; 89B9
     DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 89C9
+; ---- LOSETA_MAPA_PISADA_1..8 ---- 8 sprites de 16 bytes (2x8, 8x8 px
+; en Modo 1), CONFIRMADOS como los 8 destinos (de los 9 totales) de
+; DIBUJAR_CASILLA_MAPA (ver mas abajo) para los valores de casilla
+; 0/1,2,3,4,6,5,8,7 respectivamente. Dos de ellos ($89F9 y $8A89)
+; coinciden exactos con los sprites que ya pinta en directo la rama
+; 'T' de DIBUJAR_ENTIDAD para los valores 3 y 8 -- la misma casilla
+; de mapa marcada por 'T' se vuelve a leer despues con
+; DIBUJAR_CASILLA_MAPA para redibujarla como parte del suelo.
+; Identidad visual confirmada por el usuario probando
+; recursos/sprites.html (Modo 1, 2x8, offset 192=$89D9 en adelante,
+; salto 16): "8 sprites que corresponden a cada uno de los pasos: los
+; dos primeros en vertical, los dos siguientes horizontales, los dos
+; siguientes verticales y los dos siguientes horizontales" --
+; verificado pixel a pixel, coincide exacto. Refuerza la hipotesis de
+; que 'T' es el rastro de pisadas del jugador al excavar, con 4
+; variantes de direccion (2 verticales + 2 horizontales) de 2
+; fotogramas cada una. Confianza alta en estructura, media-alta en
+; identidad. Ver FINDINGS.md Sesion 8.
+LOSETA_MAPA_PISADA_1:
     DB $F0,$87,$F0,$87,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0 ; 89D9
+LOSETA_MAPA_PISADA_2:
     DB $1E,$F0,$1E,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0 ; 89E9
+LOSETA_MAPA_PISADA_3:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$96,$0F,$96,$0F,$F0,$C3 ; 89F9
+    ; $8A09 (sin nombrar): fotograma de escritura de 'T' para el
+    ; valor 4, distinto del sprite que lee DIBUJAR_CASILLA_MAPA para
+    ; ese mismo valor (LOSETA_MAPA_PISADA_4, en $8A19) -- pendiente.
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A09
+LOSETA_MAPA_PISADA_4:
     DB $F0,$C3,$96,$0F,$96,$0F,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A19
     DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A29
     DB $F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$87,$F0,$F0,$F0,$87,$F0,$F0 ; 8A39
     DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 8A49
     DB $F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0 ; 8A59
+LOSETA_MAPA_PISADA_5:
     DB $F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$87,$F0,$87 ; 8A69
+LOSETA_MAPA_PISADA_6:
     DB $F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$1E,$F0,$1E,$F0 ; 8A79
+LOSETA_MAPA_PISADA_7:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$0F,$96,$0F,$96,$3C,$F0 ; 8A89
+    ; $8A99 (sin nombrar): fotograma de escritura de 'T' para el
+    ; valor 7, distinto del sprite que lee DIBUJAR_CASILLA_MAPA para
+    ; ese mismo valor (LOSETA_MAPA_PISADA_8, en $8AA9) -- pendiente.
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A99
+LOSETA_MAPA_PISADA_8:
     DB $3C,$F0,$0F,$96,$0F,$96,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8AA9
 ; ---- SPRITE_JUGADOR_G1_F1..SPRITE_JUGADOR_G4_F2 / SPRITE_MOMIA_G1_F1..
 ; SPRITE_MOMIA_G4_F2 ---- 16 sprites de 64 bytes (4x16, 16x16 px en

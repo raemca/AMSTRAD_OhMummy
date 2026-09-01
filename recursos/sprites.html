@@ -353,15 +353,16 @@ entre ellas.</p>
   </div>
   <div class="presets">
     <button class="preset" id="preset-g-8919">Entidad por defecto ($8919, 4x16)</button>
-    <button class="preset" id="preset-g-8959">Entidad ' ' / casilla #1 ($8959, 4x16 o 2x8)</button>
-    <button class="preset" id="preset-g-89d9">Casilla #2 ($89D9, 2x8)</button>
-    <button class="preset" id="preset-g-89e9">Casilla #3 ($89E9, 2x8)</button>
-    <button class="preset" id="preset-g-89f9">Casilla #4 ($89F9, 2x8)</button>
-    <button class="preset" id="preset-g-8a19">Casilla #5 ($8A19, 2x8)</button>
-    <button class="preset" id="preset-g-8a69">Casilla #6 ($8A69, 2x8)</button>
-    <button class="preset" id="preset-g-8a79">Casilla #7 ($8A79, 2x8)</button>
-    <button class="preset" id="preset-g-8a89">Casilla #8 ($8A89, 2x8)</button>
-    <button class="preset" id="preset-g-8aa9">Casilla #9 ($8AA9, 2x8)</button>
+    <button class="preset" id="preset-g-8959">Entidad ' ' (valor 9+) ($8959, 4x16 o 2x8)</button>
+    <button class="preset" id="preset-g-pisadas8">CONFIRMADO: LOSETA_MAPA_PISADA_1..8 (8 casillas, $89D9-$8AB8, patron V-V-H-H-V-V-H-H)</button>
+    <button class="preset" id="preset-g-89d9">LOSETA_MAPA_PISADA_1 (V) -- valor 0/1 ($89D9)</button>
+    <button class="preset" id="preset-g-89e9">LOSETA_MAPA_PISADA_2 (V) -- valor 2 ($89E9)</button>
+    <button class="preset" id="preset-g-89f9">LOSETA_MAPA_PISADA_3 (H) -- valor 3 ($89F9)</button>
+    <button class="preset" id="preset-g-8a19">LOSETA_MAPA_PISADA_4 (H) -- valor 4 ($8A19)</button>
+    <button class="preset" id="preset-g-8a69">LOSETA_MAPA_PISADA_5 (V) -- valor 6 ($8A69)</button>
+    <button class="preset" id="preset-g-8a79">LOSETA_MAPA_PISADA_6 (V) -- valor 5 ($8A79)</button>
+    <button class="preset" id="preset-g-8a89">LOSETA_MAPA_PISADA_7 (H) -- valor 8 ($8A89)</button>
+    <button class="preset" id="preset-g-8aa9">LOSETA_MAPA_PISADA_8 (H) -- valor 7 ($8AA9)</button>
     <button class="preset" id="preset-g-pisadas">CONFIRMADO: LOSETA_PISADAS_VERTICAL ($8999+$89B9, 4x16 juntas)</button>
     <button class="preset" id="preset-g-reset">Ver el tramo completo (offset 0, salto 16)</button>
   </div>
@@ -638,6 +639,12 @@ Object.keys(CASILLA_ADDRS).forEach((id) => {
     explorerCasillas.setPreset(ancho, alto, addr - SPRITE_DATA_START_ADDR, ancho * alto, 1));
 });
 document.getElementById("preset-g-reset").addEventListener("click", () => explorerCasillas.setPreset(2, 8, 0, 16, 26));
+
+// LOSETA_MAPA_PISADA_1..8 ($89D9-$8AB8, ver FINDINGS.md Sesion 8):
+// identificadas por el usuario como los 8 "pasos" de las pisadas del
+// jugador -- patron V-V-H-H-V-V-H-H confirmado pixel a pixel.
+document.getElementById("preset-g-pisadas8").addEventListener("click", () =>
+  explorerCasillas.setPreset(2, 8, 0x89D9 - SPRITE_DATA_START_ADDR, 16, 8));
 
 // LOSETA_PISADAS_VERTICAL_1/_2 ($8999/$89B9, ver FINDINGS.md Sesion 8):
 // identificada por el usuario viendo las dos mitades de 32 bytes

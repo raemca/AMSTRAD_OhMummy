@@ -1597,3 +1597,67 @@ el usuario para encontrarla (offset 124, 4x16, salto 64).
   sin nombrar — mismo patrón de escritura en el mapa, probablemente
   las otras 3 orientaciones de la misma "pisada" (horizontal y
   diagonales, o las 4 direcciones del tablero).
+
+## Sesión 8 (continuación 5) — 2026-09-01: `LOSETA_MAPA_PISADA_1`..`_8` — las 8 casillas de pisadas de `DIBUJAR_CASILLA_MAPA`, patrón V-V-H-H-V-V-H-H confirmado
+
+El usuario, con el explorador dedicado (Modo 1, 2x8, offset 192 =
+`$89D9`, salto 16), identifica 8 sprites consecutivos que corresponden
+a "cada uno de los pasos": los dos primeros en vertical, los dos
+siguientes horizontales, los dos siguientes verticales y los dos
+últimos horizontales.
+
+Verificado pixel a pixel con un script independiente (misma
+decodificación Modo 1 de la página): coincide exacto,
+`$89D9`/`$89E9`=V (imágenes en espejo horizontal entre sí),
+`$89F9`/`$8A19`=H (mitad inferior/mitad superior que encajan entre
+sí), `$8A69`/`$8A79`=V (espejo, igual que el primer par pero con
+trazo distinto), `$8A89`/`$8AA9`=H (igual patrón que el segundo par).
+
+Contrastado contra `DIBUJAR_CASILLA_MAPA` ($7CE6): son exactamente los
+8 destinos (de los 9 totales, el noveno es `$8959` para el valor por
+defecto) que despacha según el valor de casilla leído del mapa —
+`$89D9`→valor 0/1, `$89E9`→2, `$89F9`→3, `$8A19`→4, `$8A69`→6,
+`$8A79`→5, `$8A89`→8, `$8AA9`→7. Dos de ellos (`$89F9` y `$8A89`)
+coinciden byte a byte con sprites que la rama `'T'` de
+`DIBUJAR_ENTIDAD` ya dibuja en directo para esos mismos valores (3 y
+8) — la misma casilla se pinta al momento de "pisarla" y se vuelve a
+leer después para redibujar el suelo con la marca ya asentada.
+
+Esto **cierra el círculo completo del mecanismo de pisadas**: la rama
+`'T'` escribe un valor 1-8 en la celda del mapa que acaba de pisar el
+jugador (según la dirección de movimiento — `($8157)`), y
+`DIBUJAR_CASILLA_MAPA` usa ese mismo valor para elegir cuál de las 8
+losetas dibujar cuando esa celda del suelo se tenga que redibujar más
+tarde. Los 4 pares (valores 1/2, 3/4, 5/6, 7/8) son las 4 direcciones
+del tablero, cada una con 2 variantes (probablemente pie izquierdo/pie
+derecho, o la casilla vista desde delante/detrás).
+
+Nombrados en `mummy1_body.asm`: `LOSETA_MAPA_PISADA_1`..`_8` (por
+orden de dirección, no por valor de casilla — ver la tabla de arriba
+para la correspondencia exacta) y renombrados los 10 `LD IY,` que las
+usan (8 en `DIBUJAR_CASILLA_MAPA` + 2 en `DIBUJAR_ENTIDAD` para los
+casos compartidos). Confianza alta en la estructura, media-alta en la
+identidad (confirmado por lectura de código + inspección de píxeles,
+sin verificar todavía contra una captura de pantalla real).
+
+### Verificación
+
+`py tools/build_all.py` y `py tools/dsk_build.py`: **0 diferencias**.
+
+`recursos/sprites.html`: los 8 botones de casilla del explorador
+dedicado ahora muestran el nombre confirmado y su orientación V/H, más
+un botón nuevo que carga las 8 juntas de un golpe (la vista exacta que
+usó el usuario para el hallazgo).
+
+### Pendiente
+
+- Nombrar las 4 direcciones de escritura de `'T'` que todavía no
+  coinciden con ninguna `LOSETA_MAPA_PISADA_*` (`$8A09` valor 4,
+  `$8A29`/`$8A49` valores 6/5, `$8A99` valor 7) — mismos sprites en
+  esencia, pero el tamaño con el que los escribe `'T'` (2x16 o 4x8,
+  según la rama) no coincide con el 2x8 que lee
+  `DIBUJAR_CASILLA_MAPA`, sin explicar todavía esa discrepancia de
+  tamaño.
+- Confirmar qué valor de casilla corresponde a qué dirección real
+  (arriba/abajo/izquierda/derecha) y qué distingue las 2 variantes de
+  cada par (pie/vista).
