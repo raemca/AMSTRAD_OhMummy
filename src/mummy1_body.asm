@@ -21,35 +21,64 @@
 ; incluido tal cual con INCBIN -- se ira sustituyendo por codigo
 ; reconstruido, sesion a sesion, igual que en los proyectos hermanos.
 
+; Rutinas del "fixed jumpblock" del firmware del CPC ($BB00-$BD5D,
+; direcciones fijas en RAM) llamadas desde este tramo -- identificadas
+; contra el manual oficial (AMSTRAD CPC464/664/6128 FIRMWARE, seccion
+; 14.1). Ver FINDINGS.md Sesion 3 para el detalle de cada una.
+FIRM_KM_READ_CHAR       EQU $BB09   ; Test si hay caracter de teclado disponible
+FIRM_KM_TEST_KEY        EQU $BB1E   ; Test si una tecla concreta esta pulsada
+FIRM_TXT_OUTPUT         EQU $BB5A   ; Sacar caracter/codigo de control al Text VDU
+FIRM_TXT_WIN_ENABLE     EQU $BB66   ; Fijar tamano de la ventana de texto actual
+FIRM_TXT_CLEAR_WINDOW   EQU $BB6C   ; Borrar la ventana de texto actual
+FIRM_TXT_SET_CURSOR     EQU $BB75   ; Fijar posicion del cursor de texto
+FIRM_TXT_SET_PAPER      EQU $BB96   ; Fijar tinta de fondo para texto
+FIRM_SCR_DOT_POSITION   EQU $BC1D   ; Convertir coordenadas base a direccion de pantalla
+FIRM_SOUND_RESET        EQU $BCA7   ; Reset del gestor de sonido (silencia PSG, vacia colas)
+FIRM_SOUND_AMPL_ENV     EQU $BCBC   ; Definir una envolvente de amplitud
+FIRM_SOUND_TONE_ENV     EQU $BCBF   ; Definir una envolvente de tono
+FIRM_KL_TIME_PLEASE     EQU $BD0D   ; Leer el contador de tiempo transcurrido
+
     ORG $6000
 
-    CALL $BCA7                   ; 6000: cda7bc
+; ---- Inicializacion de sonido: 3 envolventes (amplitud+tono), cada
+; una definida por una tabla de datos aun sin extraer a fichero propio
+; ($7FCA/$7FD4/$7FDE = envolventes de amplitud 1/2/3; $7FE5/$7FF5/$7FF9
+; = envolventes de tono 1/2/3) ----
+    CALL FIRM_SOUND_RESET         ; 6000: cda7bc
     LD A,$01                     ; 6003: 3e01
     LD HL,$7FCA                  ; 6005: 21ca7f
-    CALL $BCBC                   ; 6008: cdbcbc
+    CALL FIRM_SOUND_AMPL_ENV                   ; 6008: cdbcbc
     LD A,$01                     ; 600B: 3e01
     LD HL,$7FE5                  ; 600D: 21e57f
-    CALL $BCBF                   ; 6010: cdbfbc
+    CALL FIRM_SOUND_TONE_ENV                   ; 6010: cdbfbc
     LD A,$02                     ; 6013: 3e02
     LD HL,$7FD4                  ; 6015: 21d47f
-    CALL $BCBC                   ; 6018: cdbcbc
+    CALL FIRM_SOUND_AMPL_ENV                   ; 6018: cdbcbc
     LD A,$02                     ; 601B: 3e02
     LD HL,$7FF5                  ; 601D: 21f57f
-    CALL $BCBF                   ; 6020: cdbfbc
+    CALL FIRM_SOUND_TONE_ENV                   ; 6020: cdbfbc
     LD A,$03                     ; 6023: 3e03
     LD HL,$7FDE                  ; 6025: 21de7f
-    CALL $BCBC                   ; 6028: cdbcbc
+    CALL FIRM_SOUND_AMPL_ENV                   ; 6028: cdbcbc
     LD A,$03                     ; 602B: 3e03
     LD HL,$7FF9                  ; 602D: 21f97f
-    CALL $BCBF                   ; 6030: cdbfbc
+    CALL FIRM_SOUND_TONE_ENV                   ; 6030: cdbfbc
     LD HL,$905C                  ; 6033: 215c90
     LD ($905A),HL                ; 6036: 225a90
-    CALL $BD0D                   ; 6039: cd0dbd
-    LD ($8151),HL                ; 603C: 225181
+    CALL FIRM_KL_TIME_PLEASE                   ; 6039: cd0dbd
+    LD ($8151),HL                ; 603C: 225181  ; hipotesis: semilla de aleatoriedad a partir del reloj del sistema
+; $78D1 se llama decenas de veces en todo este bloque, siempre suelta
+; entre otras llamadas -- hipotesis (ver FINDINGS.md Sesion 3): bombea
+; una cola/guion de sonido (referencia $905A/$905C, avanza de 9 en 9
+; bytes hasta $937D, y puede llamar a SOUND QUEUE del firmware). No
+; renombrada todavia -- sin confirmar con evidencia mas fuerte.
     CALL $78D1                   ; 603F: cdd178
     CALL $78D1                   ; 6042: cdd178
     CALL $78D1                   ; 6045: cdd178
     CALL $78D1                   ; 6048: cdd178
+; $7EAB: hipotesis "borrar bloque de estado" -- pone a 0 el byte $8172
+; y lo propaga con LDIR (truco clasico de Z80: origen=destino-1) a lo
+; largo de 1181 bytes mas ($8172-$85EE). Ver FINDINGS.md Sesion 3.
     CALL $7EAB                   ; 604B: cdab7e
     CALL $78D1                   ; 604E: cdd178
     CALL $78D1                   ; 6051: cdd178
@@ -60,6 +89,11 @@
     LD ($8168),A                 ; 605D: 326881
     CALL $78D1                   ; 6060: cdd178
     CALL $78D1                   ; 6063: cdd178
+; $7EF4: hipotesis "repetir un caracter N veces por FIRM_TXT_OUTPUT" --
+; lee (HL)=contador, (HL+1)=caracter, y saca ese caracter "contador"
+; veces sin avanzar mas el puntero (formato de datos de 2 bytes por
+; llamada: cuenta+caracter). Encaja con dibujar tramos rectos de un
+; marco/borde decorativo. Ver FINDINGS.md Sesion 3.
     LD HL,$8653                  ; 6066: 215386
     CALL $7EF4                   ; 6069: cdf47e
     CALL $78D1                   ; 606C: cdd178
@@ -69,11 +103,17 @@
     LD IX,$8ECA                  ; 6078: dd21ca8e
     LD B,$C8                     ; 607C: 06c8
     LD DE,$0000                  ; 607E: 110000
+; Bucle $607E-$6093: hipotesis "tabla de direcciones de pantalla por
+; fila" -- 200 iteraciones (B=$C8), cada una calcula con el firmware
+; FIRM_SCR_DOT_POSITION la direccion de pantalla de una fila y la
+; guarda en una tabla de 400 bytes en $8ECA-$905A (200 entradas x 2
+; bytes). Tecnica muy comun en juegos de CPC para acelerar el acceso
+; a filas de pantalla. Ver FINDINGS.md Sesion 3.
     LD H,D                       ; 6081: 62
     LD L,B                       ; 6082: 68
     DEC L                        ; 6083: 2d
     PUSH BC                      ; 6084: c5
-    CALL $BC1D                   ; 6085: cd1dbc
+    CALL FIRM_SCR_DOT_POSITION                   ; 6085: cd1dbc
     LD (IX+0),L                  ; 6088: dd7500
     LD (IX+1),H                  ; 608B: dd7401
     INC IX                       ; 608E: dd23
@@ -88,6 +128,13 @@
     CALL $7EF4                   ; 60A4: cdf47e
     CALL $78D1                   ; 60A7: cdd178
     CALL $78D1                   ; 60AA: cdd178
+; $7EB9, llamada 14 veces seguidas con pares HL/DE distintos: hipotesis
+; "borrar un rectangulo de la ventana de texto" -- HL/DE parecen ser
+; (fila,columna) de inicio y (ancho,alto) o esquina opuesta; recorre
+; una tabla en $81D8 (con paso de 40 = $28 bytes por fila, el ancho de
+; pantalla en modo texto) escribiendo espacios. Consistente con ir
+; despejando varios paneles de HUD/marco antes de dibujarlos. Ver
+; FINDINGS.md Sesion 3.
     LD HL,$0203                  ; 60AD: 210302
     LD DE,$2604                  ; 60B0: 110426
     CALL $7EB9                   ; 60B3: cdb97e
@@ -150,8 +197,16 @@
     CALL $78D1                   ; 615E: cdd178
     LD HL,$0000                  ; 6161: 210000
     LD DE,$2718                  ; 6164: 111827
-    CALL $BB66                   ; 6167: cd66bb
+    CALL FIRM_TXT_WIN_ENABLE                   ; 6167: cd66bb
     CALL $78D1                   ; 616A: cdd178
+; $616D-$61E5: hipotesis "dibujar el marco decorativo" -- $7D85/$7D9D/
+; $7DB5/$7DCD preparan una posicion+tabla y llaman a una rutina comun
+; ($7E73) que a su vez usa uno de los 6 puntos de entrada de mascaras
+; AND/OR $7DFC/$7E05/$7E0E/$7E17/$7E20/$7E29 (cada uno con su propio
+; par de bytes de patron) -- muy propio de un dibujado de borde/marco
+; por tramos con distinto patron segun el lado. Equivalente funcional
+; al "marco_decorativo" de los proyectos hermanos. Ver FINDINGS.md
+; Sesion 3.
     LD HL,$2808                  ; 616D: 210828
     CALL $7D85                   ; 6170: cd857d
     LD HL,$2816                  ; 6173: 211628
@@ -202,7 +257,14 @@
     LD ($8157),A                 ; 61F9: 325781
     LD A,$02                     ; 61FC: 3e02
     LD ($815E),A                 ; 61FE: 325e81
-    CALL $BB09                   ; 6201: cd09bb
+; $6201-$6221: hipotesis "menu de seleccion" (1 o 2 jugadores) -- B=1
+; y B=2 son las dos opciones; $78B7 parece animar/temporizar la
+; opcion resaltada, $78F7 posiciona un indicador segun la opcion
+; activa, $7893 espera pulsacion de una tecla concreta ($2C).
+; FIRM_KM_TEST_KEY con A=$3E comprueba la tecla de confirmar (Enter,
+; a falta de confirmar el mapa de scancodes del CPC). Ver FINDINGS.md
+; Sesion 3 -- ninguna de estas hipotesis esta verificada en emulador.
+    CALL FIRM_KM_READ_CHAR                   ; 6201: cd09bb
     LD B,$01                     ; 6204: 0601
     CALL $78B7                   ; 6206: cdb778
     CALL $78F7                   ; 6209: cdf778
@@ -211,12 +273,12 @@
     CALL $78B7                   ; 6211: cdb778
     CALL $78F7                   ; 6214: cdf778
     LD A,$3E                     ; 6217: 3e3e
-    CALL $BB1E                   ; 6219: cd1ebb
+    CALL FIRM_KM_TEST_KEY                   ; 6219: cd1ebb
     JR NZ,$6223                  ; 621C: 2005
     CALL $7893                   ; 621E: cd9378
     JR $6201                     ; 6221: 18de
     CALL $78D1                   ; 6223: cdd178
-    CALL $BB09                   ; 6226: cd09bb
+    CALL FIRM_KM_READ_CHAR                   ; 6226: cd09bb
     JR C,$6223                   ; 6229: 38f8
     LD HL,$866D                  ; 622B: 216d86
     CALL $7EF4                   ; 622E: cdf47e
@@ -228,19 +290,19 @@
     LD ($8169),A                 ; 623D: 326981
     LD HL,$0803                  ; 6240: 210308
     LD DE,$1F14                  ; 6243: 11141f
-    CALL $BB66                   ; 6246: cd66bb
-    CALL $BB6C                   ; 6249: cd6cbb
+    CALL FIRM_TXT_WIN_ENABLE                   ; 6246: cd66bb
+    CALL FIRM_TXT_CLEAR_WINDOW                   ; 6249: cd6cbb
     XOR A                        ; 624C: af
-    CALL $BB96                   ; 624D: cd96bb
+    CALL FIRM_TXT_SET_PAPER                   ; 624D: cd96bb
     LD HL,$0C05                  ; 6250: 21050c
     LD DE,$1B07                  ; 6253: 11071b
-    CALL $BB66                   ; 6256: cd66bb
-    CALL $BB6C                   ; 6259: cd6cbb
+    CALL FIRM_TXT_WIN_ENABLE                   ; 6256: cd66bb
+    CALL FIRM_TXT_CLEAR_WINDOW                   ; 6259: cd6cbb
     CALL $78D1                   ; 625C: cdd178
     LD HL,$0A08                  ; 625F: 21080a
     LD DE,$1D12                  ; 6262: 11121d
-    CALL $BB66                   ; 6265: cd66bb
-    CALL $BB6C                   ; 6268: cd6cbb
+    CALL FIRM_TXT_WIN_ENABLE                   ; 6265: cd66bb
+    CALL FIRM_TXT_CLEAR_WINDOW                   ; 6268: cd6cbb
     LD DE,$2812                  ; 626B: 111228
     LD ($8155),DE                ; 626E: ed535581
     LD A,$02                     ; 6272: 3e02
@@ -254,7 +316,7 @@
     LD A,$41                     ; 6288: 3e41
     CALL $7B39                   ; 628A: cd397b
     LD A,$01                     ; 628D: 3e01
-    CALL $BB96                   ; 628F: cd96bb
+    CALL FIRM_TXT_SET_PAPER                   ; 628F: cd96bb
     LD HL,$0601                  ; 6292: 210106
     LD DE,$0716                  ; 6295: 111607
     CALL $7EB9                   ; 6298: cdb97e
@@ -271,38 +333,38 @@
     CALL $7EB9                   ; 62B9: cdb97e
     LD HL,$0000                  ; 62BC: 210000
     LD DE,$2718                  ; 62BF: 111827
-    CALL $BB66                   ; 62C2: cd66bb
+    CALL FIRM_TXT_WIN_ENABLE                   ; 62C2: cd66bb
     LD HL,$8676                  ; 62C5: 217686
     CALL $7EF4                   ; 62C8: cdf47e
     CALL $78D1                   ; 62CB: cdd178
     LD HL,$0C0A                  ; 62CE: 210a0c
-    CALL $BB75                   ; 62D1: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 62D1: cd75bb
     LD HL,($868C)                ; 62D4: 2a8c86
     CALL $786C                   ; 62D7: cd6c78
     LD HL,$868E                  ; 62DA: 218e86
     CALL $7EF4                   ; 62DD: cdf47e
     LD HL,$0C0C                  ; 62E0: 210c0c
-    CALL $BB75                   ; 62E3: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 62E3: cd75bb
     LD HL,($869E)                ; 62E6: 2a9e86
     CALL $786C                   ; 62E9: cd6c78
     LD HL,$86A0                  ; 62EC: 21a086
     CALL $7EF4                   ; 62EF: cdf47e
     CALL $78D1                   ; 62F2: cdd178
     LD HL,$0C0E                  ; 62F5: 210e0c
-    CALL $BB75                   ; 62F8: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 62F8: cd75bb
     LD HL,($86B0)                ; 62FB: 2ab086
     CALL $786C                   ; 62FE: cd6c78
     LD HL,$86B2                  ; 6301: 21b286
     CALL $7EF4                   ; 6304: cdf47e
     LD HL,$0C10                  ; 6307: 21100c
-    CALL $BB75                   ; 630A: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 630A: cd75bb
     CALL $78D1                   ; 630D: cdd178
     LD HL,($86C2)                ; 6310: 2ac286
     CALL $786C                   ; 6313: cd6c78
     LD HL,$86C4                  ; 6316: 21c486
     CALL $7EF4                   ; 6319: cdf47e
     LD HL,$0C12                  ; 631C: 21120c
-    CALL $BB75                   ; 631F: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 631F: cd75bb
     LD HL,($86D4)                ; 6322: 2ad486
     CALL $786C                   ; 6325: cd6c78
     LD HL,$86D6                  ; 6328: 21d686
@@ -319,16 +381,16 @@
     LD HL,$8710                  ; 6346: 211087
     CALL $7EF4                   ; 6349: cdf47e
     XOR A                        ; 634C: af
-    CALL $BB96                   ; 634D: cd96bb
+    CALL FIRM_TXT_SET_PAPER                   ; 634D: cd96bb
     LD HL,($7FC6)                ; 6350: 2ac67f
-    CALL $BB75                   ; 6353: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 6353: cd75bb
     XOR A                        ; 6356: af
     LD ($8649),A                 ; 6357: 324986
     LD A,$8F                     ; 635A: 3e8f
-    CALL $BB5A                   ; 635C: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 635C: cd5abb
     LD HL,($7FC6)                ; 635F: 2ac67f
-    CALL $BB75                   ; 6362: cd75bb
-    CALL $BB09                   ; 6365: cd09bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 6362: cd75bb
+    CALL FIRM_KM_READ_CHAR                   ; 6365: cd09bb
     JR C,$6365                   ; 6368: 38fb
     JR $6372                     ; 636A: 1806
     LD HL,$86E8                  ; 636C: 21e886
@@ -340,7 +402,7 @@
     LD A,($8168)                 ; 637C: 3a6881
     OR A                         ; 637F: b7
     JP Z,$6404                   ; 6380: ca0464
-    CALL $BB09                   ; 6383: cd09bb
+    CALL FIRM_KM_READ_CHAR                   ; 6383: cd09bb
     JR NC,$6372                  ; 6386: 30ea
     CP $0D                       ; 6388: fe0d
     JR Z,$63F3                   ; 638A: 2867
@@ -359,13 +421,13 @@
     LD (HL),A                    ; 63A4: 77
     INC HL                       ; 63A5: 23
     LD ($7FC8),HL                ; 63A6: 22c87f
-    CALL $BB5A                   ; 63A9: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 63A9: cd5abb
     LD A,$8F                     ; 63AC: 3e8f
-    CALL $BB5A                   ; 63AE: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 63AE: cd5abb
     LD HL,($7FC6)                ; 63B1: 2ac67f
     INC H                        ; 63B4: 24
     LD ($7FC6),HL                ; 63B5: 22c67f
-    CALL $BB75                   ; 63B8: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 63B8: cd75bb
     LD A,($8649)                 ; 63BB: 3a4986
     INC A                        ; 63BE: 3c
     LD ($8649),A                 ; 63BF: 324986
@@ -380,22 +442,22 @@
     LD A,$20                     ; 63D2: 3e20
     LD (HL),A                    ; 63D4: 77
     LD ($7FC8),HL                ; 63D5: 22c87f
-    CALL $BB5A                   ; 63D8: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 63D8: cd5abb
     LD HL,($7FC6)                ; 63DB: 2ac67f
     DEC H                        ; 63DE: 25
     LD ($7FC6),HL                ; 63DF: 22c67f
-    CALL $BB75                   ; 63E2: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 63E2: cd75bb
     LD A,$8F                     ; 63E5: 3e8f
-    CALL $BB5A                   ; 63E7: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 63E7: cd5abb
     LD HL,($7FC6)                ; 63EA: 2ac67f
-    CALL $BB75                   ; 63ED: cd75bb
+    CALL FIRM_TXT_SET_CURSOR                   ; 63ED: cd75bb
     JP $6372                     ; 63F0: c37263
     LD A,$20                     ; 63F3: 3e20
-    CALL $BB5A                   ; 63F5: cd5abb
+    CALL FIRM_TXT_OUTPUT                   ; 63F5: cd5abb
     XOR A                        ; 63F8: af
     LD ($8168),A                 ; 63F9: 326881
     LD A,$03                     ; 63FC: 3e03
-    CALL $BB96                   ; 63FE: cd96bb
+    CALL FIRM_TXT_SET_PAPER                   ; 63FE: cd96bb
 
 ; ---- Resto del motor, todavia sin desensamblar (sesiones futuras) ----
 ; 12165 bytes, $6401-$9385. Extraido con tools/dsk_extract.py +

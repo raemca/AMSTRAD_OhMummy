@@ -387,3 +387,156 @@ no fichero a fichero) — pendiente.
   entero.
 - Rellenar las plantillas de `recursos/` con datos reales a medida que
   haya algo que mostrar.
+
+## Sesión 3 — 2026-09-01: análisis por llamadas desde `$6000`, identificación del firmware y primeras hipótesis semánticas
+
+Sesión guiada por un prompt propio (`prompts/sesion_03_desensamblado_6000.md`):
+analizar el bloque `$6000`-`$6400` ya verificado como una función
+principal, clasificar cada `CALL`, y desensamblar/documentar las
+rutinas internas que llama — sin avanzar linealmente por
+`$6401`-`$9385` a ciegas.
+
+### Fuentes técnicas consultadas
+
+- Tabla oficial completa del "fixed jumpblock" del firmware
+  (direcciones `$BB00`-`$BD5D`): *AMSTRAD CPC464/664/6128 FIRMWARE*,
+  sección 14.1, vía
+  [cpctech.cpcwiki.de/docs/manual/s968se14.pdf](https://cpctech.cpcwiki.de/docs/manual/s968se14.pdf)
+  (el PDF no es legible directamente por la herramienta de scraping —
+  hubo que descargarlo y leerlo con el lector de PDF local). Es la
+  lista **oficial y completa**, no una reconstrucción de memoria.
+- Intento de identificar los códigos de tecla usados en `$6217`
+  (`$3E`) y `$7893` (`$2C`): la tabla de la librería CPCtelera
+  ([lronaldo.github.io](https://lronaldo.github.io/cpctelera/files/keyboard/keyboard-h.html))
+  da "Key_C"/"Key_H" para esos valores, pero es la numeración propia
+  de esa librería (`cpct_keyID`), **no necesariamente la misma
+  numeración que usa `KM TEST KEY`** del firmware real (que sigue la
+  fórmula `linea*8+bit` de la matriz de teclado). Como no se pudo
+  confirmar que ambas numeraciones coincidan, **no se identifica
+  ninguna tecla concreta todavía** — queda pendiente contrastar contra
+  la tabla oficial de la sección 3 del firmware (`s968se03.pdf`).
+
+### Rutinas de firmware identificadas (confirmadas, tabla oficial)
+
+Las 12 direcciones de firmware llamadas desde `$6000`-`$6400` están
+ahora nombradas con `EQU` en `mummy1_body.asm`:
+
+| Dirección | Nombre oficial | Qué hace |
+|---|---|---|
+| `$BB09` | KM READ CHAR | Test si hay carácter de teclado disponible |
+| `$BB1E` | KM TEST KEY | Test si una tecla concreta está pulsada |
+| `$BB5A` | TXT OUTPUT | Sacar carácter/código de control al Text VDU |
+| `$BB66` | TXT WIN ENABLE | Fijar tamaño de la ventana de texto actual |
+| `$BB6C` | TXT CLEAR WINDOW | Borrar la ventana de texto actual |
+| `$BB75` | TXT SET CURSOR | Fijar posición del cursor de texto |
+| `$BB96` | TXT SET PAPER | Fijar tinta de fondo para texto |
+| `$BC1D` | SCR DOT POSITION | Convertir coordenadas base a dirección de pantalla |
+| `$BCA7` | SOUND RESET | Reset del gestor de sonido |
+| `$BCBC` | SOUND AMPL ENVELOPE | Definir una envolvente de amplitud |
+| `$BCBF` | SOUND TONE ENVELOPE | Definir una envolvente de tono |
+| `$BD0D` | KL TIME PLEASE | Leer el contador de tiempo transcurrido |
+
+(`$BCAA` SOUND QUEUE también aparece, pero dentro de `$78D1`, fuera
+del tramo compilado — ver más abajo.)
+
+### Mapa de llamadas desde `$6000` (primer nivel)
+
+```
+$6000 (entrada real)
+ ├─ FIRM_SOUND_RESET ($BCA7)
+ ├─ FIRM_SOUND_AMPL_ENV / FIRM_SOUND_TONE_ENV ($BCBC/$BCBF) x3   -- 3 envolventes
+ ├─ FIRM_KL_TIME_PLEASE ($BD0D)                                  -- hipotesis: semilla aleatoria
+ ├─ $78D1   (docenas de veces, intercalada en todo el bloque)    -- hipotesis: bombeo de sonido
+ ├─ $7EAB                                                        -- hipotesis: borrar bloque $8172+1181b
+ ├─ $7EF4   (x varias)                                           -- hipotesis: repetir caracter N veces
+ ├─ FIRM_SCR_DOT_POSITION ($BC1D), en bucle x200                 -- tabla de direcciones de fila, $8ECA-$905A
+ ├─ $7EB9   (x14, con pares HL/DE distintos)                     -- hipotesis: borrar rectangulo de ventana
+ ├─ FIRM_TXT_WIN_ENABLE ($BB66)                                  -- fijar ventana 40x25 completa
+ ├─ $7D85 / $7D9D / $7DB5 / $7DCD                                -- hipotesis: dibujar marco decorativo
+ │   └─ (cada una) $7DED o $7DE5 -> $7E73 -> uno de:
+ │        $7DFC / $7E05 / $7E0E / $7E17 / $7E20 / $7E29          -- 6 variantes de mascara AND/OR
+ │        └─ $7E30 (comun) -> $7E59 -> $7E92
+ ├─ $794F -> $795B (bucle x6, contador en $8169)                 -- sin resolver
+ └─ $6201-$6221: bucle de menu
+     ├─ FIRM_KM_READ_CHAR ($BB09)
+     ├─ $78B7 -> $7996, $78D1                                    -- hipotesis: animar/temporizar opcion
+     ├─ $78F7 -> $7B39                                           -- hipotesis: posicionar indicador de opcion
+     ├─ $7893 -> $78D1, FIRM_KM_READ_CHAR                        -- hipotesis: esperar tecla (con antirrebote)
+     └─ FIRM_KM_TEST_KEY ($BB1E)                                 -- hipotesis: tecla de confirmar
+```
+
+### Hipótesis por subrutina interna (ninguna verificada en emulador — solo por patrón de código)
+
+| Dirección | Hipótesis | Confianza | Evidencia |
+|---|---|---|---|
+| `$78D1` | Bombea una cola/guión de sonido | Media | Referencia puntero `$905A`↔`$905C`..`$937D` (paso de 9 bytes), llama `SOUND QUEUE` condicionalmente |
+| `$7EAB` | Borra (a 0) un bloque de 1182 bytes en `$8172` | Alta | `LD (HL),0` + `LDIR` con origen=destino-1, patrón estándar de relleno |
+| `$7EF4` | Repite un carácter N veces vía `TXT OUTPUT` | Alta | `B=(HL)` cuenta, `A=(HL+1)` carácter, bucle sin avanzar el puntero de lectura |
+| `$7EB9` | Borra un rectángulo de una tabla en `$81D8` (paso 40 bytes/fila) | Media-alta | Doble bucle escribiendo `$20` (espacio), paso de fila = ancho de pantalla en modo texto |
+| `$7D85`/`$7D9D`/`$7DB5`/`$7DCD` | Dibujan tramos del marco decorativo | Media | Cada una fija una tabla de offset distinta y llama a una rutina común (`$7E73`) que usa máscaras AND/OR |
+| `$7DFC`/`$7E05`/`$7E0E`/`$7E17`/`$7E20`/`$7E29` | 6 variantes de patrón de relleno (máscara+valor) para el marco | Media | Cada entrada carga un par de bytes distinto y cae a un tronco común (`$7E30`) |
+| `$786C` | Imprime un número de 16 bits (HL) en 4 dígitos decimales vía `TXT OUTPUT` | Media-alta | Bucle de 4 dígitos, resta repetida contra tabla de valor posicional, `+$30` (ASCII) antes de imprimir — patrón clásico de HUD/marcador |
+| `$7893` | Espera una tecla concreta, con antirrebote (pulsación + liberación) | Alta | `KM READ CHAR`/bombeo de sonido intercalados, `KM CHAR RETURN` al final |
+| `$78B7` | Anima o temporiza la opción de menú resaltada | Baja | Cuenta atrás en `$8153`, ajusta `B` con tope en `$15`=21 |
+| `$78F7` | Posiciona un indicador según la opción de menú activa | Baja | Compara `$8155` contra `$1A`/`$34`, llama `$7B39` con `A=$54` |
+| `$7B39` | Dibuja/actualiza el indicador de selección de menú | Baja | Ramifica por el carácter en `A` (`$20`,`$54`,`$41`,`$4F`...), usa tablas `$8919`/`$8959`/`$8A89`... |
+| `$794F` | Repite `$795B` 6 veces (contador en `$8169`) | Baja | Sin más contexto todavía |
+
+### Separación código/datos observada
+
+- **Datos identificados dentro del rango `$6000`-`$6400`** (no se han
+  extraído a fichero todavía, son referencias hacia fuera del tramo
+  compilado): tablas de envolvente de sonido en `$7FCA`/`$7FD4`/
+  `$7FDE` (amplitud) y `$7FE5`/`$7FF5`/`$7FF9` (tono); tabla de 400
+  bytes de direcciones de pantalla por fila, construida en tiempo de
+  ejecución en `$8ECA`-`$905A` (no es un dato estático del binario,
+  se genera al arrancar).
+- **Datos dentro de las subrutinas exploradas** (aún en
+  `mummy1_resto_sin_analizar.bin`, sin extraer): la tabla de 4 valores
+  de 16 bits en `$8736`+ que usa `$786C` (posicional para conversión
+  decimal); las tablas de offset de `$877D`/`$87C5`/`$880D`/`$8855`
+  que usa el dibujado del marco; las tablas `$8919`/`$8959`/`$8A89`+
+  que usa `$7B39`.
+- **Ningún hueco sin decodificar** en el barrido mecánico completo
+  (ver Sesión 2) — se reitera que esto no prueba que todo sea código
+  real, solo que el espacio de opcodes Z80 es denso.
+
+### Cambios en `mummy1_body.asm`
+
+- Bloque de `EQU` para las 12 rutinas de firmware identificadas,
+  sustituyendo las direcciones literales por nombres en todo el
+  fichero (41 sustituciones).
+- Comentarios explicativos junto a los patrones identificados
+  (envolventes de sonido, tabla de direcciones de pantalla, borrado de
+  bloque, repetición de carácter, borrado de rectángulos, marco
+  decorativo, menú de selección) — cada uno citando esta sección de
+  `FINDINGS.md` y marcado explícitamente como hipótesis sin verificar
+  en emulador cuando la confianza no es alta.
+- **Ninguna subrutina interna nueva se ha promovido a código
+  compilado todavía** — siguen dentro de
+  `data/mummy1_resto_sin_analizar.bin` vía `INCBIN`. Promoverlas
+  exigiría desensamblarlas y verificarlas con el mismo rigor que el
+  tramo `$6000`-`$6400` (ver Sesión 2), que no ha dado tiempo a
+  completar para las ~19 rutinas exploradas esta sesión.
+- **Verificado**: `py tools/build_all.py` sigue dando 0 diferencias en
+  ambos ficheros tras estos cambios (los `EQU` y comentarios no alteran
+  ni un byte del binario compilado).
+
+### Pendiente para próximas sesiones
+
+- Desensamblar y verificar (promover a fuente compilada real) las
+  subrutinas de mayor confianza primero: `$7EAB`, `$7EF4`, `$7EB9`,
+  `$786C` — son las que tienen hipótesis más sólidas.
+- Extraer a fichero individual las tablas de datos ya localizadas
+  (envolventes de sonido `$7FCA`-`$7FFE`, tabla posicional de
+  `$786C` en `$8736`+, tablas de offset del marco en `$877D`+).
+- Resolver la numeración real de teclas del firmware (`KM TEST KEY`)
+  contra la sección 3 del manual oficial (`s968se03.pdf`) para poder
+  confirmar o descartar la hipótesis del menú de selección y las
+  teclas `$2C`/`$3E`.
+- Seguir el hilo de llamadas más allá de `$6400` de la misma forma
+  (por subrutina, no linealmente) — en particular `$7E73`, `$7E92`,
+  `$7996`, `$7B39` y sus propias llamadas internas, que esta sesión
+  solo ha esbozado.
+- La hipótesis de pantalla de introducción de texto en
+  `$6217`-`$63FE` (Sesión 2) sigue sin confirmar.

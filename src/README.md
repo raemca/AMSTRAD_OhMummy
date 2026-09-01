@@ -25,12 +25,13 @@ dirección de carga y ejecución real del motor.
 - **`$6000`-`$6400`** (1025 bytes): desensamblado a mano con
   `tools/z80_disasm.py`, en `mummy1_body.asm`. **Verificado**: al
   compilar con SjASMPlus reproduce exactamente los mismos bytes que el
-  binario original en ese rango. Es una reconstrucción **mecánica**
-  (primera pasada): llama repetidamente a rutinas fijas del firmware
-  del CPC (`$BBxx`/`$BCxx`/`$BDxx`) y a subrutinas internas (`$78xx`,
-  `$7Dxx`, `$7Exx`, `$7Bxx`) sin identificar todavía; nada tiene
-  nombre semántico aún, ni se ha confirmado con certeza qué es cada
-  cosa (ver "Pendiente" en `../FINDINGS.md`).
+  binario original en ese rango. Las 12 rutinas de firmware que llama
+  están identificadas y nombradas (`EQU`, ver Sesión 3 en
+  `../FINDINGS.md`); las subrutinas internas propias (`$78xx`, `$7Dxx`,
+  `$7Exx`, `$7Bxx`) tienen ya una primera hipótesis de función cada una
+  (sonido, borrado de pantalla, marco decorativo, menú de selección...)
+  pero **ninguna verificada en emulador todavía** — siguen sin
+  nombre definitivo en el código, solo comentadas.
 - **`$6401`-`$9385`** (12165 bytes): sin analizar. Incluido tal cual
   con `INCBIN "data/mummy1_resto_sin_analizar.bin"` en
   `mummy1_body.asm` para que la compilación reproduzca el binario
