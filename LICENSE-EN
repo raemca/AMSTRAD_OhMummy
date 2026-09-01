@@ -12,11 +12,10 @@ This license covers ONLY this repository's original contribution:
 the tools in `tools/`, the comments and label names added to the
 reconstructed source code, the analysis, and the documentation
 (`FINDINGS.md`, `README.md`, manuals and HTML resources). It does NOT
-cover the game *Mad Mix Game* itself — its original code, graphics,
-sound and design — whose rights still belong to Topo Soft, the people
-credited in the game itself, or whoever has inherited those rights
-today. See `AVISO-LEGAL.md` for the full detail of what belongs to
-whom.
+cover the game *Oh Mummy* itself — its original code, graphics, sound
+and design — whose rights still belong to Amsoft/Amstrad, the people
+who created it, or whoever has inherited those rights today. See
+`AVISO-LEGAL.md` for the full detail of what belongs to whom.
 
 SUMMARY (does not replace the full legal text)
 -----------------------------------------------

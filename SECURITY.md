@@ -4,28 +4,29 @@
 
 ## Alcance de este proyecto
 
-`SPECTRUM_MadMixGame` es un proyecto de ingeniería inversa, documentación
+`AMSTRAD_OhMummy` es un proyecto de ingeniería inversa, documentación
 y preservación — no un servicio en producción. No hay servidor, no hay
 cuentas de usuario, no hay base de datos, y no se procesa ningún dato
 personal. El contenido del repositorio son tres tipos de cosas:
 
-- **Código fuente ensamblador Z80** (`src/*.asm`), pensado para
-  compilarse con `sjasmplus` y ejecutarse en un emulador de ZX
-  Spectrum 48K (o un Spectrum real) — nunca en el propio ordenador que
-  lo compila.
+- **Código fuente ensamblador Z80** (`src/*.asm`, aún por crear),
+  pensado para compilarse con `sjasmplus` y ejecutarse en un emulador
+  de Amstrad CPC (o un CPC real) — nunca en el propio ordenador que lo
+  compila.
 - **Herramientas en Python** (`tools/*.py`) que leen/generan ficheros
-  binarios locales (`.bin`, `.tzx`, `.wav`) a partir de otros ficheros
-  locales del propio repositorio.
-- **Páginas HTML autocontenidas** (`recursos/*.html`) que se abren
-  directamente en el navegador, sin backend ni llamadas de red — todos
-  los datos que muestran están embebidos en el propio fichero.
+  binarios locales (`.bin`, `.dsk`) a partir de otros ficheros locales
+  del propio repositorio.
+- **Páginas HTML autocontenidas** (`recursos/*.html`, aún por crear)
+  que se abren directamente en el navegador, sin backend ni llamadas
+  de red — todos los datos que muestran están embebidos en el propio
+  fichero.
 
 Dado este alcance, no aplican la mayoría de categorías clásicas de
 vulnerabilidad web (inyección SQL, XSS con datos remotos, gestión de
 sesiones, etc.). Lo que sí tiene sentido reportar:
 
 - Un script de `tools/` que, al procesar un fichero de entrada
-  manipulado a propósito (un `.tzx`/`.bin` corrupto o malicioso),
+  manipulado a propósito (un `.dsk`/`.bin` corrupto o malicioso),
   escriba fuera del directorio esperado, sobrescriba ficheros
   arbitrarios, o tenga cualquier otro comportamiento inseguro más allá
   de fallar con un error controlado.
@@ -38,17 +39,13 @@ sesiones, etc.). Lo que sí tiene sentido reportar:
 ## Lo que NO es una vulnerabilidad de este proyecto
 
 Por el propio objetivo del proyecto (reconstrucción byte a byte del
-binario original de cinta de 1988, ver `README.md`/`src/README.md`),
-el código ensamblador reproduce **deliberadamente** el comportamiento
-original del juego, incluidos sus bugs históricos si los hubiera. A
-día de hoy no hay ninguna desviación deliberada documentada — a
-diferencia del proyecto hermano de MSX (un *port*, no el original),
-que sí tuvo que corregir un bug real propio de esa plataforma en su
-v2.0 (ver `manuales/manual_niveles.md` §8 de este mismo proyecto para
-el detalle de esa herencia). Un comportamiento "raro" del juego
-reconstruido que coincide con el original **no es un fallo de
-seguridad**, es fidelidad histórica. Si tienes dudas sobre si algo
-encaja en esta categoría, repórtalo igualmente y se aclarará.
+binario original de disco de 1984, ver `README.md`/`src/README.md`),
+el código ensamblador reproducirá **deliberadamente** el comportamiento
+original del juego, incluidos sus bugs históricos si los hubiera. Un
+comportamiento "raro" del juego reconstruido que coincide con el
+original **no es un fallo de seguridad**, es fidelidad histórica. Si
+tienes dudas sobre si algo encaja en esta categoría, repórtalo
+igualmente y se aclarará.
 
 ## Versión soportada
 
@@ -63,10 +60,9 @@ se mantiene la rama `main`, siempre con el estado más reciente.
 ## Cómo reportar un problema
 
 - **Para la mayoría de casos** (el escenario más probable: un bug en
-  un script de `tools/`): abre un
-  [Issue](https://github.com/raemca/SPECTRUM_MadMixGame/issues)
-  normal, igual que cualquier otro error — no hace falta tratarlo como
-  algo especial, aquí no hay usuarios en riesgo.
+  un script de `tools/`): abre un Issue normal en el repositorio de
+  GitHub de este proyecto, igual que cualquier otro error — no hace
+  falta tratarlo como algo especial, aquí no hay usuarios en riesgo.
 - **Si de verdad prefieres reportarlo en privado** (por ejemplo, si
   encontraras una credencial filtrada en el historial), escribe a
   <raemca@hotmail.com> con el detalle.

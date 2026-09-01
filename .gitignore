@@ -2,7 +2,7 @@
 FISICO/
 build/
 
-# Binarios generados por la compilacion (py tools/build_all.py)
+# Binarios generados por la compilacion (py tools/build_all.py, cuando exista)
 src/build/
 
 # Config local de Claude Code (rutas absolutas especificas de la maquina)

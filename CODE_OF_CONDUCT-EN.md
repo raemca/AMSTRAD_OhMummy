@@ -129,13 +129,13 @@ For answers to common questions about this code of conduct, see the FAQ at
 https://www.contributor-covenant.org/faq. Translations are available at
 https://www.contributor-covenant.org/translations.
 
-## Adaptation for SPECTRUM_MadMixGame
+## Adaptation for AMSTRAD_OhMummy
 
 This project is dedicated to the preservation and study of retro software
-from the Spanish Golden Age, in this case the original ZX Spectrum tape
-version. We particularly value historical rigor, meticulous documentation,
-and respect for the work of the original programmers. Any contribution that
-helps to better understand this legacy is welcome.
-We especially appreciate detailed technical reviews (such as those that have
-already helped improve the code) and respect for the cultural context in
-which this software was created.
+from the early years of the Amstrad CPC, in this case *Oh Mummy* (Amsoft,
+1984), in its disk version. We particularly value historical rigor,
+meticulous documentation, and respect for the work of the original
+programmers. Any contribution that helps to better understand this legacy is
+welcome.
+We especially appreciate detailed technical reviews and respect for the
+cultural context in which this software was created.

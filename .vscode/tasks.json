@@ -2,32 +2,22 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Compilar todo",
+            "label": "Listar catalogo DSK",
             "type": "shell",
             "command": "py",
             "args": [
-                "tools/build_all.py"
+                "tools/dsk_catalog.py"
             ],
             "group": "build",
             "problemMatcher": []
         },
         {
-            "label": "Generar tzx",
+            "label": "Extraer ficheros DSK",
             "type": "shell",
             "command": "py",
             "args": [
-                "tools/gen_tzx_file.py"
+                "tools/dsk_extract.py"
             ],
-            "group": "build",
-            "problemMatcher": []
-        },
-        {
-            "label": "Compilar todo + generar tzx",
-            "dependsOn": [
-                "Compilar todo",
-                "Generar tzx"
-            ],
-            "dependsOrder": "sequence",
             "group": {
                 "kind": "build",
                 "isDefault": true

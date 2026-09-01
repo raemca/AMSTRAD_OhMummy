@@ -142,14 +142,13 @@ consulta las preguntas frecuentes en
 https://www.contributor-covenant.org/faq. Hay traducciones disponibles
 en https://www.contributor-covenant.org/translations.
 
-## Adaptación para SPECTRUM_MadMixGame
+## Adaptación para AMSTRAD_OhMummy
 
 Este proyecto está dedicado a la preservación y el estudio de software
-retro de la Edad de Oro del software español, en este caso la versión
-original de cinta para ZX Spectrum. Valoramos especialmente el rigor
-histórico, la documentación meticulosa y el respeto por el trabajo de
-los programadores originales. Cualquier contribución que ayude a
-entender mejor este legado es bienvenida.
-Agradecemos especialmente las revisiones técnicas detalladas (como las
-que ya han ayudado a mejorar el código) y el respeto por el contexto
-cultural en el que se creó este software.
+retro de los primeros años del Amstrad CPC, en este caso *Oh Mummy*
+(Amsoft, 1984), en su versión de disco. Valoramos especialmente el
+rigor histórico, la documentación meticulosa y el respeto por el
+trabajo de los programadores originales. Cualquier contribución que
+ayude a entender mejor este legado es bienvenida.
+Agradecemos especialmente las revisiones técnicas detalladas y el
+respeto por el contexto cultural en el que se creó este software.
