@@ -25,9 +25,9 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 5 — 18 rutinas reconstruidas con nombre funcional, firmware
-identificado, hipótesis de generador de entidades e IA de
-persecución.** El catálogo AMSDOS del disco (`FISICO/Oh Mummy
+**Sesión 6 — 26 rutinas reconstruidas con nombre funcional (1539
+bytes, incluido un dispatcher de sprites de ~20 tablas), firmware
+identificado.** El catálogo AMSDOS del disco (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
 x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 **2 ficheros**:
@@ -53,20 +53,27 @@ identificadas contra el manual oficial del CPC (`EQU` con nombre real
 en `src/mummy1_body.asm`: gestión de sonido, texto, pantalla...).
 
 Más allá de ese tramo, siguiendo el hilo real de llamadas (no
-linealmente), **18 subrutinas internas (510 bytes) ya tienen nombre
-funcional real y están reconstruidas como código fuente compilado**
-— `GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO` (generador pseudoaleatorio
-sembrado con el reloj del sistema), `CALCULAR_CASILLA_ADYACENTE` y
-`CONSULTAR_CASILLA_MAPA` (movimiento y consulta de una estructura en
-`$8200`, posible mapa del laberinto), `INICIALIZAR_ENTIDADES`/
-`INICIALIZAR_UNA_ENTIDAD` (posible colocación de 6 enemigos o
-coleccionables), `DIBUJAR_TRAMO_MARCO_1..4`/`COPIAR_BLOQUE_A_LIENZO`
-(marco decorativo), `BORRAR_BLOQUE_ESTADO`, `BORRAR_RECTANGULO_VENTANA`,
-`REPETIR_CARACTER`, `IMPRIMIR_NUMERO_HL`, `CASILLA_A_DIRECCION_PANTALLA`,
-`ESPERAR_TECLA_2C` y `ANIMAR_OPCION_MENU`. **Todos los nombres son
+linealmente), **26 subrutinas internas (1539 bytes, el 12.7% del
+motor) ya tienen nombre funcional real y están reconstruidas como
+código fuente compilado**, formando un único bloque contiguo de 1401
+bytes (`$78D1`-`$7DE4`) más el bloque de la Sesión 3
+(`$7E73`-`$7EFC`). Incluye `GENERAR_ALEATORIO`/`MEZCLAR_ALEATORIO`
+(generador pseudoaleatorio sembrado con el reloj del sistema),
+`ACTUALIZAR_SECUENCIA_SONIDO` (avanza una tabla **circular** de guion
+de sonido y encola sonido con el firmware), `HAY_COLISION`
+(colisión entre entidades y contra el mapa), `ELEGIR_DIRECCION_HACIA_OBJETIVO`
+y `CALCULAR_CASILLA_ADYACENTE` (movimiento en rejilla),
+`COLOCAR_ENTIDAD`/`INICIALIZAR_ENTIDADES`/`INICIALIZAR_UNA_ENTIDAD`
+(posible colocación de 6 enemigos o coleccionables), y — el hallazgo
+más importante de la Sesión 6 — **`DIBUJAR_ENTIDAD`** (429 bytes, un
+dispatcher que selecciona una de ~20 tablas de sprite de 4x16 bytes
+según tipo de entidad, dirección y un fotograma de animación) y
+`DIBUJAR_CASILLA_MAPA` (lo mismo para 9 tablas de casillas de 2x8
+bytes) — la evidencia más fuerte hasta ahora de dónde vive el
+dibujado de los personajes del juego. **Todos los nombres son
 provisionales** (cada uno con su comentario de hipótesis y nivel de
 confianza en el propio código, ver `FINDINGS.md`) — ninguno verificado
-todavía ejecutando el juego en un emulador. El resto del motor (11655
+todavía ejecutando el juego en un emulador. El resto del motor (10626
 bytes en varios tramos) se incluye tal cual con `INCBIN` (offset y
 longitud calculados automáticamente alrededor del código ya
 reconstruido) mientras se va analizando sesión a sesión — ver

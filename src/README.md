@@ -31,32 +31,38 @@ dirección de carga y ejecución real del motor.
   tramo. Este tramo en sí sigue sin nombres semánticos propios
   (reconstrucción mecánica de primera pasada, solo llama a otras
   rutinas ya nombradas).
-- **`$6401`-`$9385`** (12165 bytes originalmente): **18 subrutinas
-  (510 bytes, en 5 bloques) ya están reconstruidas con nombre
-  funcional real** — `GENERAR_ALEATORIO`, `CALCULAR_CASILLA_ADYACENTE`,
-  `INICIALIZAR_ENTIDADES`, `DIBUJAR_TRAMO_MARCO_1..4`,
-  `BORRAR_BLOQUE_ESTADO`, `REPETIR_CARACTER`... (lista completa más
-  abajo). **Todos los nombres son provisionales**, cada uno con su
-  hipótesis y nivel de confianza en un comentario junto a la etiqueta
-  — ninguno verificado ejecutando el juego en un emulador (ver
-  "Reglas de rigor" del prompt de Sesión 5,
-  `prompts/sesion_05_firmware_y_rutinas_internas.md`). El resto
-  (11655 bytes, en 6 huecos entre las rutinas ya reconstruidas) sigue
-  sin analizar, incluido tal cual con varios
+- **`$6401`-`$9385`** (12165 bytes originalmente): **26 subrutinas
+  (1539 bytes, el 12.7% del motor) ya están reconstruidas con nombre
+  funcional real**, formando un único bloque contiguo de 1401 bytes
+  (`$78D1`-`$7DE4`, cerrado en la Sesión 6) más el bloque de la Sesión 3
+  (`$7E73`-`$7EFC`) — `GENERAR_ALEATORIO`, `ACTUALIZAR_SECUENCIA_SONIDO`,
+  `HAY_COLISION`, `DIBUJAR_ENTIDAD` (dispatcher de sprites)... (lista
+  completa más abajo). **Todos los nombres son provisionales**, cada
+  uno con su hipótesis y nivel de confianza en un comentario junto a
+  la etiqueta — ninguno verificado ejecutando el juego en un emulador
+  (ver `prompts/_base_reconstruccion.md`, reglas globales desde la
+  Sesión 6). El resto (10626 bytes, en 5 huecos entre las rutinas ya
+  reconstruidas) sigue sin analizar, incluido tal cual con varios
   `INCBIN "data/mummy1_resto_sin_analizar.bin", offset, longitud` —
   el offset/longitud de cada hueco se calcula automáticamente (no a
   mano) para que la compilación siga reproduciendo el binario completo
   byte a byte mientras se va desensamblando de verdad, sesión a
   sesión.
 
-### Rutinas reconstruidas (nombres provisionales, Sesión 5)
+### Rutinas reconstruidas (nombres provisionales, Sesiones 3-6)
 
 | Etiqueta | Subsistema | Confianza |
 |---|---|---|
 | `GENERAR_ALEATORIO` / `MEZCLAR_ALEATORIO` | Aleatoriedad — PRNG sembrado con el reloj del sistema | Alta |
-| `CALCULAR_CASILLA_ADYACENTE` | Movimiento — celda adyacente en una dirección (pasos 8px/2px) | Alta |
-| `CONSULTAR_CASILLA_MAPA` | Mapa — acceso a una estructura en `$8200` (paso de fila 5 bytes) | Media |
-| `INICIALIZAR_ENTIDADES` / `INICIALIZAR_UNA_ENTIDAD` | Entidades — posible colocación de 6 enemigos/coleccionables | Media-alta |
+| `ACTUALIZAR_SECUENCIA_SONIDO` | Sonido — avanza una tabla CIRCULAR de guion de sonido, encola sonido con el firmware | Alta |
+| `CALCULAR_CASILLA_ADYACENTE` / `ELEGIR_DIRECCION_HACIA_OBJETIVO` | Movimiento — celda adyacente y elección de dirección hacia un objetivo | Alta / Media-alta |
+| `HAY_COLISION` | Colisiones — entidad-entidad y accesibilidad del mapa (`$8200`, 42 bytes/entrada) | Alta |
+| `CONSULTAR_CASILLA_MAPA` | Mapa — acceso a la estructura en `$8200` | Media |
+| `INICIALIZAR_ENTIDADES` / `INICIALIZAR_UNA_ENTIDAD` / `COLOCAR_ENTIDAD` | Entidades — posible colocación de 6 enemigos/coleccionables evitando colisión | Media-alta / Media |
+| `DIBUJAR_ENTIDAD` | Render — dispatcher de ~20 tablas de sprite 4x16 bytes por tipo+dirección+animación | Media-alta |
+| `DIBUJAR_CASILLA_MAPA` | Render — dispatcher de 9 tablas de casilla 2x8 bytes | Media |
+| `PREPARAR_DIBUJAR_ENTIDAD` | Render — prepara posición y cae en `DIBUJAR_ENTIDAD` | Media |
+| `MOVER_INDICADOR_MENU` | Menú — borra/redibuja un indicador vía `DIBUJAR_ENTIDAD` | Media |
 | `DIBUJAR_TRAMO_MARCO_1..4` / `COPIAR_BLOQUE_A_LIENZO` | Pantalla — marco decorativo (6 variantes de máscara) | Media |
 | `CASILLA_A_DIRECCION_PANTALLA` | Pantalla — indexa la tabla de 200 direcciones de fila | Alta |
 | `BORRAR_BLOQUE_ESTADO` | Arranque — borra 1182 bytes de estado en `$8172` | Alta |
@@ -66,12 +72,8 @@ dirección de carga y ejecución real del motor.
 | `ESPERAR_TECLA_2C` | Entrada — espera una tecla con antirrebote | Alta |
 | `ANIMAR_OPCION_MENU` | Menú — anima/temporiza la opción resaltada (1/2 jugadores) | Baja |
 
-`$78D1` (sonido, hipótesis de bombeo de cola de eventos) sigue sin
-promover — se llama decenas de veces desde el bloque `$6000`-`$6400`
-pero su desensamblado no se completó todavía.
-
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesiones 3-5) para la evidencia, el
+dirección y `../FINDINGS.md` (Sesiones 3-6) para la evidencia, el
 nivel de confianza detallado, y el mapa de llamadas.
 
 ## Compilar y verificar
@@ -91,8 +93,8 @@ los dos**.
 - `main.asm` — punto de entrada único de compilación (`ORG $6000`,
   `INCLUDE mummy1_body.asm`, `SAVEBIN`).
 - `mummy1_body.asm` — el motor: cabecera desensamblada a mano
-  (`$6000`-`$6400`) + 18 rutinas reconstruidas con nombre (510 bytes,
-  5 bloques) + `INCBIN` (con offset/longitud) del resto sin analizar.
+  (`$6000`-`$6400`) + 26 rutinas reconstruidas con nombre (1539 bytes,
+  2 bloques) + `INCBIN` (con offset/longitud) del resto sin analizar.
 - `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
 - `data/` — recursos ya identificados y extraídos a fichero individual
   (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y
@@ -120,4 +122,4 @@ los dos**.
   varias interpretaciones, se verifica contra el código que lo usa de
   verdad (p. ej. el `CALL &6000` de `mummy_bas.bas`) antes de darlo
   por bueno — no se confía en una tabla recordada de memoria sin
-  contrastar (ver `../FINDINGS.md`, Sesiones 1-5).
+  contrastar (ver `../FINDINGS.md`, Sesiones 1-6).

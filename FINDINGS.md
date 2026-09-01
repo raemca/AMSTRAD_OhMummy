@@ -869,3 +869,131 @@ desensamblado esta sesión.
 - Cuando una hipótesis se confirme con más seguridad (idealmente
   contra ejecución real en emulador), quitar la marca de "provisional"
   del nombre y de los comentarios.
+
+## Sesión 6 — 2026-09-01: cierre del tramo $78D1-$7DE4 — 8 rutinas nuevas, todo el bloque queda contiguo
+
+Sesión guiada por `prompts/sesion_06_reconstruccion_fuente.md` y
+`prompts/_base_reconstruccion.md` (reglas globales, comunes a partir
+de ahora a todas las sesiones de reconstrucción). Objetivo: seguir
+completando `src/mummy1_body.asm` con etiquetas semánticas partiendo
+del siguiente bloque sin resolver.
+
+### Completar las 8 rutinas que quedaban a medias
+
+Las sesiones 3-5 habían dejado varias rutinas centrales del hilo de
+llamadas desensambladas solo parcialmente (cortadas por el límite de
+instrucciones de cada exploración, no por falta de interés). Esta
+sesión se completaron todas hasta su `RET` real:
+
+- **`$78D1`** (la rutina más llamada de todo el bloque `$6000`-`$6400`,
+  decenas de veces): tiene DOS salidas. La normal avanza el puntero
+  `$905A` 9 bytes; la que se toma cuando el puntero llega exactamente
+  a `$937D` lo **reinicia a `$905C`** — confirma sin ambigüedad que
+  `$905C`-`$937D` es una **tabla circular** (un guion de sonido que se
+  repite en bucle), no una tabla lineal como se sospechaba. Sube de
+  confianza media a alta.
+- **`$78F7`**: completa — borra un indicador (carácter `'T'`) en una
+  posición y dibuja otro (`'A'`) en la posición vecina (±8 en fila),
+  usando `DIBUJAR_ENTIDAD` (ver abajo). Confirma la hipótesis de
+  "mover un indicador de menú".
+- **`$7996`**: completa — recorre el array de entidades de `$816D`,
+  comprueba colisión en dos casillas con `HAY_COLISION`, y si ambas
+  están libres coloca la entidad; si no, dibuja igualmente (llamando
+  directamente a la cadena de dibujado).
+- **`$7A10`** (`HAY_COLISION`): la segunda mitad, antes sin completar,
+  resulta comprobar **dos bytes de estado por casilla** en la
+  estructura de `$8200` (en los offsets 40 y 41 de una entrada de 42
+  bytes) — es decir, `HAY_COLISION` comprueba solapamiento con otras
+  entidades **y** accesibilidad del propio mapa en la misma llamada.
+- **`$7AB6`** (`ELEGIR_DIRECCION_HACIA_OBJETIVO`): completa, confirma
+  la hipótesis de Sesión 5 sin cambios de fondo.
+- **`$7AF2`**: resultó no tener `RET` propio — **cae directamente**
+  (sin salto) en `$7B39`. Son en realidad una sola unidad lógica con
+  dos puntos de entrada (uno por `CALL` directo a `$7B39`, otro
+  ejecutando desde `$7AF2`) — patrón ya visto en el tramo del marco
+  decorativo (Sesión 3).
+- **`$7B39`** (`DIBUJAR_ENTIDAD`): con 429 bytes, es la rutina más
+  grande desensamblada hasta ahora. Es un **dispatcher de sprites**:
+  según el tipo de entidad (carácter `' '`/`'T'`/`'A'`/`'O'`),
+  dirección, y un bit de animación de 2 fotogramas (guardado en el
+  5º byte de cada entidad de `$816D`, hasta ahora sin uso conocido),
+  selecciona una de unas 20 tablas de sprite de 4x16 bytes y la vuelca
+  a pantalla con el mismo patrón que `COPIAR_BLOQUE_A_LIENZO`
+  (usando `CASILLA_A_DIRECCION_PANTALLA`). Es, con diferencia, la
+  evidencia más fuerte hasta ahora de dónde vive el dibujado de
+  personajes (jugador/momias) del juego.
+- **`$7CE6`** (`DIBUJAR_CASILLA_MAPA`): completa — selecciona una de 9
+  tablas según el valor de una casilla del mapa y dibuja un sprite más
+  pequeño (2x8 bytes) con el mismo patrón, cayendo directamente (sin
+  `RET`) en `CONSULTAR_CASILLA_MAPA` (`$7D3E`, ya conocida).
+
+### Todo el tramo `$78D1`-`$7DE4` es un único bloque contiguo
+
+Al completar estas 8 rutinas se descubrió que **no hay ningún hueco**
+entre ellas ni entre ellas y las 13 rutinas ya reconstruidas en
+sesiones anteriores (`$786C`-`$78D1`, `$794F`-`$795B`, `$7A95`,
+`$7D3E`-`$7DE4`): los `RET`/caídas encajan exactamente con el inicio
+de la siguiente rutina en TODOS los casos, verificado byte a byte con
+`z80_disasm.py` antes de dar nada por bueno. Resultado: **1401 bytes
+seguidos** (`$786C`-`$7DE4`), 21 rutinas, reconstruidos como un único
+bloque de código fuente real. Sumado al bloque ya existente de la
+Sesión 3 (`COPIAR_BLOQUE_A_LIENZO` y las otras 4 rutinas de
+`$7E73`-`$7EFC`), el total asciende a **26 rutinas, 1539 bytes**
+(el 12.7% del motor completo) reconstruidos con nombre funcional real,
+todos verificados byte a byte contra el binario original.
+
+### 8 rutinas nuevas (nombres provisionales, con hipótesis y confianza en el propio código)
+
+| Etiqueta | Dirección | Hipótesis | Confianza |
+|---|---|---|---|
+| `ACTUALIZAR_SECUENCIA_SONIDO` | `$78D1` | Avanza una tabla CIRCULAR de guion de sonido (`$905C`-`$937D`), encola sonido vía `FIRM_SOUND_QUEUE` cuando toca | **Alta** (subida esta sesión) |
+| `MOVER_INDICADOR_MENU` | `$78F7` | Borra y redibuja un indicador de menú (vía `DIBUJAR_ENTIDAD`) | Media |
+| `COLOCAR_ENTIDAD` | `$7996` | Intenta colocar una entidad evitando colisión en dos casillas; si falla, dibuja igual | Media |
+| `HAY_COLISION` | `$7A10` | Colisión entidad-entidad + accesibilidad del mapa (2 bytes de estado por casilla) | **Alta** (subida esta sesión) |
+| `PREPARAR_DIBUJAR_ENTIDAD` | `$7AF2` | Prepara posición/casillas y cae en `DIBUJAR_ENTIDAD` (mismo bloque lógico) | Media |
+| `DIBUJAR_ENTIDAD` | `$7B39` | Dispatcher de ~20 tablas de sprite 4x16 bytes por tipo+dirección+animación | Media-alta |
+| `DIBUJAR_CASILLA_MAPA` | `$7CE6` | Dispatcher de 9 tablas de sprite 2x8 bytes por valor de casilla del mapa | Media |
+
+También se añadió `FIRM_SOUND_QUEUE` (`$BCAA`) a la tabla de `EQU` de
+firmware.
+
+### Cambios en el inventario de datos
+
+- Se refina la hipótesis de la estructura en `$8200`: cada entrada
+  parece ocupar **42 bytes** (no solo el byte inicial usado por
+  `CONSULTAR_CASILLA_MAPA`/`DIBUJAR_CASILLA_MAPA`) — los offsets 40/41
+  de cada entrada guardan el estado que comprueba `HAY_COLISION`.
+  Pendiente confirmar qué hay en los otros 40 bytes.
+- El 5º byte de cada entidad de `$816D` (antes "sin uso observado")
+  ahora tiene hipótesis: bit de animación de 2 fotogramas, alternado
+  por `DIBUJAR_ENTIDAD`.
+
+### Documentación actualizada en esta sesión
+
+- `README.md`/`README.en.md` y `src/README.md`: estado a Sesión 6 —
+  26 rutinas / 1539 bytes reconstruidos.
+- `recursos/flujo_programa.html`: las 8 rutinas nuevas pasan a
+  `estado: "reconstruida"` con su nombre real.
+- `recursos/mapa_memoria.html`: subregión de `$8200` actualizada con
+  la hipótesis de 42 bytes/entrada; subregión de `$816D` actualizada
+  con la hipótesis del 5º byte.
+- `recursos/flujo_secuencial.html`, `graficos.html`, `sprites.html`,
+  `portada.html`: sin cambios — nada gráfico nuevo que extraer todavía
+  (las tablas de sprite de `DIBUJAR_ENTIDAD`/`DIBUJAR_CASILLA_MAPA`
+  siguen dentro de la zona `INCBIN`, sin extraer a fichero).
+
+### Pendiente para próximas sesiones
+
+- Extraer a fichero las ~29 tablas de sprite que seleccionan
+  `DIBUJAR_ENTIDAD` y `DIBUJAR_CASILLA_MAPA` (candidatas a
+  `src/data/img/sprites/` y `src/data/img/tiles/` en cuanto se
+  entienda mejor su formato) en vez de dejarlas dentro del `INCBIN`.
+  Esto sería el primer contenido real de `recursos/sprites.html`/
+  `graficos.html`.
+- Confirmar los 40 bytes restantes de cada entrada de 42 bytes en
+  `$8200`.
+- Seguir el siguiente bloque no resuelto: `$7DE5`-`$7E72` (142 bytes,
+  incluye `$7DED`/`$7DE5`, llamados desde los 4 `DIBUJAR_TRAMO_MARCO_*`
+  pero nunca desensamblados).
+- Numeración de teclas del firmware (`$2C`/`$3E`) sigue sin resolver.
+- El bucle de juego principal (frame a frame) sigue sin localizar.
