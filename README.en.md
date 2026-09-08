@@ -25,19 +25,17 @@ notice.
 
 Current status
 ---------------
-**Session 12 — only ONE stretch of the engine is left unanalyzed
-(`$6529`-`$786B`, 4931 bytes). Everything else is reconstructed**: 42
-code routines (1977 bytes) and 35 data tables/text blocks (5257
-bytes, including the game's actual text), firmware identified, full
-`.dsk` regenerated from scratch. The disk's AMSDOS catalogue
-(`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU
-format, 40 tracks x 1 side, 9x512 data format, sector IDs `C1`-`C9`)
-only has **2 files**:
+**Session 13 — only ONE stretch of the engine is left unanalyzed
+(`$68B2`-`$7862`, 4017 bytes). Everything else is reconstructed**:
+firmware identified, full `.dsk` regenerated from scratch. The disk's
+AMSDOS catalogue (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes,
+standard CPCEMU format, 40 tracks x 1 side, 9x512 data format, sector
+IDs `C1`-`C9`) only has **2 files**:
 
 | File | Allocated blocks | Status |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenized and byte-verified** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$6401`-`$6528` (296 bytes) reconstructed as code (Session 12)**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$6529`-`$786B` (4931 bytes) pending |
+| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$6401`-`$6528` (296 bytes) reconstructed as code (Session 12)**, **`$6529`-`$68B1` (905 bytes) reconstructed as code (Session 13)**, **`$7863`-`$786B` (9 bytes) reconstructed as code (Session 13)**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$68B2`-`$7862` (4017 bytes, the instructions screen) pending |
 
 `MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
 the "AMSOFT" logo (191 strokes, now rendered in
@@ -96,11 +94,27 @@ confirmed by the code that uses them), and the circular sound script
 the "enter your name" screen (`FIN_INTRODUCIR_NOMBRE` and
 `DESPACHAR_MENU_PRINCIPAL`, which reads P/I/O for play/instructions/
 options) and the full options screen (`PANTALLA_OPCIONES`: game speed
-and difficulty 1-5, background music and sound effects Y/N). Only
-**one** stretch of the engine is still unanalyzed (`$6529`-`$786B`,
-4931 bytes), included as-is via `INCBIN` — see `FINDINGS.md` for the
-full call map, the per-routine/data confidence table, and the
-methodology used.
+and difficulty 1-5, background music and sound effects Y/N).
+
+**Session 13** promoted two more stretches, following the thread from
+entry point `$6529` (key P/p): `INICIAR_PARTIDA`/`PREPARAR_NIVEL`
+(starts a game and each level: lives=5, score=0),
+`PREPARAR_TESOROS_NIVEL` (randomly places 14 treasures with 4
+increasing values plus a repeated common value), `ACTUALIZAR_HUD_VIDAS`
+(draws as many player icons in the HUD as lives remain),
+`SELECCIONAR_DIAGONAL_MARCO_NIVEL` (**resolves** the caller of
+`RELLENAR_MARCO_DIAGONAL_1..6` left pending since Session 7),
+`COLOCAR_JUGADOR_INICIAL`, `BUCLE_PRINCIPAL_JUEGO` (the turn-based game
+loop, with 5 internal calls still unresolved), and the end-of-game
+screens `PANTALLA_STOP_PRESS` (on completing all 6 levels) and
+`PANTALLA_GAME_OVER`/`ACTUALIZAR_TABLA_PUNTUACIONES` (on dying —
+confirms only this second path inserts the score into the HI-SCORE
+table). It also separately closes the last stretch of the original
+`INCBIN` (`$7863`-`$786B`, `IMPRIMIR_PUNTUACION_HUD`). Only **one**
+stretch of the engine is still unanalyzed (`$68B2`-`$7862`, 4017 bytes
+— the instructions screen, menu entry `'I'`), included as-is via
+`INCBIN` — see `FINDINGS.md` for the full call map, the per-routine/data
+confidence table, and the methodology used.
 
 Building
 --------
@@ -149,8 +163,8 @@ Repository structure
   `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each), `img/tiles/`,
   `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/`,
   `sound/` (these still empty for now) and
-  `mummy1_resto_sin_analizar.bin` (the 4931 still-undisassembled
-  engine bytes, `$6529`-`$786B`) — promoted to real source as analysis
+  `mummy1_resto_sin_analizar.bin` (the 4017 still-undisassembled
+  engine bytes, `$68B2`-`$7862`) — promoted to real source as analysis
   progresses.
 - `src/load_disk/` — disk loader (Amstrad equivalent of the sibling
   tape projects' `load_cas/`): `mummy_bas.bas`, the loader's BASIC

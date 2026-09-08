@@ -188,9 +188,16 @@
   <code>INCBIN</code>: <code>$6401</code>-<code>$6528</code> (296
   bytes) -- <code>FIN_INTRODUCIR_NOMBRE</code>,
   <code>DESPACHAR_MENU_PRINCIPAL</code> y <code>PANTALLA_OPCIONES</code>
-  (menu principal y pantalla de opciones). Queda un hueco
-  <code>INCBIN</code> mas pequeno: <code>$6529</code>-<code>$786B</code>
-  (4931 bytes). La barra cubre
+  (menu principal y pantalla de opciones). <strong>Sesion 13</strong>
+  promovio dos tramos mas: <code>$6529</code>-<code>$68B1</code> (905
+  bytes -- arranque de partida/nivel, colocacion de tesoros, HUD de
+  vidas, el llamador de <code>RELLENAR_MARCO_DIAGONAL_1..6</code>, el
+  bucle principal de juego y las pantallas de fin de partida) y
+  <code>$7863</code>-<code>$786B</code> (9 bytes --
+  <code>IMPRIMIR_PUNTUACION_HUD</code>, cierra el ultimo tramo del
+  <code>INCBIN</code> original). Queda un hueco <code>INCBIN</code> mas
+  pequeno: <code>$68B2</code>-<code>$7862</code> (4017 bytes, la
+  pantalla de instrucciones). La barra cubre
   <strong>las 65536 direcciones completas</strong> (0000-FFFF),
   incluida la RAM/ROM del sistema y de BASIC fuera de los dos ficheros
   del juego, para que cada segmento quede colocado en su posicion real.
@@ -264,7 +271,9 @@ const REGIONS = [
   { start: 0x0170 + 2436, end: 0x6000, label: "Sistema CPC / BASIC (variables, pila, resto de RAM) -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
   { start: 0x6401, end: 0x6529, label: "MUMMY1.BIN: FIN_INTRODUCIR_NOMBRE / DESPACHAR_MENU_PRINCIPAL / PANTALLA_OPCIONES (296 bytes) -- primer tramo promovido del INCBIN", kind: "reconstruida", fuente: "FINDINGS.md Sesion 12 (compilado, 0 diferencias)" },
-  { start: 0x6529, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 4931 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x6529, end: 0x68B2, label: "MUMMY1.BIN: INICIAR_PARTIDA / PREPARAR_NIVEL / PREPARAR_TESOROS_NIVEL / ACTUALIZAR_HUD_VIDAS / LIMPIAR_PANELES_NIVEL / SELECCIONAR_DIAGONAL_MARCO_NIVEL / COLOCAR_JUGADOR_INICIAL / BUCLE_PRINCIPAL_JUEGO / PANTALLA_STOP_PRESS / PANTALLA_GAME_OVER / ACTUALIZAR_TABLA_PUNTUACIONES (905 bytes) -- segundo tramo promovido del INCBIN", kind: "reconstruida", fuente: "FINDINGS.md Sesion 13 (compilado, 0 diferencias)" },
+  { start: 0x68B2, end: 0x7863, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, pantalla de instrucciones, 4017 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2/13 (pendiente)" },
+  { start: 0x7863, end: 0x786C, label: "MUMMY1.BIN: IMPRIMIR_PUNTUACION_HUD (9 bytes) -- tercer tramo promovido, cierra el INCBIN original", kind: "reconstruida", fuente: "FINDINGS.md Sesion 13 (compilado, 0 diferencias)" },
   { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
   { start: 0x7EFD, end: 0x8999, label: "MUMMY1.BIN: dato confirmado -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado, y los 2 rellenos por defecto de TABLAS_SPRITE_CASILLA. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
   { start: 0x8999, end: 0x8AB9, label: "MUMMY1.BIN: sprites de pisadas -- 12 losetas nombradas (LOSETA_PISADAS_VERTICAL_1/_2, LOSETA_MAPA_PISADA_1..8, LOSETA_PISADA_ESCRITURA_VALOR4/5/6/7), rama 'T' de DIBUJAR_ENTIDAD + DIBUJAR_CASILLA_MAPA", kind: "pisadas", fuente: "FINDINGS.md Sesion 8 (continuacion 4/5), Sesion 10, Sesion 11 (compilado, 0 diferencias)" },

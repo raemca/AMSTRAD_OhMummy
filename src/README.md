@@ -38,9 +38,22 @@ dirección de carga y ejecución real del motor.
   tecleó nombre) y `PANTALLA_OPCIONES` (pantalla completa de opciones:
   velocidad/dificultad de partida 1-5, música y efectos de sonido
   Y/N).
-- **`$6529`-`$786B`** (4931 bytes): el único tramo del motor que
-  sigue sin analizar, incluido tal cual con
-  `INCBIN "data/mummy1_resto_sin_analizar.bin", 296, 4931`.
+- **`$6529`-`$68B1`** (905 bytes, Sesión 13): reconstruido como código
+  — arranque de partida/nivel (`INICIAR_PARTIDA`/`PREPARAR_NIVEL`),
+  colocación de tesoros (`PREPARAR_TESOROS_NIVEL`), HUD de vidas
+  (`ACTUALIZAR_HUD_VIDAS`), el llamador de `RELLENAR_MARCO_DIAGONAL_1..6`
+  que quedaba pendiente desde la Sesión 7
+  (`SELECCIONAR_DIAGONAL_MARCO_NIVEL`), el bucle de juego
+  (`BUCLE_PRINCIPAL_JUEGO`), y las pantallas de fin de partida
+  (`PANTALLA_STOP_PRESS`/`PANTALLA_GAME_OVER`/
+  `ACTUALIZAR_TABLA_PUNTUACIONES`).
+- **`$68B2`-`$7862`** (4017 bytes): el único tramo del motor que
+  sigue sin analizar (pantalla de instrucciones, entrada `'I'` del
+  menú), incluido tal cual con
+  `INCBIN "data/mummy1_resto_sin_analizar.bin", 1201, 4017`.
+- **`$7863`-`$786B`** (9 bytes, Sesión 13): reconstruido como código —
+  `IMPRIMIR_PUNTUACION_HUD`, cierra el último tramo del `INCBIN`
+  original, cae directamente en `IMPRIMIR_NUMERO_HL` (`$786C`).
 - **`$786C`-`$7EFC`** (1681 bytes, el 12.7% del motor): **38
   subrutinas de código ya reconstruidas con nombre funcional real**,
   en un único bloque contiguo (cerrado en la Sesión 7) —
@@ -103,6 +116,22 @@ verdad, sesión a sesión.
 | `DESPACHAR_MENU_PRINCIPAL` | Menú — lee P/I/O para Play/Instructions/Options | Alta |
 | `PANTALLA_OPCIONES` | Menú — velocidad y dificultad de partida (1-5), música y efectos de sonido (Y/N), confirmar con L/Intro | Alta en estructura y variables, baja/media en el efecto visual exacto de los `REPETIR_CARACTER` |
 
+### Rutinas reconstruidas — Sesión 13 (`$6529`-`$68B1` y `$7863`-`$786B`)
+
+| Etiqueta | Subsistema | Confianza |
+|---|---|---|
+| `INICIAR_PARTIDA` | Partida — entrada real de tecla P/p: vidas=5, puntuación=0 | Alta |
+| `PREPARAR_NIVEL` | Partida — reentrada tras completar el juego (L/Intro); nivel=0, ajusta dificultad si hay puntuación previa | Alta en estructura, media en la interpretación de que vidas/puntuación no se reinician a propósito |
+| `PREPARAR_TESOROS_NIVEL` | Nivel — coloca 14 tesoros al azar (4 valores crecientes + 10 del valor común) evitando casillas ocupadas | Alta en estructura, media-alta en la interpretación de los valores |
+| `ACTUALIZAR_HUD_VIDAS` | HUD — refresca puntuación e imprime un icono de jugador por cada vida restante | Alta |
+| `LIMPIAR_PANELES_NIVEL` | Pantalla/HUD — despeja 9 paneles antes de dibujar el nivel | Alta |
+| `SELECCIONAR_DIAGONAL_MARCO_NIVEL` | Marco decorativo — **resuelve** el llamador de `RELLENAR_MARCO_DIAGONAL_1..6` (pendiente desde Sesión 7): elige variante según nivel y parchea el operando de un `CALL` automodificado | Alta en estructura, media en el efecto visual |
+| `COLOCAR_JUGADOR_INICIAL` | Entidades — coloca enemigos/coleccionables del nivel y dibuja al jugador en su posición de salida | Alta en estructura, media en el detalle de `($8157)` |
+| `BUCLE_PRINCIPAL_JUEGO` / `INICIO_TURNO_JUGADOR1` / `TRAMPOLIN_TECLA_B` | Juego — bucle de turnos por jugador; 5 llamadas internas (`$7578`/`$77D1`/`$7637`/`$7566`/`$7513`) siguen sin resolver | Alta en estructura, media en el papel de cada llamada sin resolver |
+| `PANTALLA_STOP_PRESS` | Fin de partida — pantalla de "ganar" (completar los 6 niveles): bonus de 200 puntos o vida extra (tope 7); NO consulta la tabla HI-SCORE | Alta |
+| `PANTALLA_GAME_OVER` / `ACTUALIZAR_TABLA_PUNTUACIONES` | Fin de partida — pantalla de "morir": título animado + inserción/consulta de la tabla HI-SCORE de 5 entradas | Alta |
+| `IMPRIMIR_PUNTUACION_HUD` | HUD — posiciona el cursor y cae en `IMPRIMIR_NUMERO_HL` con la puntuación | Alta |
+
 Ver `recursos/flujo_programa.html` para el inventario completo por
 dirección, `recursos/flujo_detallado.html` (Sesión 9) para el **grafo
 real de llamadas** (`CALL`/`CALL cc`/`JP`/`JP cc`/`JR`/caídas sin
@@ -136,9 +165,11 @@ en los tres** (los dos ficheros por separado y el disco completo).
   `INCLUDE mummy1_body.asm`, `SAVEBIN`).
 - `mummy1_body.asm` — el motor: cabecera desensamblada a mano
   (`$6000`-`$6400`) + `FIN_INTRODUCIR_NOMBRE`/`DESPACHAR_MENU_PRINCIPAL`/
-  `PANTALLA_OPCIONES` (296 bytes, Sesión 12) + 42 rutinas reconstruidas
-  con nombre (1977 bytes, 2 bloques) + `INCBIN` (con offset/longitud)
-  del resto sin analizar.
+  `PANTALLA_OPCIONES` (296 bytes, Sesión 12) + `INICIAR_PARTIDA` y el
+  resto del arranque/bucle/fin de partida (914 bytes, Sesión 13) +
+  rutinas reconstruidas con nombre (Sesiones 3-8) + `INCBIN` (con
+  offset/longitud) del resto sin analizar (`$68B2`-`$7862`, 4017
+  bytes).
 - `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
 - `data/` — recursos ya identificados y extraídos a fichero individual
   (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y

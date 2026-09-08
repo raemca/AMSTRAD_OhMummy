@@ -25,19 +25,17 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 12 — solo queda UN tramo del motor sin analizar (`$6529`-`$786B`,
-4931 bytes). Todo lo demás está reconstruido**: 42 rutinas de código
-(1977 bytes) y 35 tablas/textos de datos (5257 bytes, incluido el
-texto real del juego), firmware identificado, `.dsk` completo
-regenerado desde cero. El catálogo AMSDOS del disco (`FISICO/Oh Mummy
-(1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
-x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
-**2 ficheros**:
+**Sesión 13 — solo queda UN tramo del motor sin analizar (`$68B2`-`$7862`,
+4017 bytes). Todo lo demás está reconstruido**: firmware identificado,
+`.dsk` completo regenerado desde cero. El catálogo AMSDOS del disco
+(`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU
+estándar, 40 pistas x 1 cara, formato de datos 9x512, IDs de sector
+`C1`-`C9`) solo tiene **2 ficheros**:
 
 | Fichero | Bloques asignados | Estado |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenizado y verificado byte a byte** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado**, **`$6401`-`$6528` (296 bytes) reconstruido como código (Sesión 12)**, **`$786C`-`$7EFC` (1681 bytes) reconstruido como código**, **`$7EFD`-`$9385` (5257 bytes) reconstruido como datos**, solo `$6529`-`$786B` (4931 bytes) pendiente |
+| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado**, **`$6401`-`$6528` (296 bytes) reconstruido como código (Sesión 12)**, **`$6529`-`$68B1` (905 bytes) reconstruido como código (Sesión 13)**, **`$7863`-`$786B` (9 bytes) reconstruido como código (Sesión 13)**, **`$786C`-`$7EFC` (1681 bytes) reconstruido como código**, **`$7EFD`-`$9385` (5257 bytes) reconstruido como datos**, solo `$68B2`-`$7862` (4017 bytes, pantalla de instrucciones) pendiente |
 
 `MUMMY.BAS` es el cargador: dibuja a mano (con `PLOT`/`DRAW`
 relativos) el logo "AMSOFT" (191 trazos, ya visibles en
@@ -99,10 +97,28 @@ tras la pantalla de "introducir nombre" (`FIN_INTRODUCIR_NOMBRE` y
 `DESPACHAR_MENU_PRINCIPAL`, que lee P/I/O para jugar/instrucciones/
 opciones) y la pantalla completa de opciones (`PANTALLA_OPCIONES`:
 velocidad y dificultad de partida 1-5, música y efectos de sonido
-Y/N). Solo queda **un** tramo sin analizar en todo el motor
-(`$6529`-`$786B`, 4931 bytes), incluido tal cual con `INCBIN` — ver
-`FINDINGS.md` para el mapa de llamadas completo, la tabla de confianza
-por rutina/dato, y la metodología usada.
+Y/N).
+
+La **Sesión 13** promovió dos tramos más, siguiendo el hilo desde el
+punto de entrada `$6529` (tecla P/p): `INICIAR_PARTIDA`/`PREPARAR_NIVEL`
+(arranque de partida y de cada nivel: vidas=5, puntuación=0),
+`PREPARAR_TESOROS_NIVEL` (coloca 14 tesoros al azar con 4 valores
+crecientes y un valor común repetido), `ACTUALIZAR_HUD_VIDAS` (dibuja
+en el HUD tantos iconos de jugador como vidas queden),
+`SELECCIONAR_DIAGONAL_MARCO_NIVEL` (**resuelve** el llamador de
+`RELLENAR_MARCO_DIAGONAL_1..6` que quedaba pendiente desde la Sesión 7),
+`COLOCAR_JUGADOR_INICIAL`, `BUCLE_PRINCIPAL_JUEGO` (el bucle de juego
+por turnos, con 5 llamadas internas todavía sin resolver), y las
+pantallas de fin de partida `PANTALLA_STOP_PRESS` (al completar los 6
+niveles) y `PANTALLA_GAME_OVER`/`ACTUALIZAR_TABLA_PUNTUACIONES` (al
+morir — confirma que solo este segundo camino inserta la puntuación en
+la tabla HI-SCORE). Cierra además, por separado, el último tramo del
+`INCBIN` original (`$7863`-`$786B`, `IMPRIMIR_PUNTUACION_HUD`). Solo
+queda **un** tramo sin analizar en todo el motor (`$68B2`-`$7862`, 4017
+bytes — la pantalla de instrucciones, entrada `'I'` del menú), incluido
+tal cual con `INCBIN` — ver `FINDINGS.md` para el mapa de llamadas
+completo, la tabla de confianza por rutina/dato, y la metodología
+usada.
 
 Compilar
 --------
@@ -150,8 +166,8 @@ Estructura del repositorio
   (Sesión 8: los 16 sprites de `DIBUJAR_ENTIDAD` — `sprite_jugador_*`/
   `sprite_momia_*`, 64 bytes cada uno), `img/tiles/`, `img/logo/`,
   `img/marco_decorativo/`, `img/texto/`, `niveles/`, `sound/` (estos
-  vacíos por ahora) y `mummy1_resto_sin_analizar.bin` (los 4931 bytes
-  del motor todavía sin desensamblar, `$6529`-`$786B`) — se irán promoviendo a fuente
+  vacíos por ahora) y `mummy1_resto_sin_analizar.bin` (los 4017 bytes
+  del motor todavía sin desensamblar, `$68B2`-`$7862`) — se irán promoviendo a fuente
   real a medida que avance el análisis.
 - `src/load_disk/` — cargador de disco (equivalente Amstrad al
   `load_cas/` de los proyectos hermanos de cinta): `mummy_bas.bas`, el

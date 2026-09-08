@@ -667,14 +667,656 @@ PANTALLA_OPCIONES:
     JP NZ,$6223                      ; 6524: c22362
     JR $6514                         ; 6527: 18eb
 
-; ---- $6529-$786B: resto sin analizar todavia. Explorado mecanicamente
-; en la Sesion 12 (sin promover a codigo fuente) mas alla de este punto
-; -- ver FINDINGS.md Sesion 12 para las pistas concretas dejadas para
-; la siguiente sesion (arranque de partida en $6529, resolucion de
-; RELLENAR_MARCO_DIAGONAL_1..6 en $6685-$66C7, bucle de juego en
-; $66ED-$6736, pantalla de "GAME OVER"/tabla de puntuaciones en
-; $6739-$68AC, entrada 'I' de instrucciones en $68B2). ----
-    INCBIN "data/mummy1_resto_sin_analizar.bin", 296, 4931  ; $6529-$786B, sin analizar todavia
+; ---- $6529-$68B1 (905 bytes): segundo tramo promovido del INCBIN --
+; Sesion 13. Arranca desde el punto de entrada real confirmado en la
+; Sesion 12 ($6529, destino de los 2 "JP Z,$6529" de tecla P/p en
+; DESPACHAR_MENU_PRINCIPAL) y sigue el hilo de llamadas/saltos hasta
+; $68B1 (justo antes de la entrada 'I' de instrucciones en $68B2, que
+; queda sin analizar -- ver el INCBIN mas abajo). Cubre: arranque de
+; partida e inicio de cada nivel (INICIAR_PARTIDA/PREPARAR_NIVEL),
+; colocacion aleatoria de tesoros (PREPARAR_TESOROS_NIVEL), HUD de
+; vidas/puntuacion (ACTUALIZAR_HUD_VIDAS), limpieza de paneles
+; (LIMPIAR_PANELES_NIVEL), el llamador de RELLENAR_MARCO_DIAGONAL_1..6
+; que quedaba pendiente desde la Sesion 7/12
+; (SELECCIONAR_DIAGONAL_MARCO_NIVEL), colocacion del jugador
+; (COLOCAR_JUGADOR_INICIAL), el bucle principal de juego
+; (BUCLE_PRINCIPAL_JUEGO, con 5 llamadas internas que siguen sin
+; resolver: $7578, $77D1, $7637, $7566, $7513 -- caen dentro del hueco
+; $68B2-$7862 que sigue sin analizar), y las pantallas de fin de
+; partida (PANTALLA_STOP_PRESS/PANTALLA_GAME_OVER/
+; ACTUALIZAR_TABLA_PUNTUACIONES). Ver FINDINGS.md Sesion 13 para el
+; detalle completo, confianza por rutina, y los pendientes exactos. ----
+
+; INICIAR_PARTIDA ($6529): punto de entrada real confirmado -- destino
+; de los 2 "JP Z,$6529" en DESPACHAR_MENU_PRINCIPAL (tecla P/p). Fija
+; vidas=5 y puntuacion=0 (unica vez que se hace en todo el tramo) y cae
+; en PREPARAR_NIVEL. Confianza alta en el papel de entrada; alta en
+; puntuacion/vidas (ver comentario de PREPARAR_NIVEL mas abajo).
+INICIAR_PARTIDA:
+    LD A,$05                          ; 6529: 3e05
+    LD ($816A),A                      ; 652B: 326a81
+    LD HL,$0000                       ; 652E: 210000
+    LD ($815A),HL                     ; 6531: 225a81
+
+; PREPARAR_NIVEL ($6534): reentrada real -- destino de los 2
+; "JP NZ,$6534" de PANTALLA_STOP_PRESS (teclas L/Intro tras completar
+; los 6 niveles). A diferencia de INICIAR_PARTIDA, esta reentrada NO
+; toca vidas ($816A) ni puntuacion ($815A) -- solo reinicia el nivel a 0
+; y continua con el resto de la preparacion. Confianza alta en la
+; estructura (verificada byte a byte); confianza media en que sea
+; intencional que la partida siguiente conserve vidas/puntuacion en vez
+; de reiniciarlas del todo -- no se ha encontrado ningun otro punto en
+; este tramo que las reinicie, asi que es el comportamiento real tal
+; cual esta compilado.
+;
+; Si la puntuacion no es 0 (solo posible llegando por esta reentrada,
+; nunca la primera vez), se ajusta a la baja el limite de persecucion
+; de la IA ($8161, SRL+OR $03): parte de un valor 15/31/63/127/255
+; (fijado en PANTALLA_OPCIONES) y lo reduce aproximadamente a la mitad
+; (con suelo minimo efectivo de $03) -- un limite mas pequeno hace mas
+; probable el 0 exacto de GENERAR_ALEATORIO en COLOCAR_ENTIDAD, es decir
+; MAS persecucion/dificultad. Hipotesis media-alta: partidas sucesivas
+; (tras completar el juego) se vuelven mas dificiles.
+PREPARAR_NIVEL:
+    XOR A                             ; 6534: af
+    LD ($815C),A                      ; 6535: 325c81
+    LD ($8169),A                      ; 6538: 326981
+    LD HL,($815A)                     ; 653B: 2a5a81
+    LD A,H                            ; 653E: 7c
+    OR L                              ; 653F: b5
+    JR Z,$654C                        ; 6540: 280a
+    LD A,($8161)                      ; 6542: 3a6181
+    SRL A                             ; 6545: cb3f
+    OR $03                            ; 6547: f603
+    LD ($8161),A                      ; 6549: 326181
+
+; BORRAR_BLOQUE_ESTADO limpia entidades/mapa/HUD; el bucle siguiente
+; (DE=$00C8=200) es una pausa que bombea sonido -- mismo patron que
+; otros retardos fijos del fichero.
+    CALL BORRAR_BLOQUE_ESTADO         ; 654C: cdab7e
+    LD DE,$00C8                       ; 654F: 11c800
+    PUSH DE                           ; 6552: d5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6553: cdd178
+    POP DE                            ; 6556: d1
+    DEC DE                            ; 6557: 1b
+    LD A,D                            ; 6558: 7a
+    OR E                              ; 6559: b3
+    JR NZ,$6552                       ; 655A: 20f6
+
+; Incrementa en paralelo un contador general ($8169, reutilizado --
+; en el arranque del programa vale 6 para la demo de fondo del menu;
+; aqui se reinicio a 0 en PREPARAR_NIVEL y ahora sube en sincronia con
+; el nivel) y el nivel real ($815C). Si el nivel llega a 6 (completados
+; los 5 niveles jugables, numerados 1..5) salta a PANTALLA_STOP_PRESS.
+; Confianza alta en nivel/tope; media en el papel exacto de ($8169)
+; aqui (structuralmente identico al nivel, sin uso propio localizado
+; en este tramo mas alla de alimentar INICIALIZAR_ENTIDADES mas abajo).
+    LD A,($8169)                      ; 655C: 3a6981
+    INC A                             ; 655F: 3c
+    LD ($8169),A                      ; 6560: 326981
+    LD A,($815C)                      ; 6563: 3a5c81
+    INC A                             ; 6566: 3c
+    LD ($815C),A                      ; 6567: 325c81
+    CP $06                            ; 656A: fe06
+    JP Z,PANTALLA_STOP_PRESS          ; 656C: ca3967
+
+; Limpia a mano el indice de entidades ($816C) y los 5 bytes de la
+; entidad #1 ($816D-$8171) -- el hueco exacto que BORRAR_BLOQUE_ESTADO
+; no cubre (su LDIR empieza en $8172). Tambien reinicia el flag de
+; fotograma de animacion ($8158). Confianza alta (encaja exactamente
+; con el limite documentado de BORRAR_BLOQUE_ESTADO, Sesion 8).
+    XOR A                             ; 656F: af
+    LD ($816C),A                      ; 6570: 326c81
+    LD ($816D),A                      ; 6573: 326d81
+    LD ($816E),A                      ; 6576: 326e81
+    LD ($816F),A                      ; 6579: 326f81
+    LD ($8170),A                      ; 657C: 327081
+    LD ($8171),A                      ; 657F: 327181
+    LD ($8158),A                      ; 6582: 325881
+
+; PREPARAR_TESOROS_NIVEL ($6585): sin llamador externo dentro de lo ya
+; reconstruido -- alcanzada solo por caida desde PREPARAR_NIVEL, se
+; nombra igualmente por ser una unidad logica clara (regla del fichero:
+; nombrar tramos grandes aunque solo tengan un llamador). Rellena de
+; $60 (marcador "vacio") las 25 casillas $81DE-$81F6, y fuerza a 0 seis
+; celdas concretas dentro de ese rango via IY+13/14/20/21/27/28
+; (offsets de $81D6) -- hipotesis media: celdas fijas no disponibles
+; para tesoros (paredes/columnas del diamante central de la piramide).
+;
+; El bucle de $65AD-$65D2 coloca 14 "tesoros" en casillas libres
+; elegidas al azar dentro de $81DE-$81F7 (GENERAR_ALEATORIO(26)+8,
+; reintenta si la celda no vale $60). El valor que escribe en cada
+; celda sube de $10 en $10 (=$10,$20,$30,$40) y a partir de $50 se
+; queda fijo en $50 para el resto de colocaciones -- confirmado leyendo
+; el propio bucle (CP $50:JR Z,salta-el-incremento). Confianza alta en
+; la estructura; media-alta en la interpretacion (tesoros con 4 valores
+; crecientes seguidos de 10 tesoros "comunes" del valor mas alto,
+; consistente con "colocacion aleatoria de 14 elementos" que dejo
+; apuntado FINDINGS.md Sesion 12). Sin confirmar en emulador el efecto
+; visual/de puntuacion exacto de cada valor.
+PREPARAR_TESOROS_NIVEL:
+    LD HL,$81DE                       ; 6585: 21de81
+    LD A,$60                          ; 6588: 3e60
+    LD (HL),A                         ; 658A: 77
+    LD DE,$81DF                       ; 658B: 11df81
+    LD BC,$0019                       ; 658E: 011900
+    LDIR                              ; 6591: edb0
+    XOR A                             ; 6593: af
+    LD IY,$81D6                       ; 6594: fd21d681
+    LD (IY+13),A                      ; 6598: fd770d
+    LD (IY+14),A                      ; 659B: fd770e
+    LD (IY+20),A                      ; 659E: fd7714
+    LD (IY+21),A                      ; 65A1: fd7715
+    LD (IY+27),A                      ; 65A4: fd771b
+    LD (IY+28),A                      ; 65A7: fd771c
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65AA: cdd178
+    LD B,$0E                          ; 65AD: 060e
+    LD A,$10                          ; 65AF: 3e10
+    PUSH BC                           ; 65B1: c5
+    PUSH AF                           ; 65B2: f5
+    LD A,$1A                          ; 65B3: 3e1a
+    CALL GENERAR_ALEATORIO            ; 65B5: cd537d
+    LD B,$08                          ; 65B8: 0608
+    ADD A,B                           ; 65BA: 80
+    LD HL,$81D6                       ; 65BB: 21d681
+    LD B,$00                          ; 65BE: 0600
+    LD C,A                            ; 65C0: 4f
+    ADD HL,BC                         ; 65C1: 09
+    LD A,(HL)                         ; 65C2: 7e
+    CP $60                            ; 65C3: fe60
+    JR NZ,$65B3                       ; 65C5: 20ec
+    POP AF                            ; 65C7: f1
+    LD (HL),A                         ; 65C8: 77
+    POP BC                            ; 65C9: c1
+    CP $50                            ; 65CA: fe50
+    JR Z,$65D0                        ; 65CC: 2802
+    ADD A,$10                         ; 65CE: c610
+    DJNZ $65B1                        ; 65D0: 10df
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65D2: cdd178
+
+; ACTUALIZAR_HUD_VIDAS ($65D5): redibuja una etiqueta ($8764, dato aun
+; sin desglosar) y llama a IMPRIMIR_PUNTUACION_HUD (ver mas abajo, cierra
+; el ultimo tramo del INCBIN en $7863-$786B). Despues dibuja tantos
+; iconos de jugador ('A', $8155 avanzando de 4 en 4, alternando el
+; fotograma via el flag $8158) como vidas queden en ($816A) -- por eso
+; ($816A) se nombra VIDAS/NUM_VIDAS con confianza alta en su papel de
+; "contador de vidas visible en el HUD": se inicializa a 5 en
+; INICIAR_PARTIDA y puede subir hasta un tope de 7 como premio en
+; PANTALLA_STOP_PRESS (ver mas abajo). Confianza MEDIA en que sea
+; literalmente el clasico contador de "vidas restantes" que se
+; consume al ser atrapado por una momia: no se ha localizado en este
+; tramo ningun punto que lo DECREMENTE -- ese consumo, si existe,
+; caeria dentro de alguna de las 4 llamadas todavia sin resolver del
+; bucle principal ($7578/$77D1/$7637/$7566, ver BUCLE_PRINCIPAL_JUEGO).
+ACTUALIZAR_HUD_VIDAS:
+    LD HL,$8764                       ; 65D5: 216487
+    CALL REPETIR_CARACTER             ; 65D8: cdf47e
+    CALL IMPRIMIR_PUNTUACION_HUD      ; 65DB: cd6378
+    LD A,$01                          ; 65DE: 3e01
+    CALL FIRM_TXT_SET_PAPER           ; 65E0: cd96bb
+    LD A,($816A)                      ; 65E3: 3a6a81
+    LD B,A                            ; 65E6: 47
+    LD A,$02                          ; 65E7: 3e02
+    LD ($8157),A                      ; 65E9: 325781
+    LD DE,$0034                       ; 65EC: 113400
+    LD ($8155),DE                     ; 65EF: ed535581
+    PUSH BC                           ; 65F3: c5
+    LD A,$41                          ; 65F4: 3e41
+    CALL DIBUJAR_ENTIDAD              ; 65F6: cd397b
+    LD A,($8158)                      ; 65F9: 3a5881
+    XOR $01                           ; 65FC: ee01
+    LD ($8158),A                      ; 65FE: 325881
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6601: cdd178
+    LD DE,($8155)                     ; 6604: ed5b5581
+    LD HL,$0004                       ; 6608: 210400
+    ADD HL,DE                         ; 660B: 19
+    LD ($8155),HL                     ; 660C: 225581
+    EX DE,HL                          ; 660F: eb
+    POP BC                            ; 6610: c1
+    DJNZ $65F3                        ; 6611: 10e0
+
+; LIMPIAR_PANELES_NIVEL ($6613): 9 llamadas a BORRAR_RECTANGULO_VENTANA
+; con pares HL/DE distintos (mismo patron ya documentado en el arranque
+; del programa, $60AD y siguientes) -- despeja los paneles del HUD/marco
+; antes de dibujar el nivel. Confianza alta en la estructura (identica
+; al patron ya confirmado), media en el detalle exacto de cada panel.
+LIMPIAR_PANELES_NIVEL:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6613: cdd178
+    LD HL,$0203                       ; 6616: 210302
+    LD DE,$2604                       ; 6619: 110426
+    CALL BORRAR_RECTANGULO_VENTANA    ; 661C: cdb97e
+    LD HL,$0408                       ; 661F: 210804
+    LD DE,$2409                       ; 6622: 110924
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6625: cdb97e
+    LD HL,$040D                       ; 6628: 210d04
+    LD DE,$240E                       ; 662B: 110e24
+    CALL BORRAR_RECTANGULO_VENTANA    ; 662E: cdb97e
+    LD HL,$0412                       ; 6631: 211204
+    LD DE,$2413                       ; 6634: 111324
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6637: cdb97e
+    LD HL,$0217                       ; 663A: 211702
+    LD DE,$2618                       ; 663D: 111826
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6640: cdb97e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6643: cdd178
+    LD HL,$0205                       ; 6646: 210502
+    LD DE,$0316                       ; 6649: 111603
+    CALL BORRAR_RECTANGULO_VENTANA    ; 664C: cdb97e
+    LD HL,$0905                       ; 664F: 210509
+    LD DE,$0A16                       ; 6652: 11160a
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6655: cdb97e
+    LD HL,$1001                       ; 6658: 210110
+    LD DE,$1116                       ; 665B: 111611
+    CALL BORRAR_RECTANGULO_VENTANA    ; 665E: cdb97e
+    LD HL,$1705                       ; 6661: 210517
+    LD DE,$1816                       ; 6664: 111618
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6667: cdb97e
+    LD HL,$1E05                       ; 666A: 21051e
+    LD DE,$1F16                       ; 666D: 11161f
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6670: cdb97e
+    LD HL,$2505                       ; 6673: 210525
+    LD DE,$2616                       ; 6676: 111626
+    CALL BORRAR_RECTANGULO_VENTANA    ; 6679: cdb97e
+    LD HL,$0000                       ; 667C: 210000
+    LD DE,$2718                       ; 667F: 111827
+    CALL FIRM_TXT_WIN_ENABLE          ; 6682: cd66bb
+
+; SELECCIONAR_DIAGONAL_MARCO_NIVEL ($6685): RESUELVE el pendiente
+; explicito de la Sesion 7/12 -- el llamador de RELLENAR_MARCO_DIAGONAL_
+; 1..6. Segun el nivel actual ($815C) elige una de 5 variantes (nivel
+; 0/1->_6, 2->_4, 3->_5, 4->_1, >=5->_3; _2 SIGUE sin usarse en ningun
+; punto de este tramo, confirma la sospecha de la Sesion 12) y parchea
+; con codigo automodificable el operando de "CALL $7E29" en $66B9 (los
+; 2 bytes en $66BA) para que apunte a la variante elegida antes de
+; ejecutarla. El bucle de B=4 (paso HL+=$2800) anidado con B=5 (paso
+; HL+=$000E) dibuja una rejilla de 4x5=20 bloques diagonales -- probable
+; borde/patron decorativo de la piramide de este nivel. Confianza alta
+; en la estructura (verificada byte a byte, cuadra exacto con la
+; pista dejada por la Sesion 12); confianza media en el papel visual
+; exacto (sin confirmar en emulador).
+SELECCIONAR_DIAGONAL_MARCO_NIVEL:
+    LD A,($815C)                      ; 6685: 3a5c81
+    CP $02                            ; 6688: fe02
+    JR C,$66A8                        ; 668A: 381c
+    JR Z,$66A3                        ; 668C: 2815
+    CP $04                            ; 668E: fe04
+    JR C,$669E                        ; 6690: 380c
+    JR Z,$6699                        ; 6692: 2805
+    LD HL,RELLENAR_MARCO_DIAGONAL_3   ; 6694: 210e7e
+    JR $66AB                          ; 6697: 1812
+    LD HL,RELLENAR_MARCO_DIAGONAL_1   ; 6699: 21fc7d
+    JR $66AB                          ; 669C: 180d
+    LD HL,RELLENAR_MARCO_DIAGONAL_5   ; 669E: 21207e
+    JR $66AB                          ; 66A1: 1808
+    LD HL,RELLENAR_MARCO_DIAGONAL_4   ; 66A3: 21177e
+    JR $66AB                          ; 66A6: 1803
+    LD HL,RELLENAR_MARCO_DIAGONAL_6   ; 66A8: 21297e
+    LD ($66BA),HL                     ; 66AB: 22ba66
+    LD B,$04                          ; 66AE: 0604
+    LD HL,$2808                       ; 66B0: 210828
+    PUSH BC                           ; 66B3: c5
+    PUSH HL                           ; 66B4: e5
+    LD B,$05                          ; 66B5: 0605
+    PUSH BC                           ; 66B7: c5
+    PUSH HL                           ; 66B8: e5
+    CALL RELLENAR_MARCO_DIAGONAL_6    ; 66B9: cd297e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 66BC: cdd178
+    POP HL                            ; 66BF: e1
+    LD BC,$000E                       ; 66C0: 010e00
+    ADD HL,BC                         ; 66C3: 09
+    POP BC                            ; 66C4: c1
+    DJNZ $66B7                        ; 66C5: 10f0
+    POP HL                            ; 66C7: e1
+    LD BC,$2800                       ; 66C8: 010028
+    ADD HL,BC                         ; 66CB: 09
+    POP BC                            ; 66CC: c1
+    DJNZ $66B3                        ; 66CD: 10e4
+
+; COLOCAR_JUGADOR_INICIAL ($66CF): fija el puntero de posiciones
+; ($8645=$860F, la MISMA tabla que usa la demo de fondo del menu en
+; $61E5) y llama a INICIALIZAR_ENTIDADES -- coloca tantas entidades
+; (enemigos/coleccionables) como indique ($8169), que en PREPARAR_NIVEL
+; se dejo sincronizado con el nivel actual (hipotesis media-alta: cada
+; nivel introduce tantos enemigos como su numero). Despues dibuja al
+; jugador ('A') en la posicion de salida fija $0820 con ($8157)=3.
+; Confianza alta en la estructura; media en el papel exacto de
+; ($8157)=3 (una de las 4 orientaciones/grupos de SPRITE_JUGADOR_Gx,
+; sin resolver cual exactamente -- pendiente de sesiones anteriores).
+COLOCAR_JUGADOR_INICIAL:
+    LD HL,$860F                       ; 66CF: 210f86
+    LD ($8645),HL                     ; 66D2: 224586
+    CALL INICIALIZAR_ENTIDADES        ; 66D5: cd4f79
+    LD DE,$0820                       ; 66D8: 112008
+    LD ($8155),DE                     ; 66DB: ed535581
+    LD A,$03                          ; 66DF: 3e03
+    LD ($8157),A                      ; 66E1: 325781
+    LD A,$41                          ; 66E4: 3e41
+    CALL DIBUJAR_ENTIDAD              ; 66E6: cd397b
+    XOR A                             ; 66E9: af
+    CALL FIRM_TXT_SET_PAPER           ; 66EA: cd96bb
+
+; BUCLE_PRINCIPAL_JUEGO ($66ED): RESUELVE el bucle de juego que dejaba
+; apuntado FINDINGS.md Sesion 12. Empieza comprobando la tecla 'B' --
+; confirmado que AMBAS ramas (pulsada o no) confluyen en el mismo
+; destino, TRAMPOLIN_TECLA_B/INICIO_TURNO_JUGADOR1 -- sin efecto
+; funcional observable (confianza alta en la estructura, verificada
+; byte a byte; confianza baja en su proposito: posible resto de una
+; funcionalidad no terminada, o un simple consumo del buffer de
+; teclado). Para cada jugador (B=1, luego B=2) hace: ANIMAR_OPCION_MENU,
+; y una secuencia de 4 llamadas SIN RESOLVER TODAVIA ($7578, $77D1,
+; $7637, $7566 -- las mismas 4 que dejo pendientes la Sesion 12, caen
+; dentro del hueco todavia sin analizar $68B2-$7862) que probablemente
+; implementan el movimiento/logica de turno de cada jugador -- 2 de
+; ellas comprueban el acarreo ("JP C,PANTALLA_GAME_OVER") tras
+; CALL $7578, hipotesis alta de que el acarreo senaliza "jugador
+; atrapado por una momia" (fin de partida inmediato). Tras ambos
+; jugadores, comprueba si hay coleccionables restantes (($816D),
+; primer byte de la entidad #1) y si no hay ninguno CALL NZ,$7513
+; (tambien sin resolver -- hipotesis media: avance al siguiente nivel,
+; posible punto de reentrada a PREPARAR_NIVEL o similar sin confirmar).
+; Confianza alta en la estructura general (verificada byte a byte);
+; media en el papel de cada llamada sin resolver -- pendiente para la
+; siguiente sesion resolver $7578/$77D1/$7637/$7566/$7513.
+BUCLE_PRINCIPAL_JUEGO:
+    LD A,$42                          ; 66ED: 3e42
+    CALL FIRM_KM_TEST_KEY             ; 66EF: cd1ebb
+    JP NZ,TRAMPOLIN_TECLA_B           ; 66F2: c2af68
+INICIO_TURNO_JUGADOR1:
+    LD B,$01                          ; 66F5: 0601
+    CALL ANIMAR_OPCION_MENU           ; 66F7: cdb778
+    CALL $7578                        ; 66FA: cd7875
+    JP C,PANTALLA_GAME_OVER           ; 66FD: dab367
+    CALL $77D1                        ; 6700: cdd177
+    CALL $7578                        ; 6703: cd7875
+    JP C,PANTALLA_GAME_OVER           ; 6706: dab367
+    CALL $7637                        ; 6709: cd3776
+    CALL $7566                        ; 670C: cd6675
+    CALL ESPERAR_TECLA_2C             ; 670F: cd9378
+    LD A,($816D)                      ; 6712: 3a6d81
+    OR A                              ; 6715: b7
+    CALL NZ,$7513                     ; 6716: c41375
+    LD B,$02                          ; 6719: 0602
+    CALL ANIMAR_OPCION_MENU           ; 671B: cdb778
+    CALL $7578                        ; 671E: cd7875
+    JP C,PANTALLA_GAME_OVER           ; 6721: dab367
+    CALL $77D1                        ; 6724: cdd177
+    CALL $7578                        ; 6727: cd7875
+    JP C,PANTALLA_GAME_OVER           ; 672A: dab367
+    CALL $7637                        ; 672D: cd3776
+    CALL $7566                        ; 6730: cd6675
+    CALL ESPERAR_TECLA_2C             ; 6733: cd9378
+    JP BUCLE_PRINCIPAL_JUEGO          ; 6736: c3ed66
+
+; PANTALLA_STOP_PRESS ($6739): alcanzada solo al completar los 6
+; niveles ("JP Z,PANTALLA_STOP_PRESS" en PREPARAR_NIVEL). Imprime la
+; noticia de periodico "STOP PRESS...excavation of ancient Egyptian
+; pyramid" (TEXTO_HISTORIA_ATRACCION, Sesion 8) y sortea (GENERAR_
+; ALEATORIO(2)) entre dar 200 puntos de bonus ("his efforts of 200
+; points") o -- si ($816A, vidas) no ha llegado ya al tope de 7 --
+; conceder una vida extra ("extra man for next dig", $816A++); si ya
+; esta en 7 tambien da los 200 puntos. Termina esperando 'L' o Intro,
+; y en ese caso salta DIRECTAMENTE a PREPARAR_NIVEL -- IMPORTANTE:
+; confirmado que este camino NO pasa por ACTUALIZAR_TABLA_PUNTUACIONES,
+; es decir, "ganar" completando los 6 niveles no ofrece insertar la
+; puntuacion en la tabla de highscores en este tramo (solo lo hace
+; PANTALLA_GAME_OVER, alcanzada por "morir"). Confianza alta en toda
+; la estructura (verificada byte a byte); es una asimetria real del
+; juego compilado, no una hipotesis.
+PANTALLA_STOP_PRESS:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6739: cdd178
+    LD HL,$801B                       ; 673C: 211b80
+    CALL REPETIR_CARACTER             ; 673F: cdf47e
+    LD HL,$8040                       ; 6742: 214080
+    CALL REPETIR_CARACTER             ; 6745: cdf47e
+    LD HL,$8064                       ; 6748: 216480
+    CALL REPETIR_CARACTER             ; 674B: cdf47e
+    LD HL,$8088                       ; 674E: 218880
+    CALL REPETIR_CARACTER             ; 6751: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6754: cdd178
+    LD HL,$809D                       ; 6757: 219d80
+    CALL REPETIR_CARACTER             ; 675A: cdf47e
+    LD A,$02                          ; 675D: 3e02
+    CALL GENERAR_ALEATORIO            ; 675F: cd537d
+    OR A                              ; 6762: b7
+    JR Z,$677E                        ; 6763: 2819
+    LD HL,($815A)                     ; 6765: 2a5a81
+    LD BC,$00C8                       ; 6768: 01c800
+    ADD HL,BC                         ; 676B: 09
+    LD ($815A),HL                     ; 676C: 225a81
+    LD HL,$80B8                       ; 676F: 21b880
+    CALL REPETIR_CARACTER             ; 6772: cdf47e
+    LD HL,$80C2                       ; 6775: 21c280
+    CALL REPETIR_CARACTER             ; 6778: cdf47e
+    JP $6795                          ; 677B: c39567
+    LD A,($816A)                      ; 677E: 3a6a81
+    CP $07                            ; 6781: fe07
+    JR Z,$6765                        ; 6783: 28e0
+    INC A                             ; 6785: 3c
+    LD ($816A),A                      ; 6786: 326a81
+    LD HL,$80E0                       ; 6789: 21e080
+    CALL REPETIR_CARACTER             ; 678C: cdf47e
+    LD HL,$80EA                       ; 678F: 21ea80
+    CALL REPETIR_CARACTER             ; 6792: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6795: cdd178
+    LD HL,$80FB                       ; 6798: 21fb80
+    CALL REPETIR_CARACTER             ; 679B: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 679E: cdd178
+    LD A,$4C                          ; 67A1: 3e4c
+    CALL FIRM_KM_TEST_KEY             ; 67A3: cd1ebb
+    JP NZ,PREPARAR_NIVEL              ; 67A6: c23465
+    LD A,$3E                          ; 67A9: 3e3e
+    CALL FIRM_KM_TEST_KEY             ; 67AB: cd1ebb
+    JP NZ,PREPARAR_NIVEL              ; 67AE: c23465
+    JR $679E                          ; 67B1: 18eb
+
+; PANTALLA_GAME_OVER ($67B3): alcanzada solo por las 4 "JP C,
+; PANTALLA_GAME_OVER" del bucle principal (acarreo = jugador atrapado,
+; hipotesis alta). Imprime el titulo "GAME OVER" (TEXTO_HISTORIA_
+; ATRACCION+$108, ya confirmado como texto literal en Sesion 8) letra
+; a letra con una pausa de $0400 iteraciones entre cada una (efecto de
+; revelado dramatico), mas una pausa final de $4000 iteraciones, y
+; despues entra en ACTUALIZAR_TABLA_PUNTUACIONES sin preguntar nada --
+; a diferencia de PANTALLA_STOP_PRESS, aqui NO hay espera de tecla
+; L/Intro: se pasa automaticamente a comprobar/insertar la puntuacion.
+; Confianza alta (verificada byte a byte).
+PANTALLA_GAME_OVER:
+    LD HL,$8125                       ; 67B3: 212581
+    CALL REPETIR_CARACTER             ; 67B6: cdf47e
+    LD HL,$090A                       ; 67B9: 210a09
+    LD DE,$1F11                       ; 67BC: 11111f
+    CALL BORRAR_RECTANGULO_VENTANA    ; 67BF: cdb97e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67C2: cdd178
+    LD HL,$0000                       ; 67C5: 210000
+    LD DE,$2718                       ; 67C8: 111827
+    CALL FIRM_TXT_WIN_ENABLE          ; 67CB: cd66bb
+    LD HL,$0D0E                       ; 67CE: 210e0d
+    CALL FIRM_TXT_SET_CURSOR          ; 67D1: cd75bb
+    LD HL,$812D                       ; 67D4: 212d81
+    LD B,$09                          ; 67D7: 0609
+    PUSH BC                           ; 67D9: c5
+    PUSH HL                           ; 67DA: e5
+    LD DE,$0400                       ; 67DB: 110004
+    PUSH DE                           ; 67DE: d5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67DF: cdd178
+    POP DE                            ; 67E2: d1
+    DEC DE                            ; 67E3: 1b
+    LD A,D                            ; 67E4: 7a
+    OR E                              ; 67E5: b3
+    JR NZ,$67DE                       ; 67E6: 20f6
+    POP HL                            ; 67E8: e1
+    LD A,(HL)                         ; 67E9: 7e
+    INC HL                            ; 67EA: 23
+    CALL FIRM_TXT_OUTPUT              ; 67EB: cd5abb
+    LD A,$20                          ; 67EE: 3e20
+    CALL FIRM_TXT_OUTPUT              ; 67F0: cd5abb
+    POP BC                            ; 67F3: c1
+    DJNZ $67D9                        ; 67F4: 10e3
+    LD DE,$4000                       ; 67F6: 110040
+    PUSH DE                           ; 67F9: d5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67FA: cdd178
+    POP DE                            ; 67FD: d1
+    DEC DE                            ; 67FE: 1b
+    LD A,D                            ; 67FF: 7a
+    OR E                              ; 6800: b3
+    JR NZ,$67F9                       ; 6801: 20f6
+
+; ACTUALIZAR_TABLA_PUNTUACIONES ($6803): compara la puntuacion actual
+; ($815A) contra la ultima entrada (mas baja) de la tabla HI-SCORE de 5
+; entradas de 18 bytes en $86C2-$8749 (confirmada por el codigo del
+; propio arranque del programa, $6310-$6325, que ya la lee para
+; mostrarla). Si no supera ni siquiera la ultima entrada (acarreo),
+; salta a $6039 -- DENTRO de la cabecera ya reconstruida, justo el
+; punto que reinicia la semilla aleatoria y encadena con
+; BORRAR_BLOQUE_ESTADO/dibujo del marco/tabla de puntuaciones/menu
+; principal -- es decir, vuelve al modo atraccion sin pedir nombre.
+; Si SI hay una puntuacion nueva: activa ($8168)=1 (el flag que
+; REANUDAR_MENU_TRAS_NOMBRE usa para saber si hay que teclear un
+; nombre -- Sesion 12), calcula el rango (1-5) comparando contra cada
+; entrada de la tabla (IX retrocede 18 bytes por cada entrada superior
+; que encuentra), fija la ventana de texto para la fila de entrada del
+; nombre segun el rango, desplaza con LDIR las entradas peores un
+; puesto hacia abajo, y escribe la puntuacion nueva + 11 espacios (el
+; hueco del nombre, que se rellenara letra a letra en el bucle de
+; tecleo de nombre ya reconstruido) en el hueco liberado. Termina con
+; "JP $6223" -- tambien dentro de la cabecera ya reconstruida, la
+; pantalla que dibuja los indicadores de 1/2 jugadores y de ahi cae en
+; el bucle de tecleo de nombre. Confianza alta en toda la estructura
+; (verificada byte a byte, encaja exactamente con el codigo de lectura
+; de la tabla ya confirmado en la cabecera).
+ACTUALIZAR_TABLA_PUNTUACIONES:
+    XOR A                             ; 6803: af
+    LD HL,($815A)                     ; 6804: 2a5a81
+    LD BC,($86D4)                     ; 6807: ed4bd486
+    SBC HL,BC                         ; 680B: ed42
+    JP C,$6039                        ; 680D: da3960
+    LD A,$01                          ; 6810: 3e01
+    LD ($8168),A                      ; 6812: 326881
+    LD DE,$0012                       ; 6815: 111200
+    LD IX,$86D4                       ; 6818: dd21d486
+    XOR A                             ; 681C: af
+    LD B,$05                          ; 681D: 0605
+    PUSH BC                           ; 681F: c5
+    LD HL,($815A)                     ; 6820: 2a5a81
+    LD C,(IX+0)                       ; 6823: dd4e00
+    LD B,(IX+1)                       ; 6826: dd4601
+    SBC HL,BC                         ; 6829: ed42
+    POP BC                            ; 682B: c1
+    JR Z,$683B                        ; 682C: 280d
+    JR C,$683A                        ; 682E: 380a
+    PUSH IX                           ; 6830: dde5
+    POP HL                            ; 6832: e1
+    SBC HL,DE                         ; 6833: ed52
+    PUSH HL                           ; 6835: e5
+    POP IX                            ; 6836: dde1
+    DJNZ $681F                        ; 6838: 10e5
+    INC B                             ; 683A: 04
+    LD A,B                            ; 683B: 78
+    ADD A,A                           ; 683C: 87
+    ADD A,$08                         ; 683D: c608
+    LD H,$12                          ; 683F: 2612
+    LD L,A                            ; 6841: 6f
+    LD ($7FC6),HL                     ; 6842: 22c67f
+    LD HL,$86D4                       ; 6845: 21d486
+    LD A,$05                          ; 6848: 3e05
+    CP B                              ; 684A: b8
+    JR Z,$6893                        ; 684B: 2846
+    SUB B                             ; 684D: 90
+    LD B,A                            ; 684E: 47
+    PUSH BC                           ; 684F: c5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6850: cdd178
+    POP BC                            ; 6853: c1
+    LD HL,$86C2                       ; 6854: 21c286
+    LD DE,$86D4                       ; 6857: 11d486
+    PUSH BC                           ; 685A: c5
+    LD BC,$0012                       ; 685B: 011200
+    LDIR                              ; 685E: edb0
+    XOR A                             ; 6860: af
+    LD BC,$0024                       ; 6861: 012400
+    SBC HL,BC                         ; 6864: ed42
+    EX DE,HL                          ; 6866: eb
+    SBC HL,BC                         ; 6867: ed42
+    EX DE,HL                          ; 6869: eb
+    POP BC                            ; 686A: c1
+    DJNZ $685A                        ; 686B: 10ed
+    PUSH HL                           ; 686D: e5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 686E: cdd178
+    POP HL                            ; 6871: e1
+    LD BC,$0012                       ; 6872: 011200
+    ADD HL,BC                         ; 6875: 09
+    PUSH HL                           ; 6876: e5
+    LD HL,$8691                       ; 6877: 219186
+    LD A,$0A                          ; 687A: 3e0a
+    LD (HL),A                         ; 687C: 77
+    ADD HL,BC                         ; 687D: 09
+    LD A,$0C                          ; 687E: 3e0c
+    LD (HL),A                         ; 6880: 77
+    ADD HL,BC                         ; 6881: 09
+    LD A,$0E                          ; 6882: 3e0e
+    LD (HL),A                         ; 6884: 77
+    ADD HL,BC                         ; 6885: 09
+    LD A,$10                          ; 6886: 3e10
+    LD (HL),A                         ; 6888: 77
+    ADD HL,BC                         ; 6889: 09
+    LD A,$12                          ; 688A: 3e12
+    LD (HL),A                         ; 688C: 77
+    LD HL,$86D6                       ; 688D: 21d686
+    DEC A                             ; 6890: 3d
+    LD (HL),A                         ; 6891: 77
+    POP HL                            ; 6892: e1
+    LD DE,($815A)                     ; 6893: ed5b5a81
+    LD (HL),E                         ; 6897: 73
+    INC HL                            ; 6898: 23
+    LD (HL),D                         ; 6899: 72
+    LD BC,$0005                       ; 689A: 010500
+    ADD HL,BC                         ; 689D: 09
+    LD ($7FC8),HL                     ; 689E: 22c87f
+    LD A,$20                          ; 68A1: 3e20
+    LD (HL),A                         ; 68A3: 77
+    PUSH HL                           ; 68A4: e5
+    POP DE                            ; 68A5: d1
+    INC DE                            ; 68A6: 13
+    LD BC,$000B                       ; 68A7: 010b00
+    LDIR                              ; 68AA: edb0
+    JP $6223                          ; 68AC: c32362
+
+; TRAMPOLIN_TECLA_B ($68AF): destino de la comprobacion de la tecla
+; 'B' al principio de BUCLE_PRINCIPAL_JUEGO -- ver comentario alli.
+TRAMPOLIN_TECLA_B:
+    JP INICIO_TURNO_JUGADOR1          ; 68AF: c3f566
+
+; ---- $68B2-$7862 (4017 bytes): resto sin analizar todavia. Explorado
+; mecanicamente en la Sesion 13 (sin promover a codigo fuente) -- es la
+; entrada 'I' (instrucciones) desde DESPACHAR_MENU_PRINCIPAL. Estructura
+; observada sin verificar con el mismo rigor que el resto de esta
+; sesion: un despachador corto en $68B2-$69EAish que llama en cadena a
+; $69D2 (posible "imprimir bloque de texto", recibe HL apuntando a un
+; parrafo), $698A y $69AC (posiblemente separadores/paginas), y a
+; $7D85/$7D9D (ya definidas mas abajo en RELLENAR_FILAS_MASCARA, sin
+; resolver su papel aqui); a partir de $69EA y durante la mayor parte
+; del tramo el contenido son bloques de TEXTO LITERAL (la pantalla de
+; instrucciones del juego), apuntados por los HL de cada CALL $69D2.
+; No se ha verificado byte a byte ni separado con precision donde acaba
+; el codigo del despachador y donde empieza cada bloque de texto -- se
+; deja completo como INCBIN, pendiente para la siguiente sesion. Ver
+; FINDINGS.md Sesion 13.
+    INCBIN "data/mummy1_resto_sin_analizar.bin", 1201, 4017  ; $68B2-$7862, sin analizar todavia
+
+; ---- $7863-$786B (9 bytes): tercer tramo promovido del INCBIN --
+; Sesion 13. Cierra el ultimo hueco del INCBIN original: cae, sin
+; ningun salto de por medio, en IMPRIMIR_NUMERO_HL ($786C, ya
+; reconstruida desde antes de la Sesion 12) -- confirmado que las 3
+; instrucciones enlazan exactamente con el primer byte de esa rutina,
+; sin solape ni hueco. Localizada porque ACTUALIZAR_HUD_VIDAS ($65D5,
+; mas arriba) la llama con "CALL $7863" para refrescar la puntuacion
+; del HUD al empezar cada nivel. Confianza alta (verificada byte a
+; byte, encaja exacto con el limite del INCBIN y con IMPRIMIR_NUMERO_HL).
+; IMPRIMIR_PUNTUACION_HUD: coloca el cursor en columna 9, fila 1 (la
+; posicion de la puntuacion en el HUD, coherente con las otras
+; posiciones de cursor ya usadas en este tramo) y cae directamente en
+; IMPRIMIR_NUMERO_HL con HL=($815A) (puntuacion).
+IMPRIMIR_PUNTUACION_HUD:
+    LD HL,$0901                      ; 7863: 210109
+    CALL FIRM_TXT_SET_CURSOR         ; 7866: cd75bb
+    LD HL,($815A)                    ; 7869: 2a5a81
 
 ; ---- IMPRIMIR_NUMERO_HL / ESPERAR_TECLA_2C / ANIMAR_OPCION_MENU / ACTUALIZAR_SECUENCIA_SONIDO /
 ; MOVER_INDICADOR_MENU / INICIALIZAR_ENTIDADES / INICIALIZAR_UNA_ENTIDAD / COLOCAR_ENTIDAD /

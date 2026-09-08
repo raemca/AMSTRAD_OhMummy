@@ -2165,3 +2165,238 @@ de "GAME OVER"/HI-SCORE en `$6739`-`$68AC`, y la entrada `'I'` de
 instrucciones en `$68B2`. Sigue también todo lo pendiente de sesiones
 anteriores (orientación de las 4 direcciones de `'T'`, confirmación en
 emulador, numeración de teclas del firmware).
+
+## Sesión 13 — 2026-09-09: arranque de partida, bucle de juego y fin de partida (`$6529`-`$68B1` + `$7863`-`$786B`, 914 bytes) — resuelve el llamador de `RELLENAR_MARCO_DIAGONAL_1..6`
+
+Ataca el hueco más grande que quedaba (`$6529`-`$786B`, 4931 bytes),
+siguiendo la metodología obligatoria: arranca desde el punto de
+entrada real ya confirmado (`$6529`, destino de los 2 `JP Z,$6529` de
+tecla P/p en `DESPACHAR_MENU_PRINCIPAL`) y sigue el hilo de
+llamadas/saltos sin avanzar linealmente a ciegas. Se verificaron todas
+las pistas dejadas por la Sesión 12 leyendo el disassembly real antes
+de nombrar nada (ver más abajo, confirmado/descartado/pendiente para
+cada una).
+
+### Metodología de esta sesión
+
+Se generó un desensamblado mecánico auxiliar (script propio sobre
+`tools/z80_disasm.py` como librería, sin comprometerlo al repositorio)
+para leer instrucción a instrucción desde `$6529` de forma continua,
+sin saltos, hasta confirmar el punto de corte natural (`$68B1`, justo
+antes de la entrada `'I'` de instrucciones en `$68B2`). Cada hipótesis
+semántica se contrastó contra código y datos **ya reconstruidos** en
+sesiones anteriores (variables `$8155`/`$8157`/`$8158`/`$8161`/`$8169`
+ya usadas por `DIBUJAR_ENTIDAD`/`COLOCAR_ENTIDAD`/`INICIALIZAR_UNA_ENTIDAD`,
+la tabla HI-SCORE en `$86C2`-`$8749` ya leída por el código de
+cabecera en `$6310`-`$6325`, etc.) antes de darla por buena.
+
+### `INICIAR_PARTIDA` (`$6529`) / `PREPARAR_NIVEL` (`$6534`)
+
+`INICIAR_PARTIDA` es la única vez en todo el tramo que se fijan
+vidas=5 (`$816A`) y puntuación=0 (`$815A`); cae en `PREPARAR_NIVEL`,
+que reinicia el nivel (`$815C`) a 0 y es también el destino de las 2
+`JP NZ,$6534` de `PANTALLA_STOP_PRESS` (teclas L/Intro tras completar
+los 6 niveles). Hallazgo a documentar con honestidad: esa reentrada
+**no** toca vidas ni puntuación — solo el nivel. No se ha encontrado
+ningún otro punto en el tramo que las reinicie, así que ese es el
+comportamiento real tal cual está compilado (confianza alta en la
+estructura, media en que sea intencional). Si la puntuación no es 0 al
+entrar en `PREPARAR_NIVEL` (solo posible por esa reentrada), se reduce
+a la mitad aproximadamente el límite de persecución de la IA
+(`$8161`, `SRL A:OR $03`) — partidas sucesivas se vuelven más
+difíciles (hipótesis media-alta).
+
+### `PREPARAR_TESOROS_NIVEL` (`$6585`): confirma la pista de "colocación aleatoria de 14 elementos" de la Sesión 12
+
+Rellena de `$60` (marcador "vacío") las 25 casillas `$81DE`-`$81F6`,
+fuerza a 0 seis celdas fijas (offsets `IY`+13/14/20/21/27/28 de
+`$81D6` — hipótesis media: paredes/columnas fijas del diamante
+central), y coloca 14 "tesoros" en casillas libres elegidas al azar
+(`GENERAR_ALEATORIO(26)+8`, reintenta si la celda no está a `$60`). El
+valor escrito sube de `$10` en `$10` (`$10,$20,$30,$40`) y a partir de
+`$50` se queda fijo para el resto de colocaciones — confirmado leyendo
+el propio bucle (`CP $50:JR Z,salta-incremento`). Interpretación
+(confianza media-alta): 4 tesoros de valor creciente + 10 tesoros
+"comunes" del valor más alto. Sin confirmar en emulador el efecto
+visual/de puntuación exacto.
+
+### `ACTUALIZAR_HUD_VIDAS` (`$65D5`): confirma `$816A` como contador de vidas
+
+Llama a `IMPRIMIR_PUNTUACION_HUD` (cierra el tramo `$7863`-`$786B`,
+ver más abajo) y después dibuja tantos iconos de jugador ('A') como
+vidas queden en `$816A`, avanzando la posición de pantalla de 4 en 4 y
+alternando el fotograma. Es la evidencia que sube `$816A` a confianza
+alta como "contador de vidas visible en el HUD": se inicializa a 5 en
+`INICIAR_PARTIDA` y puede subir hasta un tope de 7 como premio
+aleatorio en `PANTALLA_STOP_PRESS` (ver más abajo). **Importante,
+documentado con honestidad**: no se ha localizado en este tramo ningún
+punto que lo DECREMENTE — su consumo real al ser atrapado por una
+momia, si existe, cae dentro de alguna de las 4 llamadas todavía sin
+resolver del bucle principal. Confianza media (no alta) en que sea
+literalmente el clásico contador de "vidas restantes".
+
+### `SELECCIONAR_DIAGONAL_MARCO_NIVEL` (`$6685`): RESUELVE el pendiente explícito de la Sesión 7/12
+
+Según el nivel actual (`$815C`) elige una de 5 variantes de
+`RELLENAR_MARCO_DIAGONAL_1..6` (nivel 0/1→`_6`, 2→`_4`, 3→`_5`,
+4→`_1`, ≥5→`_3`) y parchea con código automodificable el operando de
+`CALL $7E29` en `$66B9` (los 2 bytes en `$66BA`) antes de ejecutarlo.
+`RELLENAR_MARCO_DIAGONAL_2` **sigue sin usarse** en ningún punto de
+este tramo — confirma la sospecha que ya dejaba apuntada la Sesión 12.
+El bucle anidado B=4 (paso `HL+=$2800`) × B=5 (paso `HL+=$000E`)
+dibuja una rejilla de 4×5=20 bloques diagonales — probable borde
+decorativo de la pirámide de ese nivel. Confianza alta en la
+estructura (verificada byte a byte, cuadra exacto con la pista de la
+Sesión 12); media en el papel visual exacto.
+
+### `BUCLE_PRINCIPAL_JUEGO` (`$66ED`): confirma la pista de la Sesión 12, con hallazgos nuevos
+
+Empieza comprobando la tecla `'B'` — **hallazgo**: ambas ramas
+(pulsada o no) confluyen en el mismo destino (`TRAMPOLIN_TECLA_B` →
+`INICIO_TURNO_JUGADOR1`), sin efecto funcional observable (confianza
+alta en la estructura, baja en su propósito — posible resto de una
+funcionalidad no terminada). Para cada jugador (B=1, luego B=2):
+`ANIMAR_OPCION_MENU` y una secuencia de 4 llamadas que **siguen sin
+resolver** (`$7578`, `$77D1`, `$7637`, `$7566` — las mismas 4 de la
+Sesión 12, confirmado que caen dentro del hueco `$68B2`-`$7862` que
+sigue sin analizar), 2 de las cuales comprueban el acarreo
+(`JP C,PANTALLA_GAME_OVER`) tras `CALL $7578` — hipótesis alta de que
+el acarreo señaliza "jugador atrapado por una momia". Tras ambos
+turnos, si no quedan coleccionables (`($816D)=0`, primer byte de la
+entidad #1) llama a `$7513` (también sin resolver — hipótesis media:
+avance de nivel).
+
+### `PANTALLA_STOP_PRESS` (`$6739`) vs `PANTALLA_GAME_OVER`/`ACTUALIZAR_TABLA_PUNTUACIONES` (`$67B3`/`$6803`): resuelve y matiza la pista de "GAME OVER/HI-SCORE" de la Sesión 12
+
+Son dos pantallas de fin de partida **completamente separadas**, sin
+código compartido:
+
+- `PANTALLA_STOP_PRESS` se alcanza solo al completar los 6 niveles
+  (`JP Z` desde `PREPARAR_NIVEL`). Imprime la noticia "STOP PRESS...
+  excavation of ancient Egyptian pyramid" y sortea entre 200 puntos de
+  bonus o una vida extra (tope 7). Termina esperando L/Intro y salta
+  DIRECTAMENTE a `PREPARAR_NIVEL`.
+- `PANTALLA_GAME_OVER` se alcanza solo por las 4 `JP C` del bucle
+  principal (muerte). Imprime "GAME OVER" letra a letra con pausa
+  dramática y entra automáticamente (sin preguntar nada) en
+  `ACTUALIZAR_TABLA_PUNTUACIONES`.
+
+**Hallazgo importante, verificado byte a byte y no una hipótesis**: el
+camino de "ganar" (`PANTALLA_STOP_PRESS`) **no pasa nunca** por
+`ACTUALIZAR_TABLA_PUNTUACIONES` — solo "morir" consulta/actualiza la
+tabla HI-SCORE en este tramo. Es una asimetría real del juego
+compilado.
+
+`ACTUALIZAR_TABLA_PUNTUACIONES` compara la puntuación contra la última
+entrada de la tabla HI-SCORE (`$86C2`-`$8749`, 5 entradas de 18 bytes,
+ya confirmada por el código de cabecera `$6310`-`$6325` que la lee
+para mostrarla). Si no la supera, `JP C,$6039` — dentro de la cabecera
+ya reconstruida, vuelve al modo atracción sin pedir nombre. Si la
+supera: activa `($8168)=1` (el flag que `REANUDAR_MENU_TRAS_NOMBRE`
+usa para saber si hay que teclear nombre, Sesión 12), calcula el rango
+1-5, desplaza las entradas peores con `LDIR`, escribe la puntuación +
+11 espacios en el hueco liberado, y `JP $6223` (también dentro de la
+cabecera ya reconstruida). Cierra así, con evidencia directa, el
+mecanismo de inserción en la tabla HI-SCORE que quedaba solo
+parcialmente entendido desde la Sesión 8/12.
+
+### `$7863`-`$786B` (9 bytes): cierra el último tramo del `INCBIN` original
+
+`IMPRIMIR_PUNTUACION_HUD`: posiciona el cursor y cae, sin ningún salto
+de por medio, en `IMPRIMIR_NUMERO_HL` (`$786C`, ya reconstruida desde
+antes de la Sesión 12) — confirmado que las 3 instrucciones enlazan
+exactamente con el primer byte de esa rutina. Localizada porque
+`ACTUALIZAR_HUD_VIDAS` la llama con `CALL $7863`. Se promueve por
+separado, dejando un `INCBIN` intermedio (`$68B2`-`$7862`) para el
+tramo todavía sin analizar.
+
+### Pistas de la Sesión 12: confirmado / descartado / pendiente
+
+- **Llamador de `RELLENAR_MARCO_DIAGONAL_1..6` en `$6685`-`$66A8`**:
+  **CONFIRMADO** con precisión — ver `SELECCIONAR_DIAGONAL_MARCO_NIVEL`
+  arriba, incluida la confirmación de que `_2` sigue sin usarse.
+- **Colocación aleatoria de 14 elementos en `$81D6`, código en
+  `$65AD`-`$65D2`**: **CONFIRMADO** — ver `PREPARAR_TESOROS_NIVEL`
+  arriba, con el detalle nuevo de los 4 valores crecientes + 10
+  comunes.
+- **Bucle principal de juego en `$66ED`-`$6736`, con 4 llamadas sin
+  resolver a `$7578`, `$77D1`, `$7637`, `$7566`**: **CONFIRMADA la
+  estructura** (`BUCLE_PRINCIPAL_JUEGO`), pero las 4 llamadas **SIGUEN
+  SIN RESOLVER** — confirmado que caen dentro del hueco `$68B2`-`$7862`
+  todavía pendiente (no se pudieron seguir esta sesión: la Sesión 12
+  las suponía "probablemente dentro del hueco a analizar", lo cual se
+  confirma literalmente).
+- **Pantalla GAME OVER/HI-SCORE en `$6739`-`$68AC`**: **CONFIRMADA y
+  matizada** — en realidad son DOS pantallas distintas
+  (`PANTALLA_STOP_PRESS` y `PANTALLA_GAME_OVER`) con la asimetría del
+  hi-score descrita arriba, no una sola pantalla combinada como
+  sugería la redacción de la pista.
+- **Entrada `'I'` de instrucciones en `$68B2`**: explorada
+  mecánicamente esta sesión (ver más abajo) pero **NO promovida** —
+  queda pendiente para la siguiente sesión.
+
+### Exploración (sin promover a fuente) del hueco restante `$68B2`-`$7862`
+
+Desensamblado mecánico sin comprometer al repositorio, con mucho menos
+rigor que el resto de esta sesión (no se verificó byte a byte el
+límite exacto entre código y datos). Estructura observada: un
+despachador corto en `$68B2` que llama en cadena a `$69D2` (hipótesis:
+"imprimir bloque de texto", recibe `HL` apuntando a un párrafo),
+`$698A` y `$69AC` (hipótesis: separadores/páginas), y a `$7D85`/`$7D9D`
+(ya definidas en `RELLENAR_FILAS_MASCARA`, sin resolver su papel
+aquí). A partir de aproximadamente `$69EA` y durante la mayor parte
+del tramo el contenido son bloques de **texto literal** (la pantalla
+de instrucciones del juego), apuntados por los `HL` de cada
+`CALL $69D2` — confirmado por lectura directa de varios fragmentos
+(texto legible mezclado con códigos de control, mismo patrón que
+`TEXTO_MENU_OPCIONES`/`TEXTO_HISTORIA_ATRACCION` de la Sesión 8). No
+se ha separado con precisión dónde acaba el código del despachador y
+dónde empieza cada bloque de texto — se deja completo como `INCBIN`,
+pendiente para la siguiente sesión.
+
+### Cambios en `mummy1_body.asm`
+
+`INCBIN "data/mummy1_resto_sin_analizar.bin", 296, 4931` (`$6529`-`$786B`)
+sustituido por: 905 bytes de código fuente real (`INICIAR_PARTIDA`,
+`PREPARAR_NIVEL`, `PREPARAR_TESOROS_NIVEL`, `ACTUALIZAR_HUD_VIDAS`,
+`LIMPIAR_PANELES_NIVEL`, `SELECCIONAR_DIAGONAL_MARCO_NIVEL`,
+`COLOCAR_JUGADOR_INICIAL`, `BUCLE_PRINCIPAL_JUEGO`,
+`INICIO_TURNO_JUGADOR1`, `PANTALLA_STOP_PRESS`, `PANTALLA_GAME_OVER`,
+`ACTUALIZAR_TABLA_PUNTUACIONES`, `TRAMPOLIN_TECLA_B`) + `INCBIN
+"data/mummy1_resto_sin_analizar.bin", 1201, 4017` para `$68B2`-`$7862`
++ 9 bytes de código fuente real (`IMPRIMIR_PUNTUACION_HUD`) para
+`$7863`-`$786B`. Ningún byte del binario cambia.
+
+### Verificación
+
+`python tools/build_all.py`: **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) — verificado tras sustituir el `INCBIN` y de
+nuevo al cerrar la sesión.
+
+### Documentación actualizada
+
+`README.md`, `README.en.md`, `src/README.md` (cifras del tramo
+pendiente actualizadas a 4017 bytes / `$68B2`-`$7862`, tabla de
+rutinas de la Sesión 13 añadida en `src/README.md`),
+`recursos/flujo_programa.html` (entradas nuevas de esta sesión),
+`recursos/flujo_detallado.html` (nodos y aristas nuevos, según la
+regla de mantenimiento de `prompts/_base_reconstruccion.md`) y
+`recursos/mapa_memoria.html` (divide el segmento "sin analizar
+todavía" en el punto donde termina el nuevo tramo, `$68B1`/`$68B2`,
+más el hueco final resuelto en `$786B`/`$786C`).
+
+### Pendiente para la siguiente sesión
+
+**Punto de entrada real desde el que continuar: `$68B2`** (entrada
+`'I'` de instrucciones desde `DESPACHAR_MENU_PRINCIPAL`), único hueco
+que queda en todo el motor (`$68B2`-`$7862`, 4017 bytes). Pistas
+concretas dejadas para no perder tiempo redescubriéndolas: el
+despachador de texto en `$68B2`-`$69EAish` (`$69D2`/`$698A`/`$69AC`),
+el papel de `$7D85`/`$7D9D` en ese contexto, y el límite exacto entre
+código y las tablas de texto de la pantalla de instrucciones. También
+siguen pendientes, ahora confirmado que caen dentro de este mismo
+hueco: las 5 llamadas sin resolver del bucle principal (`$7578`,
+`$77D1`, `$7637`, `$7566`, `$7513`). Sigue también todo lo pendiente
+de sesiones anteriores (orientación de las 4 direcciones de `'T'`,
+confirmación en emulador, numeración de teclas del firmware, consumo
+real de `$816A` como vidas).
