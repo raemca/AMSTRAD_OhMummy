@@ -31,9 +31,16 @@ dirección de carga y ejecución real del motor.
   tramo. Este tramo en sí sigue sin nombres semánticos propios
   (reconstrucción mecánica de primera pasada, solo llama a otras
   rutinas ya nombradas).
-- **`$6401`-`$786B`** (5227 bytes): el único tramo del motor que
+- **`$6401`-`$6528`** (296 bytes, Sesión 12): reconstruido como código
+  — los dos puntos de entrada reales tras la pantalla de "introducir
+  nombre" (`FIN_INTRODUCIR_NOMBRE` por caída natural,
+  `DESPACHAR_MENU_PRINCIPAL` por el `JP Z` de la cabecera cuando no se
+  tecleó nombre) y `PANTALLA_OPCIONES` (pantalla completa de opciones:
+  velocidad/dificultad de partida 1-5, música y efectos de sonido
+  Y/N).
+- **`$6529`-`$786B`** (4931 bytes): el único tramo del motor que
   sigue sin analizar, incluido tal cual con
-  `INCBIN "data/mummy1_resto_sin_analizar.bin", 0, 5227`.
+  `INCBIN "data/mummy1_resto_sin_analizar.bin", 296, 4931`.
 - **`$786C`-`$7EFC`** (1681 bytes, el 12.7% del motor): **38
   subrutinas de código ya reconstruidas con nombre funcional real**,
   en un único bloque contiguo (cerrado en la Sesión 7) —
@@ -87,6 +94,15 @@ verdad, sesión a sesión.
 | `RELLENAR_MARCO_DIAGONAL_1..6` / `RELLENAR_MARCO_DIAGONAL_BUCLE` | Marco decorativo — rellena alternando dos máscaras fila a fila vía código automodificable (Sesión 7: corrige la hipótesis previa "AND/OR", no hay AND ni OR en el bloque) | Media |
 | `PREPARAR_RELLENO_MASCARA_UNICA` / `RELLENAR_FILAS_MASCARA` | Marco decorativo — preparadores compartidos del relleno de máscara, reutilizan `CASILLA_A_DIRECCION_PANTALLA` | Alta |
 
+### Rutinas reconstruidas — Sesión 12 (`$6401`-`$6528`)
+
+| Etiqueta | Subsistema | Confianza |
+|---|---|---|
+| `FIN_INTRODUCIR_NOMBRE` | Menú — entrada por caída natural tras confirmar el nombre con Intro, redirige a `REANUDAR_MENU_TRAS_NOMBRE` | Alta |
+| `REANUDAR_MENU_TRAS_NOMBRE` (etiqueta añadida en la cabecera, `$636C`) | Menú — redibuja y decide si seguir tecleando el nombre o pasar al despachador principal | Alta en el flujo, media en el rol visual de `$86E8` |
+| `DESPACHAR_MENU_PRINCIPAL` | Menú — lee P/I/O para Play/Instructions/Options | Alta |
+| `PANTALLA_OPCIONES` | Menú — velocidad y dificultad de partida (1-5), música y efectos de sonido (Y/N), confirmar con L/Intro | Alta en estructura y variables, baja/media en el efecto visual exacto de los `REPETIR_CARACTER` |
+
 Ver `recursos/flujo_programa.html` para el inventario completo por
 dirección, `recursos/flujo_detallado.html` (Sesión 9) para el **grafo
 real de llamadas** (`CALL`/`CALL cc`/`JP`/`JP cc`/`JR`/caídas sin
@@ -119,8 +135,10 @@ en los tres** (los dos ficheros por separado y el disco completo).
 - `main.asm` — punto de entrada único de compilación (`ORG $6000`,
   `INCLUDE mummy1_body.asm`, `SAVEBIN`).
 - `mummy1_body.asm` — el motor: cabecera desensamblada a mano
-  (`$6000`-`$6400`) + 26 rutinas reconstruidas con nombre (1539 bytes,
-  2 bloques) + `INCBIN` (con offset/longitud) del resto sin analizar.
+  (`$6000`-`$6400`) + `FIN_INTRODUCIR_NOMBRE`/`DESPACHAR_MENU_PRINCIPAL`/
+  `PANTALLA_OPCIONES` (296 bytes, Sesión 12) + 42 rutinas reconstruidas
+  con nombre (1977 bytes, 2 bloques) + `INCBIN` (con offset/longitud)
+  del resto sin analizar.
 - `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
 - `data/` — recursos ya identificados y extraídos a fichero individual
   (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y

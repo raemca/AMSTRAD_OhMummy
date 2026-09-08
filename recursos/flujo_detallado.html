@@ -181,15 +181,18 @@
   Complementa a <code>recursos/flujo_programa.html</code> (inventario plano de rutinas) con el
   <strong>grafo real de llamadas</strong> entre ellas. Punto de entrada confirmado: <code>$6000</code>
   (<code>src/load_disk/mummy_bas.bas</code>, linea 570-580: <code>LOAD"!mummy1",&amp;6000:CALL &amp;6000</code>).
-  Ultima actualizacion: <strong>Sesion 9, 2026-09-07</strong> (creacion de esta pagina; ninguna rutina nueva
-  se ha desensamblado en esta sesion, ver el aviso de alcance).
+  Ultima actualizacion: <strong>Sesion 12, 2026-09-08</strong> (primer tramo real del ultimo hueco INCBIN,
+  <code>$6401</code>-<code>$6528</code>: 3 rutinas nuevas -- <code>FIN_INTRODUCIR_NOMBRE</code>,
+  <code>DESPACHAR_MENU_PRINCIPAL</code>, <code>PANTALLA_OPCIONES</code> -- mas una etiqueta anadida en la
+  cabecera, <code>REANUDAR_MENU_TRAS_NOMBRE</code>, sin cambiar bytes).
 </p>
 
 <div class="note alcance">
   <strong>Aviso de alcance -- leer antes de interpretar el grafo.</strong>
   <ul>
     <li><strong>Que se representa:</strong> las 38 rutinas de codigo ya reconstruidas y compiladas
-      (<code>$786C</code>-<code>$7EFC</code>, Sesiones 3-7), las 14 rutinas de firmware CPC identificadas
+      (<code>$786C</code>-<code>$7EFC</code>, Sesiones 3-7), las 3 rutinas nuevas de la Sesion 12
+      (<code>$6401</code>-<code>$6528</code>), las 14 rutinas de firmware CPC identificadas
       contra el manual oficial (Sesion 3), el bloque mecanico de arranque/menu <code>$6000</code>-<code>$6400</code>
       (desensamblado y verificado desde la Sesion 2, pero sin nombres semanticos propios todavia), y el
       cargador BASIC como origen externo de la primera llamada.</li>
@@ -199,9 +202,10 @@
       copiados sin mas de <code>FINDINGS.md</code>) mas los casos confirmados de caida directa sin
       <code>RET</code> (<em>fall-through</em>). Los accesos a datos (<code>LD</code>, tablas) se muestran
       aparte, en una capa opcional desactivada por defecto, y NUNCA como aristas de llamada.</li>
-    <li><strong>Que sigue fuera del grafo:</strong> el bloque <code>$6401</code>-<code>$786B</code>
-      (5227 bytes, el unico tramo del motor sin desensamblar) se representa como un unico nodo
-      "pendiente" sin desglosar en rutinas internas -- no se inventa ninguna subrutina dentro de el.
+    <li><strong>Que sigue fuera del grafo:</strong> el bloque <code>$6529</code>-<code>$786B</code>
+      (4931 bytes, el resto del unico tramo del motor sin desensamblar tras la Sesion 12) se representa
+      como un unico nodo "pendiente" sin desglosar en rutinas internas -- no se inventa ninguna subrutina
+      dentro de el.
       Tampoco se detalla el contenido interno de las ~29 tablas de sprite/casilla de
       <code>TABLAS_SPRITE_CASILLA</code> mas alla de lo ya nombrado (16 sprites + 10 losetas, Sesion 8).</li>
     <li><strong>Flujo indirecto:</strong> a fecha de esta sesion <strong>no se ha confirmado ningun
@@ -350,7 +354,7 @@ const NODOS = [
     evidencia: "src/load_disk/mummy_bas.bas: MEMORY 15000:LOAD\"!mummy1\",&6000:CALL &6000. Sesion 2.", sesion: "2" },
   { id: "ENTRADA_MOTOR", addr: "$6000", addrFin: "$6400", nombre: "$6000-$6400 (arranque + menu, sin nombre propio)", subsistema: "arranque", tipo: "codigo",
     estado: "confirmado", confianza: "alta en estructura -- sin nombre semantico propio (reconstruccion mecanica de primera pasada)",
-    evidencia: "Desensamblado a mano y verificado byte a byte desde la Sesion 2. Llama a rutinas ya nombradas en tramos posteriores por direccion literal en varios puntos (ver panel de relaciones indirectas).", sesion: "2" },
+    evidencia: "Desensamblado a mano y verificado byte a byte desde la Sesion 2. Llama a rutinas ya nombradas en tramos posteriores por direccion literal en varios puntos (ver panel de relaciones indirectas). Sesion 12: se le anade la etiqueta REANUDAR_MENU_TRAS_NOMBRE en $636C (sin cambiar ningun byte) -- destino real de JR Z,$636C ($6344) y del nuevo JP $636C ($6401), nunca alcanzado por caida natural.", sesion: "2" },
   { id: "BORRAR_BLOQUE_ESTADO", addr: "$7EAB", addrFin: "$7EB8", nombre: "BORRAR_BLOQUE_ESTADO", subsistema: "arranque", tipo: "codigo",
     estado: "confirmado", confianza: "alta",
     evidencia: "Borra a 0 desde ARRAY_ENTIDADES+5 ($8172) hasta el final de MAPA_CASILLAS ($860F), 1182 bytes, con LDIR origen=destino-1. Sesion 3/8.", sesion: "3" },
@@ -438,7 +442,7 @@ const NODOS = [
   { id: "RELLENAR_MARCO_DIAGONAL_4", addr: "$7E17", addrFin: "$7E1F", nombre: "RELLENAR_MARCO_DIAGONAL_4", subsistema: "render", tipo: "codigo",
     estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $F0, mascara $50. Llamador: ENTRADA_MOTOR via CALL $7E17 ($61CA) -- misma correccion. Sesion 7/9.", sesion: "7" },
   { id: "RELLENAR_MARCO_DIAGONAL_5", addr: "$7E20", addrFin: "$7E28", nombre: "RELLENAR_MARCO_DIAGONAL_5", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $FF, mascara $55. SIN llamador conocido en todo el codigo ya reconstruido (la unica de las 6 diagonales sin caller, junto a RELLENAR_MARCO_VACIO). Sesion 7/9.", sesion: "7" },
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $FF, mascara $55. SIN llamador CONFIRMADO todavia en codigo ya promovido (la unica de las 6 diagonales sin caller, junto a RELLENAR_MARCO_VACIO). Sesion 12: exploracion mecanica sin promover sugiere un llamador en $6685-$66A8 (despacho por nivel de partida, mismo mecanismo que resuelve las otras 5 diagonales) -- pendiente de verificar con rigor. Sesion 7/9/12.", sesion: "7" },
   { id: "RELLENAR_MARCO_DIAGONAL_6", addr: "$7E29", addrFin: "$7E2F", nombre: "RELLENAR_MARCO_DIAGONAL_6", subsistema: "render", tipo: "codigo",
     estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $0F, mascara $05, cae SIN JR en RELLENAR_MARCO_DIAGONAL_BUCLE (fall-through). Llamador: ENTRADA_MOTOR via CALL $7E29 (x4) -- misma correccion. Sesion 7/9.", sesion: "7" },
   { id: "RELLENAR_MARCO_DIAGONAL_BUCLE", addr: "$7E30", addrFin: "$7E4E", nombre: "RELLENAR_MARCO_DIAGONAL_BUCLE", subsistema: "render", tipo: "codigo",
@@ -463,9 +467,17 @@ const NODOS = [
     estado: "hipotesis", confianza: "alta", evidencia: "Borra un rectangulo de VENTANA_TEXTO_HUD (paso 40B/fila) y usa firmware TXT WIN ENABLE/TXT CLEAR WINDOW. Sesion 3, subida a alta en Sesion 5.", sesion: "3" },
   { id: "REPETIR_CARACTER", addr: "$7EF4", addrFin: "$7EFC", nombre: "REPETIR_CARACTER", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Repite un caracter N veces via FIRM_TXT_OUTPUT (formato cuenta+caracter). Sesion 3.", sesion: "3" },
+  // ---- menu (Sesion 12: primer tramo real del ultimo hueco INCBIN) ----
+  { id: "FIN_INTRODUCIR_NOMBRE", addr: "$6401", addrFin: "$6403", nombre: "FIN_INTRODUCIR_NOMBRE", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "JP $636C (3 bytes). Entrada por caida natural desde el final de ENTRADA_MOTOR ($63FE-$6400), alcanzada solo cuando ($8168)<>0 -- justo tras confirmar el nombre con Intro. Sesion 12.", sesion: "12" },
+  { id: "DESPACHAR_MENU_PRINCIPAL", addr: "$6404", addrFin: "$642A", nombre: "DESPACHAR_MENU_PRINCIPAL", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Lee un caracter y compara P/p/I/i/O/o -- coincide exactamente con TEXTO_MENU_PRINCIPAL (Sesion 8, Instructions/Options/Play). Sesion 12.", sesion: "12" },
+  { id: "PANTALLA_OPCIONES", addr: "$642B", addrFin: "$6528", nombre: "PANTALLA_OPCIONES", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta en estructura y variables, baja/media en el efecto visual exacto de REPETIR_CARACTER",
+    evidencia: "Pantalla 'OH MUMMY - OPTIONS' completa: fija ($8153)=retardo de partida y ($8161)=limite de persecucion IA segun 2 digitos 1-5 tecleados (cuadra numericamente con 'SPEED OF GAME'/'DIFFICULTY LEVEL' de TEXTO_MENU_OPCIONES, Sesion 8), y alterna FLAG_MUSICA_FONDO/FLAG_EFECTOS_SONIDO con '+'/'.'. Resuelve el pendiente de Sesion 8 sobre quien escribe FLAG_EFECTOS_SONIDO. Sesion 12.", sesion: "12" },
   // ---- pendiente ----
-  { id: "ZONA_PENDIENTE_6401_786B", addr: "$6401", addrFin: "$786B", nombre: "$6401-$786B -- sin analizar (5227 bytes)", subsistema: "pendiente", tipo: "pendiente",
-    estado: "pendiente", confianza: "n/a", evidencia: "Unico tramo del motor todavia incluido tal cual via INCBIN (data/mummy1_resto_sin_analizar.bin). No se le atribuye ninguna subrutina interna sin evidencia. Sesion 2-8.", sesion: "2" },
+  { id: "ZONA_PENDIENTE_6401_786B", addr: "$6529", addrFin: "$786B", nombre: "$6529-$786B -- sin analizar (4931 bytes)", subsistema: "pendiente", tipo: "pendiente",
+    estado: "pendiente", confianza: "n/a", evidencia: "Resto del unico tramo del motor todavia incluido tal cual via INCBIN (data/mummy1_resto_sin_analizar.bin, offset 296). Explorado mecanicamente sin comprometer a fuente en la Sesion 12: arranque de partida en $6529 (resuelve el llamador de RELLENAR_MARCO_DIAGONAL_1..6, pendiente desde Sesion 7, en $6685), posible bucle principal de juego en $66ED-$6736, pantalla GAME OVER/HI-SCORE en $6739-$68AC, entrada 'I' de instrucciones en $68B2 -- ver FINDINGS.md Sesion 12 para el detalle. No se le atribuye ninguna subrutina interna sin evidencia solida.", sesion: "2" },
   // ---- datos (capa opcional, oculta por defecto) ----
   { id: "DATO_ENVOLVENTES", addr: "$7FCA", addrFin: "$801C", nombre: "Envolventes de sonido (6 tablas)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta (limites); formato de campos sin desglosar", evidencia: "ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3, direcciones confirmadas por las LD HL previas a cada CALL FIRM_SOUND_*_ENV en ENTRADA_MOTOR. Sesion 3/8.", sesion: "3" },
@@ -529,7 +541,23 @@ const ARISTAS = [
   { from: "ENTRADA_MOTOR", to: "IMPRIMIR_NUMERO_HL", tipo: "call", nota: "CALL $786C x5 -- direccion literal" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "varias veces" },
   { from: "ENTRADA_MOTOR", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "CALL $7B39 x2 ($6279/$628A) -- direccion literal" },
-  { from: "ENTRADA_MOTOR", to: "ZONA_PENDIENTE_6401_786B", tipo: "jpcc", cond: "Z", nota: "JP Z,$6404 ($6380) -- destino cae dentro del hueco pendiente, sin resolver" },
+  { from: "ENTRADA_MOTOR", to: "DESPACHAR_MENU_PRINCIPAL", tipo: "jpcc", cond: "Z", nota: "JP Z,$6404 ($6380), cuando ($8168)=0. Sesion 12: destino ya resuelto (antes caia en el hueco pendiente)." },
+
+  { from: "ENTRADA_MOTOR", to: "FIN_INTRODUCIR_NOMBRE", tipo: "fallthrough", nota: "sin salto: $63FE-$6400 (fin de ENTRADA_MOTOR, CALL FIRM_TXT_SET_PAPER) precede directamente a $6401. Sesion 12." },
+  { from: "FIN_INTRODUCIR_NOMBRE", to: "ENTRADA_MOTOR", tipo: "jp", nota: "JP $636C (REANUDAR_MENU_TRAS_NOMBRE, dentro de ENTRADA_MOTOR). Sesion 12." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "$6404. Sesion 12." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "ENTRADA_MOTOR", tipo: "jpcc", cond: "NC/incondicional", nota: "JP NC,$6372 ($6407) y JP $6372 ($6428), ambos a REANUDAR_MENU_TRAS_NOMBRE. Sesion 12." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "PANTALLA_OPCIONES", tipo: "jpcc", cond: "Z", nota: "JP Z,$642B x2 ($6420 'O', $6425 'o'). Sesion 12." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "ZONA_PENDIENTE_6401_786B", tipo: "jpcc", cond: "Z", nota: "JP Z,$6529 x2 ($640C 'P', $6411 'p') -- jugar/empezar partida, todavia dentro del hueco pendiente. Sesion 12." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "ZONA_PENDIENTE_6401_786B", tipo: "jpcc", cond: "Z", nota: "JP Z,$68B2 x2 ($6416 'I', $641B 'i') -- instrucciones, todavia dentro del hueco pendiente. Sesion 12." },
+
+  { from: "PANTALLA_OPCIONES", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "x4 ($642B/$6439/$6461/$64DA). Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "REPETIR_CARACTER", tipo: "call", nota: "x6 (titulo + 4 preguntas + confirmacion), HL apunta dentro de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION. Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, intercalada. Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "x8 (tecla '+'/'.' de musica y efectos, x2; 'L'/Intro de confirmar, x2; mas los 2 pares de re-lectura). Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "x2, eco de los digitos de velocidad/dificultad tecleados. Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "FIRM_SOUND_RESET", tipo: "call", nota: "x2 ($64A0/$64B2), al activar FLAG_MUSICA_FONDO. Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "ENTRADA_MOTOR", tipo: "jpcc", cond: "NZ", nota: "JP NZ,$6223 x2 ($651C/$6524), al confirmar con 'L' o Intro -- vuelve al flujo de confirmar 1/2 jugadores dentro de ENTRADA_MOTOR." },
 
   { from: "ACTUALIZAR_SECUENCIA_SONIDO", to: "FIRM_SOUND_QUEUE", tipo: "callcc", cond: "Z", nota: "CALL Z,FIRM_SOUND_QUEUE ($78DA), solo si FLAG_MUSICA_FONDO='Y'" },
 
@@ -633,7 +661,10 @@ const RELACIONES_ADICIONALES = [
   { origen: "RELLENAR_MARCO_DIAGONAL_5 ($7E20)", destino: "-- (sin llamador)", tipo: "Rutina sin llamador conocido", detalle: "Es la unica de las 6 variantes diagonales sin llamador confirmado -- las otras 5 SI tienen llamador conocido en ENTRADA_MOTOR (correccion de esta sesion, ver mas abajo). Sesion 7/9." },
   { origen: "ENTRADA_MOTOR", destino: "RELLENAR_MARCO_DIAGONAL_1/2/3/4/6", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 7 y recursos/flujo_programa.html afirman 'sin llamador conocido todavia' para las 6 variantes diagonales. Releyendo src/mummy1_body.asm linea a linea para este grafo se confirma que 5 de las 6 (todas menos DIAGONAL_5) SI tienen llamador: el propio bloque ENTRADA_MOTOR ($6000-$6400) las llama por direccion literal (CALL $7DFC/$7E05/$7E0E/$7E17/$7E29) -- ese bloque nunca se renombro tras nombrar las rutinas destino en la Sesion 7, asi que la busqueda de 'llamador conocido' de esa sesion no lo detecto. Se propone actualizar flujo_programa.html y FINDINGS.md en consecuencia (ver la entrada de Sesion 9)." },
   { origen: "DIBUJAR_CASILLA_MAPA ($7CE6)", destino: "DIBUJAR_ENTIDAD, en $7CC4", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 6 resume que DIBUJAR_CASILLA_MAPA 'cae directamente (sin RET) en CONSULTAR_CASILLA_MAPA ($7D3E)'. El disassembly real muestra que todas las ramas de DIBUJAR_CASILLA_MAPA terminan en 'JR $7CC4' ($7D3C), una direccion dentro de DIBUJAR_ENTIDAD (el bucle comun de volcado a pantalla), no en CONSULTAR_CASILLA_MAPA. La adyacencia fisica en el fichero (CONSULTAR_CASILLA_MAPA arranca justo en $7D3E, 2 bytes despues) es our probable origen de la confusion en el resumen, pero no hay fall-through real: el JR salta fuera de esa direccion. No se ha corregido el texto de FINDINGS.md de sesiones pasadas (no se reescribe historia), pero este grafo usa el flujo verificado." },
-  { origen: "ENTRADA_MOTOR", destino: "hueco pendiente $6404 (dentro de $6401-$786B)", tipo: "Salto a zona sin resolver", detalle: "JP Z,$6404 ($6380): el destino cae 3 bytes dentro del unico tramo del motor sin desensamblar. No se nombra ninguna rutina ahi -- se marca como salto hacia el nodo 'pendiente'." },
+  { origen: "ENTRADA_MOTOR", destino: "DESPACHAR_MENU_PRINCIPAL ($6404)", tipo: "Salto resuelto en la Sesion 12", detalle: "JP Z,$6404 ($6380): hasta la Sesion 11 el destino caia en el hueco sin resolver. La Sesion 12 desensambla y nombra DESPACHAR_MENU_PRINCIPAL -- ya no aparece en este panel como 'salto a zona sin resolver'." },
+  { origen: "DESPACHAR_MENU_PRINCIPAL", destino: "hueco pendiente $6529/$68B2 (dentro de $6529-$786B)", tipo: "Salto a zona sin resolver", detalle: "JP Z,$6529 (tecla P/p, jugar) y JP Z,$68B2 (tecla I/i, instrucciones): ambos destinos caen dentro del resto del hueco INCBIN, todavia sin desensamblar. Se marcan como salto hacia el nodo 'pendiente'. Sesion 12." },
+  { origen: "(exploratorio, sin promover) $6685", destino: "RELLENAR_MARCO_DIAGONAL_1/3/4/5/6", tipo: "Pista para la siguiente sesion -- NO promovida a fuente", detalle: "Desensamblando mecanicamente mas alla de $6528 (sin comprometerlo a mummy1_body.asm) aparece en $6685-$66A8 un despacho por nivel de partida (($815C)) que parchea con codigo automodificable el operando de un CALL en $66BA, eligiendo entre $7DFC/$7E17/$7E20/$7E0E/$7E29 segun el nivel -- es decir, TAMBIEN resolveria a RELLENAR_MARCO_DIAGONAL_5 ($7E20, nivel==3), la unica variante que sigue marcada 'sin llamador conocido' en este grafo. Queda pendiente verificarlo con el mismo rigor que el resto de la Sesion 12 antes de darlo por confirmado. Sesion 12." },
+  { origen: "PANTALLA_OPCIONES", destino: "REPETIR_CARACTER, pares de bytes reciclados de TEXTO_MENU_OPCIONES", tipo: "Aclaracion sobre REPETIR_CARACTER", detalle: "Los 6 CALL REPETIR_CARACTER de PANTALLA_OPCIONES pasan HL apuntando DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION (p.ej. $7EFD, $7FBD, $80FB). Releyendo el propio codigo de REPETIR_CARACTER se confirma que repite UN SOLO caracter fijo B veces (no recorre una cadena) -- estas llamadas NO imprimen los rotulos 'OH MUMMY - OPTIONS'/'SPEED OF GAME...' como texto legible, reutilizan un par de bytes incidental como 'contador+caracter'. La impresion real de esos rotulos como texto sigue sin localizarse. Sesion 12." },
   { origen: "COLOCAR_ENTIDAD", destino: "PREPARAR_DIBUJAR_ENTIDAD", tipo: "JP condicional (no CALL)", detalle: "JP NZ,PREPARAR_DIBUJAR_ENTIDAD, dos veces ($79CA/$79D4). Al ser JP y no CALL, la ejecucion no vuelve a COLOCAR_ENTIDAD: quien continua tras PREPARAR_DIBUJAR_ENTIDAD/DIBUJAR_ENTIDAD es el llamador original de COLOCAR_ENTIDAD." },
   { origen: "COLOCAR_ENTIDAD", destino: "DIBUJAR_ENTIDAD", tipo: "JP incondicional (tail-jump)", detalle: "JP DIBUJAR_ENTIDAD ($79E7) tras decidir dibujar el sprite 'O' fijo -- mismo razonamiento que el caso anterior." },
   { origen: "RELLENAR_MARCO_MEDIO / _SOLIDO / _VACIO", destino: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "JP incondicional (tail-jump)", detalle: "Las 3 fijan un byte de mascara y saltan (no llaman) a la preparacion comun -- ahorra el RET/CALL a cambio de que el RET final 'pertenece' a PREPARAR_RELLENO_MASCARA_UNICA/RELLENAR_FILAS_MASCARA." },
@@ -647,8 +678,9 @@ const RELACIONES_ADICIONALES = [
 // PENDIENTES -- extraidos de los cierres de sesion de FINDINGS.md.
 // ============================================================================
 const PENDIENTES = [
-  "El unico hueco INCBIN que queda en el motor: $6401-$786B (5227 bytes) -- sesiones 2-8.",
-  "Localizar el llamador de RELLENAR_MARCO_VACIO ($7DF5) y de RELLENAR_MARCO_DIAGONAL_5 ($7E20) -- las unicas dos rutinas de renderizado del marco sin llamador conocido tras la correccion de esta sesion (las otras 5 diagonales SI tienen llamador, ver panel de relaciones indirectas).",
+  "El unico hueco INCBIN que queda en el motor: $6529-$786B (4931 bytes, tras promover $6401-$6528 en la Sesion 12) -- sesiones 2-12.",
+  "Punto de entrada real para continuar: $6529 (arranque de partida). Pistas ya localizadas sin promover a fuente (Sesion 12): resuelve el llamador de RELLENAR_MARCO_DIAGONAL_1..6 en $6685 (despacho por nivel, codigo automodificable sobre un CALL en $66BA); posible bucle principal de juego en $66ED-$6736 (4 llamadas internas sin resolver: $7578/$77D1/$7637/$7566); pantalla GAME OVER/HI-SCORE en $6739-$68AC; entrada 'I' de instrucciones en $68B2.",
+  "Localizar el llamador de RELLENAR_MARCO_VACIO ($7DF5) y de RELLENAR_MARCO_DIAGONAL_5 ($7E20) -- las unicas dos rutinas de renderizado del marco sin llamador CONFIRMADO (las otras 5 diagonales SI tienen llamador, ver panel de relaciones indirectas). Sesion 12: hay una pista sin verificar para DIAGONAL_5 en $6685-$66A8, dentro del hueco pendiente.",
   "Nombrar el resto de la rama 'T' de DIBUJAR_ENTIDAD: los fotogramas de escritura en $8A09 (valor 4), $8A29/$8A49 (valores 6/5) y $8A99 (valor 7), distintos de las LOSETA_MAPA_PISADA_* que lee DIBUJAR_CASILLA_MAPA para esos mismos valores -- Sesion 8.",
   "Confirmar que valor de casilla corresponde a que direccion real (arriba/abajo/izquierda/derecha) y que distingue las 2 variantes de cada par de pisadas (pie/vista) -- Sesion 8.",
   "Confirmar los 40 bytes restantes de cada entrada de 42 bytes en MAPA_CASILLAS ($8200) -- solo los offsets 40/41 (estado de colision) estan identificados -- Sesion 6.",

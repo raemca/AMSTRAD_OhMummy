@@ -25,9 +25,9 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 8 — solo queda UN tramo del motor sin analizar (`$6401`-`$786B`,
-5227 bytes). Todo lo demás está reconstruido**: 38 rutinas de código
-(1681 bytes) y 35 tablas/textos de datos (5257 bytes, incluido el
+**Sesión 12 — solo queda UN tramo del motor sin analizar (`$6529`-`$786B`,
+4931 bytes). Todo lo demás está reconstruido**: 42 rutinas de código
+(1977 bytes) y 35 tablas/textos de datos (5257 bytes, incluido el
 texto real del juego), firmware identificado, `.dsk` completo
 regenerado desde cero. El catálogo AMSDOS del disco (`FISICO/Oh Mummy
 (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU estándar, 40 pistas
@@ -37,7 +37,7 @@ x 1 cara, formato de datos 9x512, IDs de sector `C1`-`C9`) solo tiene
 | Fichero | Bloques asignados | Estado |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenizado y verificado byte a byte** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado**, **`$786C`-`$7EFC` (1681 bytes) reconstruido como código**, **`$7EFD`-`$9385` (5257 bytes) reconstruido como datos**, solo `$6401`-`$786B` (5227 bytes) pendiente |
+| `MUMMY1.BIN` | 14 (14336 bytes) | motor, carga en `$6000`; **`$6000`-`$6400` (1025 bytes) desensamblado**, **`$6401`-`$6528` (296 bytes) reconstruido como código (Sesión 12)**, **`$786C`-`$7EFC` (1681 bytes) reconstruido como código**, **`$7EFD`-`$9385` (5257 bytes) reconstruido como datos**, solo `$6529`-`$786B` (4931 bytes) pendiente |
 
 `MUMMY.BAS` es el cargador: dibuja a mano (con `PLOT`/`DRAW`
 relativos) el logo "AMSOFT" (191 trazos, ya visibles en
@@ -93,8 +93,14 @@ puntuación, el menú principal, y el copyright real **`"OH MUMMY" (c)
 envolventes de sonido, las 4 tablas del marco decorativo (72 bytes
 cada una, límites confirmados por el propio código que las usa), y el
 guión de sonido circular (90 registros de 9 bytes, hasta el último
-byte del motor). Solo queda **un** tramo sin analizar en todo el motor
-(`$6401`-`$786B`, 5227 bytes), incluido tal cual con `INCBIN` — ver
+byte del motor). La **Sesión 12** promovió el primer tramo del último
+hueco (`$6401`-`$6528`, 296 bytes): los dos puntos de entrada reales
+tras la pantalla de "introducir nombre" (`FIN_INTRODUCIR_NOMBRE` y
+`DESPACHAR_MENU_PRINCIPAL`, que lee P/I/O para jugar/instrucciones/
+opciones) y la pantalla completa de opciones (`PANTALLA_OPCIONES`:
+velocidad y dificultad de partida 1-5, música y efectos de sonido
+Y/N). Solo queda **un** tramo sin analizar en todo el motor
+(`$6529`-`$786B`, 4931 bytes), incluido tal cual con `INCBIN` — ver
 `FINDINGS.md` para el mapa de llamadas completo, la tabla de confianza
 por rutina/dato, y la metodología usada.
 
@@ -144,8 +150,8 @@ Estructura del repositorio
   (Sesión 8: los 16 sprites de `DIBUJAR_ENTIDAD` — `sprite_jugador_*`/
   `sprite_momia_*`, 64 bytes cada uno), `img/tiles/`, `img/logo/`,
   `img/marco_decorativo/`, `img/texto/`, `niveles/`, `sound/` (estos
-  vacíos por ahora) y `mummy1_resto_sin_analizar.bin` (los 5227 bytes
-  del motor todavía sin desensamblar, `$6401`-`$786B`) — se irán promoviendo a fuente
+  vacíos por ahora) y `mummy1_resto_sin_analizar.bin` (los 4931 bytes
+  del motor todavía sin desensamblar, `$6529`-`$786B`) — se irán promoviendo a fuente
   real a medida que avance el análisis.
 - `src/load_disk/` — cargador de disco (equivalente Amstrad al
   `load_cas/` de los proyectos hermanos de cinta): `mummy_bas.bas`, el

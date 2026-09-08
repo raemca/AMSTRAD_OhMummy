@@ -380,7 +380,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;633D: cdd178
     LD A,($8168)                 ; 6340: 3a6881
     OR A                         ; 6343: b7
-    JR Z,$636C                   ; 6344: 2826
+    JR Z,REANUDAR_MENU_TRAS_NOMBRE ; 6344: 2826
     LD HL,$8710                  ; 6346: 211087
     CALL REPETIR_CARACTER                   ; 6349: cdf47e
     XOR A                        ; 634C: af
@@ -396,6 +396,20 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL FIRM_KM_READ_CHAR                   ; 6365: cd09bb
     JR C,$6365                   ; 6368: 38fb
     JR $6372                     ; 636A: 1806
+; REANUDAR_MENU_TRAS_NOMBRE ($636C): destino de 2 saltos -- JR Z,$636C
+; en $6344 (bucle de tecleo del nombre, cuando el flag ($8168) ya esta
+; a 0) y, desde la Sesion 12, JP $636C en el nuevo FIN_INTRODUCIR_NOMBRE
+; ($6401), alcanzado por caida natural cuando se confirma el nombre con
+; Intro. Nunca se alcanza por caida natural desde arriba (la
+; instruccion anterior, $636A, es un JR incondicional que se lo salta
+; siempre) -- confirma que es un punto de entrada real, no relleno.
+; Redibuja $86E8 (hipotesis media: posible cursor/indicador de fin de
+; edicion), anima los 2 indicadores de menu (B=1/B=2, mismo mecanismo
+; que la seleccion de 1/2 jugadores) y decide, segun ($8168), si seguir
+; leyendo caracteres del nombre o pasar a DESPACHAR_MENU_PRINCIPAL
+; ($6404) -- confianza alta en el flujo, media en el papel visual
+; exacto de $86E8. Ver FINDINGS.md Sesion 12.
+REANUDAR_MENU_TRAS_NOMBRE:
     LD HL,$86E8                  ; 636C: 21e886
     CALL REPETIR_CARACTER                   ; 636F: cdf47e
     LD B,$01                     ; 6372: 0601
@@ -404,7 +418,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL ANIMAR_OPCION_MENU                   ; 6379: cdb778
     LD A,($8168)                 ; 637C: 3a6881
     OR A                         ; 637F: b7
-    JP Z,$6404                   ; 6380: ca0464
+    JP Z,DESPACHAR_MENU_PRINCIPAL ; 6380: ca0464
     CALL FIRM_KM_READ_CHAR                   ; 6383: cd09bb
     JR NC,$6372                  ; 6386: 30ea
     CP $0D                       ; 6388: fe0d
@@ -467,7 +481,200 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 ; offset/longitud). Ver FINDINGS.md Sesiones 3-6 para el detalle y
 ; el nivel de confianza de cada hipotesis. ----
 
-    INCBIN "data/mummy1_resto_sin_analizar.bin", 0, 5227  ; $6401-$786B, sin analizar todavia
+; ---- $6401-$6528 (296 bytes): primer tramo promovido del INCBIN --
+; Sesion 12. Dos puntos de entrada reales (ver cabecera del fichero):
+; FIN_INTRODUCIR_NOMBRE (caida natural, cuando SI se tecleo nombre) y
+; DESPACHAR_MENU_PRINCIPAL (JP Z desde $6380, cuando NO se tecleo).
+; Verificado que ambos convergen: el primero solo redirige al bucle de
+; la cabecera (REANUDAR_MENU_TRAS_NOMBRE, $636C) que a su vez cae en
+; DESPACHAR_MENU_PRINCIPAL en cuanto el flag ($8168) esta a 0. ----
+FIN_INTRODUCIR_NOMBRE:
+; Confianza alta: unico codigo entre $63FE (fin de cabecera) y $6404,
+; alcanzado solo cuando ($8168)<>0 -- justo el flujo que acaba de
+; teclear "Intro" para confirmar el nombre ($63F3-$6400: imprime un
+; espacio, pone ($8168)=0 y PAPER=3). Vuelve al bucle de la cabecera
+; para redibujar una vez mas antes de caer al despachador principal.
+    JP REANUDAR_MENU_TRAS_NOMBRE     ; 6401: c36c63
+; DESPACHAR_MENU_PRINCIPAL: lee un caracter de teclado y compara contra
+; P/p, I/i, O/o -- confianza alta, coincide exactamente con el menu
+; principal ya confirmado como texto literal en TEXTO_MENU_PRINCIPAL
+; (Sesion 8, "Instructions/Options/Play" o similar). P/p -> $6529
+; (jugar/empezar partida, hipotesis alta -- inicializa contadores de
+; partida, ver mas abajo); I/i -> $68B2 (instrucciones, sin analizar
+; todavia); O/o -> PANTALLA_OPCIONES. Sin coincidencia, vuelve a
+; REANUDAR_MENU_TRAS_NOMBRE ($6372, dentro de ese bucle) a seguir
+; animando y esperando tecla.
+DESPACHAR_MENU_PRINCIPAL:
+    CALL FIRM_KM_READ_CHAR           ; 6404: cd09bb
+    JP NC,$6372                      ; 6407: d27263
+    CP $50                           ; 640A: fe50  ; 'P'
+    JP Z,$6529                       ; 640C: ca2965
+    CP $70                           ; 640F: fe70  ; 'p'
+    JP Z,$6529                       ; 6411: ca2965
+    CP $49                           ; 6414: fe49  ; 'I'
+    JP Z,$68B2                       ; 6416: cab268
+    CP $69                           ; 6419: fe69  ; 'i'
+    JP Z,$68B2                       ; 641B: cab268
+    CP $4F                           ; 641E: fe4f  ; 'O'
+    JP Z,PANTALLA_OPCIONES           ; 6420: ca2b64
+    CP $6F                           ; 6423: fe6f  ; 'o'
+    JP Z,PANTALLA_OPCIONES           ; 6425: ca2b64
+    JP $6372                         ; 6428: c37263
+; PANTALLA_OPCIONES: pantalla "OH MUMMY - OPTIONS" (texto literal
+; confirmado en TEXTO_MENU_OPCIONES, $7EFD, Sesion 8). Confianza alta
+; en la estructura y en el papel de las 4 variables de partida que fija
+; (coincide exactamente con los 4 prompts del texto, en el mismo
+; orden, y 2 de ellas ya tenian usos conocidos en codigo ya
+; reconstruido -- ver comentarios de cada tramo):
+;   - "SPEED OF GAME (1-5) ?" (1 IS FASTEST) -> digito 1-5 escalado a
+;     ($8153)=$0100+digito*$00E0 (alta: ($8153) ya es el contador de
+;     retardo que consume ANIMAR_OPCION_MENU con DEC/JR NZ -- a mas
+;     digito, mas retardo, cuadra con "1 = mas rapido").
+;   - "DIFFICULTY LEVEL (1-5) ?" (1 IS HARDEST) -> digito 1-5 escalado
+;     por duplicado sucesivo a ($8161)=15/31/63/127/255 (alta: ($8161)
+;     ya se usa en COLOCAR_ENTIDAD como limite de GENERAR_ALEATORIO
+;     para decidir si un enemigo persigue al jugador -- a mas digito,
+;     mayor el limite, menos probable el 0 exacto, menos persecucion;
+;     cuadra con "1 = mas dificil").
+;   - "BACKGROUND MUSIC (Y-N) ?" -> tecla '+'/'.' alterna
+;     FLAG_MUSICA_FONDO entre 'Y'/'N' (alta, ya nombrada y usada por
+;     ACTUALIZAR_SECUENCIA_SONIDO).
+;   - "SOUND EFFECTS (Y-N) ?" -> tecla '+'/'.' alterna
+;     FLAG_EFECTOS_SONIDO entre 'Y'/'N' (sube de media a alta: esta
+;     sesion localiza por fin el punto donde se ESCRIBE el flag, que
+;     FINDINGS.md Sesion 8 dejaba pendiente; el codigo que la LEE
+;     sigue sin localizarse).
+; Los REPETIR_CARACTER(HL) de este tramo usan como argumento pares de
+; bytes que caen DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION
+; (p.ej. $7EFD=[$4E,$0E], $7FBD=[$03,'Y']) -- NO imprimen el texto
+; literal vecino (REPETIR_CARACTER repite un unico caracter, no recorre
+; una cadena: confirmado leyendo su propio codigo, $7EF4-$7EFC). Son
+; pares reutilizados a proposito como "contador+caracter" para algun
+; adorno visual (posible separador o parpadeo), efecto exacto sin
+; verificar en emulador -- confianza baja/media. La impresion real de
+; los rotulos "OH MUMMY - OPTIONS"/"SPEED OF GAME..." etc. como texto
+; queda sin localizar, pendiente de los tramos siguientes del INCBIN.
+PANTALLA_OPCIONES:
+    CALL FIRM_KM_READ_CHAR           ; 642B: cd09bb
+    JR C,PANTALLA_OPCIONES           ; 642E: 38fb  ; vacia el buffer de teclado antes de dibujar
+    LD HL,$7EFD                      ; 6430: 21fd7e  ; TEXTO_MENU_OPCIONES (titulo)
+    CALL REPETIR_CARACTER            ; 6433: cdf47e
+; -- "SPEED OF GAME (1-5) ?": lee un digito '1'-'5', lo eco a pantalla
+; y calcula ($8153) = $0100 + digito*$00E0 --
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6436: cdd178
+    CALL FIRM_KM_READ_CHAR           ; 6439: cd09bb
+    JR NC,$6436                      ; 643C: 30f8
+    CP $31                           ; 643E: fe31  ; '1'
+    JR C,$6436                       ; 6440: 38f4
+    CP $36                           ; 6442: fe36  ; '6' (excluido)
+    JR NC,$6436                      ; 6444: 30f0
+    CALL FIRM_TXT_OUTPUT             ; 6446: cd5abb  ; eco del digito tecleado
+    SUB $30                          ; 6449: d630   ; ASCII -> 1..5
+    LD HL,$0100                      ; 644B: 210001
+    LD DE,$00E0                      ; 644E: 11e000
+    LD B,A                           ; 6451: 47
+    ADD HL,DE                        ; 6452: 19
+    DJNZ $6452                       ; 6453: 10fd
+    LD ($8153),HL                    ; 6455: 225381  ; retardo de partida (ya usado por ANIMAR_OPCION_MENU)
+; -- "DIFFICULTY LEVEL (1-5) ?": mismo patron, digito 1-5 -> ($8161) =
+; $07F8 duplicado (digito) veces, byte alto --
+    LD HL,$7F4C                      ; 6458: 214c7f  ; TEXTO_MENU_OPCIONES+$4F
+    CALL REPETIR_CARACTER            ; 645B: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 645E: cdd178
+    CALL FIRM_KM_READ_CHAR           ; 6461: cd09bb
+    JR NC,$645E                      ; 6464: 30f8
+    CP $31                           ; 6466: fe31
+    JR C,$645E                       ; 6468: 38f4
+    CP $36                           ; 646A: fe36
+    JR NC,$645E                      ; 646C: 30f0
+    CALL FIRM_TXT_OUTPUT             ; 646E: cd5abb
+    SUB $30                          ; 6471: d630
+    LD B,A                           ; 6473: 47
+    LD HL,$07F8                      ; 6474: 21f807
+    ADD HL,HL                        ; 6477: 29
+    DJNZ $6477                       ; 6478: 10fd
+    LD A,H                           ; 647A: 7c
+    LD ($8161),A                     ; 647B: 326181  ; limite de persecucion IA (ya usado por COLOCAR_ENTIDAD)
+; -- "BACKGROUND MUSIC (Y-N) ?": tecla '+' -> 'Y' (y reinicia el guion
+; de sonido circular), '.' -> 'N' --
+    LD HL,$7F82                      ; 647E: 21827f  ; TEXTO_MENU_OPCIONES+$85
+    CALL REPETIR_CARACTER            ; 6481: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6484: cdd178
+    LD A,$2B                         ; 6487: 3e2b  ; '+'
+    CALL FIRM_KM_TEST_KEY            ; 6489: cd1ebb
+    JR NZ,$64AB                      ; 648C: 201d
+    LD A,$2E                         ; 648E: 3e2e  ; '.'
+    CALL FIRM_KM_TEST_KEY            ; 6490: cd1ebb
+    JR Z,$6484                       ; 6493: 28ef
+    LD A,$4E                         ; 6495: 3e4e  ; 'N'
+    LD (FLAG_MUSICA_FONDO),A         ; 6497: 32c47f
+    LD HL,$7FC1                      ; 649A: 21c17f  ; TEXTO_MENU_OPCIONES+$C4
+    CALL REPETIR_CARACTER            ; 649D: cdf47e
+    CALL FIRM_SOUND_RESET            ; 64A0: cda7bc
+    LD HL,GUION_SONIDO_CIRCULAR      ; 64A3: 215c90
+    LD (PUNTERO_GUION_SONIDO),HL     ; 64A6: 225a90
+    JR $64C6                         ; 64A9: 181b
+    LD A,(FLAG_MUSICA_FONDO)         ; 64AB: 3ac47f
+    CP $4E                           ; 64AE: fe4e  ; 'N'
+    JR NZ,$64BB                      ; 64B0: 2009
+    CALL FIRM_SOUND_RESET            ; 64B2: cda7bc
+    LD HL,GUION_SONIDO_CIRCULAR      ; 64B5: 215c90
+    LD (PUNTERO_GUION_SONIDO),HL     ; 64B8: 225a90
+    LD A,$59                         ; 64BB: 3e59  ; 'Y'
+    LD (FLAG_MUSICA_FONDO),A         ; 64BD: 32c47f
+    LD HL,$7FBD                      ; 64C0: 21bd7f  ; TEXTO_MENU_OPCIONES+$C0
+    CALL REPETIR_CARACTER            ; 64C3: cdf47e
+; -- "SOUND EFFECTS (Y-N) ?": mismo patron '+'/'.', sin reinicio de
+; sonido (solo cambia el flag) --
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64C6: cdd178
+    LD A,$2B                         ; 64C9: 3e2b
+    CALL FIRM_KM_TEST_KEY            ; 64CB: cd1ebb
+    JR NZ,$64C6                      ; 64CE: 20f6
+    LD A,$2E                         ; 64D0: 3e2e
+    CALL FIRM_KM_TEST_KEY            ; 64D2: cd1ebb
+    JR NZ,$64C6                      ; 64D5: 20ef
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64D7: cdd178
+    CALL FIRM_KM_READ_CHAR           ; 64DA: cd09bb
+    JR C,$64D7                       ; 64DD: 38f8
+    LD HL,$7FA1                      ; 64DF: 21a17f  ; TEXTO_MENU_OPCIONES+$A4
+    CALL REPETIR_CARACTER            ; 64E2: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64E5: cdd178
+    LD A,$2B                         ; 64E8: 3e2b
+    CALL FIRM_KM_TEST_KEY            ; 64EA: cd1ebb
+    JR NZ,$6503                      ; 64ED: 2014
+    LD A,$2E                         ; 64EF: 3e2e
+    CALL FIRM_KM_TEST_KEY            ; 64F1: cd1ebb
+    JR Z,$64E5                       ; 64F4: 28ef
+    LD A,$4E                         ; 64F6: 3e4e
+    LD (FLAG_EFECTOS_SONIDO),A       ; 64F8: 32c57f
+    LD HL,$7FC1                      ; 64FB: 21c17f
+    CALL REPETIR_CARACTER            ; 64FE: cdf47e
+    JR $650E                         ; 6501: 180b
+    LD A,$59                         ; 6503: 3e59
+    LD (FLAG_EFECTOS_SONIDO),A       ; 6505: 32c57f
+    LD HL,$7FBD                      ; 6508: 21bd7f
+    CALL REPETIR_CARACTER            ; 650B: cdf47e
+; -- Confirmar con 'L' o Intro; cualquier otra tecla reinicia el bucle
+; de esta ultima pregunta ($6514) --
+    LD HL,$80FB                      ; 650E: 21fb80  ; TEXTO_HISTORIA_ATRACCION+$DE
+    CALL REPETIR_CARACTER            ; 6511: cdf47e
+    CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6514: cdd178
+    LD A,$4C                         ; 6517: 3e4c  ; 'L'
+    CALL FIRM_KM_TEST_KEY            ; 6519: cd1ebb
+    JP NZ,$6223                      ; 651C: c22362  ; vuelve al flujo de la cabecera (confirmar 1/2 jugadores)
+    LD A,$3E                         ; 651F: 3e3e  ; Intro
+    CALL FIRM_KM_TEST_KEY            ; 6521: cd1ebb
+    JP NZ,$6223                      ; 6524: c22362
+    JR $6514                         ; 6527: 18eb
+
+; ---- $6529-$786B: resto sin analizar todavia. Explorado mecanicamente
+; en la Sesion 12 (sin promover a codigo fuente) mas alla de este punto
+; -- ver FINDINGS.md Sesion 12 para las pistas concretas dejadas para
+; la siguiente sesion (arranque de partida en $6529, resolucion de
+; RELLENAR_MARCO_DIAGONAL_1..6 en $6685-$66C7, bucle de juego en
+; $66ED-$6736, pantalla de "GAME OVER"/tabla de puntuaciones en
+; $6739-$68AC, entrada 'I' de instrucciones en $68B2). ----
+    INCBIN "data/mummy1_resto_sin_analizar.bin", 296, 4931  ; $6529-$786B, sin analizar todavia
 
 ; ---- IMPRIMIR_NUMERO_HL / ESPERAR_TECLA_2C / ANIMAR_OPCION_MENU / ACTUALIZAR_SECUENCIA_SONIDO /
 ; MOVER_INDICADOR_MENU / INICIALIZAR_ENTIDADES / INICIALIZAR_UNA_ENTIDAD / COLOCAR_ENTIDAD /

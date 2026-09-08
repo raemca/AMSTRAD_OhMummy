@@ -183,9 +183,14 @@
   <strong>Sesion 11</strong> separo en la barra, con color propio, las
   12 losetas de pisadas (<code>$8999</code>-<code>$8AB9</code>) y los
   16 sprites de personaje (<code>$8AB9</code>-<code>$8EB9</code>), que
-  antes quedaban fundidos en el bloque generico de dato. Solo
-  queda <strong>un</strong> hueco <code>INCBIN</code> en todo el motor:
-  <code>$6401</code>-<code>$786B</code> (5227 bytes). La barra cubre
+  antes quedaban fundidos en el bloque generico de dato. <strong>Sesion
+  12</strong> promovio el primer tramo del ultimo hueco
+  <code>INCBIN</code>: <code>$6401</code>-<code>$6528</code> (296
+  bytes) -- <code>FIN_INTRODUCIR_NOMBRE</code>,
+  <code>DESPACHAR_MENU_PRINCIPAL</code> y <code>PANTALLA_OPCIONES</code>
+  (menu principal y pantalla de opciones). Queda un hueco
+  <code>INCBIN</code> mas pequeno: <code>$6529</code>-<code>$786B</code>
+  (4931 bytes). La barra cubre
   <strong>las 65536 direcciones completas</strong> (0000-FFFF),
   incluida la RAM/ROM del sistema y de BASIC fuera de los dos ficheros
   del juego, para que cada segmento quede colocado en su posicion real.
@@ -258,7 +263,8 @@ const REGIONS = [
   { start: 0x0170, end: 0x0170 + 2436, label: "MUMMY.BAS (cargador, tokenizado en RAM)", kind: "basic", fuente: "FINDINGS.md Sesion 2 (confirmado)" },
   { start: 0x0170 + 2436, end: 0x6000, label: "Sistema CPC / BASIC (variables, pila, resto de RAM) -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
-  { start: 0x6401, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5227 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
+  { start: 0x6401, end: 0x6529, label: "MUMMY1.BIN: FIN_INTRODUCIR_NOMBRE / DESPACHAR_MENU_PRINCIPAL / PANTALLA_OPCIONES (296 bytes) -- primer tramo promovido del INCBIN", kind: "reconstruida", fuente: "FINDINGS.md Sesion 12 (compilado, 0 diferencias)" },
+  { start: 0x6529, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 4931 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
   { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
   { start: 0x7EFD, end: 0x8999, label: "MUMMY1.BIN: dato confirmado -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado, y los 2 rellenos por defecto de TABLAS_SPRITE_CASILLA. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
   { start: 0x8999, end: 0x8AB9, label: "MUMMY1.BIN: sprites de pisadas -- 12 losetas nombradas (LOSETA_PISADAS_VERTICAL_1/_2, LOSETA_MAPA_PISADA_1..8, LOSETA_PISADA_ESCRITURA_VALOR4/5/6/7), rama 'T' de DIBUJAR_ENTIDAD + DIBUJAR_CASILLA_MAPA", kind: "pisadas", fuente: "FINDINGS.md Sesion 8 (continuacion 4/5), Sesion 10, Sesion 11 (compilado, 0 diferencias)" },

@@ -2000,3 +2000,168 @@ tocado `recursos/flujo_detallado.html` en su grafo de llamadas (las 4
 etiquetas nuevas son datos, no rutinas, y ya estaban representadas como
 acceso a dato desde `DIBUJAR_ENTIDAD`) más allá de refrescar la fecha
 de última actualización.
+
+## Sesión 12 — 2026-09-08: primer tramo real del último hueco (`$6401`-`$6528`, 296 bytes) — entrada tras el nombre, despachador P/I/O y pantalla de opciones
+
+Ataca por primera vez el único `INCBIN` que quedaba en todo el motor
+(`$6401`-`$786B`, 5227 bytes). Metodología: arrancar desde los dos
+puntos de entrada reales ya localizados (no avanzar linealmente a
+ciegas) — `$6401` (caída natural desde la cabecera cuando SÍ se
+escribió un nombre) y `$6404` (`JP Z` desde `$6380` cuando NO se
+escribió) — y desensamblar con `tools/z80_disasm.py` como ayuda de
+lectura, verificando cada hipótesis contra código y datos ya
+reconstruidos en sesiones anteriores antes de darla por buena.
+
+### Los dos puntos de entrada convergen
+
+`$6401` resulta ser un simple `JP $636C` (3 bytes) hacia una dirección
+que YA estaba en la cabecera desensamblada ($6000-$6400, verificada
+desde la Sesión 6) pero sin nombre propio. Comprobado con cuidado que
+$636C **nunca se alcanza por caída natural** desde arriba: la
+instrucción justo anterior en $636A es un `JR` incondicional que
+siempre se la salta. Solo se llega ahí por 2 saltos: `JR Z,$636C` en
+$6344 (dentro del propio bucle de tecleo del nombre) y, desde ahora, el
+nuevo `JP $636C` en $6401. Es decir: $636C es un punto de entrada real,
+no relleno — se le da nombre (`REANUDAR_MENU_TRAS_NOMBRE`) sin tocar
+ni un byte de la cabecera ya verificada (solo se añade la etiqueta;
+0 diferencias antes y después). Ese código redibuja algo en `$86E8`,
+anima los indicadores de menú (B=1/B=2) y, en cuanto `($8168)=0`, cae
+en `$6404` — así que ambos caminos confirmados en el enunciado de la
+tarea convergen exactamente donde se esperaba.
+
+### `DESPACHAR_MENU_PRINCIPAL` ($6404): P/I/O
+
+Lee un carácter y compara contra `'P'/'p'` → `$6529` (jugar),
+`'I'/'i'` → `$68B2` (instrucciones), `'O'/'o'` → `PANTALLA_OPCIONES`
+($642B); cualquier otra tecla vuelve al bucle de la cabecera. Encaja
+exactamente con el menú principal ya confirmado como texto literal en
+`TEXTO_MENU_PRINCIPAL` (Sesión 8) — confianza alta.
+
+### `PANTALLA_OPCIONES` ($642B-$6528): la pantalla "OH MUMMY - OPTIONS"
+
+Resuelve genuinamente 4 preguntas de `TEXTO_MENU_OPCIONES` ($7EFD,
+Sesión 8), en el mismo orden en que aparecen en el texto, y con
+resultados que **cuadran numéricamente** con el enunciado de cada
+pregunta:
+
+- `"SPEED OF GAME (1-5) ?" (1 IS FASTEST)`: lee un dígito '1'-'5' y
+  calcula `($8153) = $0100 + dígito*$00E0` (480..1376). `($8153)` ya
+  era conocida desde la Sesión 6 como el contador que consume
+  `ANIMAR_OPCION_MENU` con `DEC DE`/`JR NZ` — a mayor dígito, mayor
+  retardo, cuadra con "1 = más rápido". Confianza alta.
+- `"DIFFICULTY LEVEL (1-5) ?" (1 IS HARDEST)`: lee un dígito y calcula
+  `($8161)` duplicando `$07F8` "dígito" veces y tomando el byte alto
+  (15/31/63/127/255 para dígito 1..5). `($8161)` ya se usaba en
+  `COLOCAR_ENTIDAD` (bloque `$786C`-`$7EFC`, Sesión 6) como límite de
+  `GENERAR_ALEATORIO` para decidir si un enemigo persigue al jugador —
+  a mayor `($8161)`, menos probable el 0 exacto, menos persecución;
+  cuadra exactamente con "1 = más difícil". Confianza alta.
+- `"BACKGROUND MUSIC (Y-N) ?"`: tecla `'+'`/`'.'` alterna
+  `FLAG_MUSICA_FONDO` (`$7FC4`, ya nombrada y usada por
+  `ACTUALIZAR_SECUENCIA_SONIDO`) entre `'Y'`/`'N'`, reiniciando el
+  guion de sonido circular al activarla. Confianza alta.
+- `"SOUND EFFECTS (Y-N) ?"`: mismo patrón sobre `FLAG_EFECTOS_SONIDO`
+  (`$7FC5`). **Resuelve un pendiente explícito de la Sesión 8**
+  ("hipótesis media: simetría con FLAG_MUSICA_FONDO, sin CALL que la
+  lea todavía localizado") — ahora se localiza el punto donde se
+  ESCRIBE; el código que la LEE sigue sin localizar, así que sube a
+  confianza alta en su papel de flag pero sigue pendiente el consumidor.
+
+Confirma con Intro o `'L'` y salta a `$6223` (dentro de la cabecera,
+flujo de confirmar 1/2 jugadores).
+
+### Un hallazgo que corrige una lectura ingenua de `REPETIR_CARACTER`
+
+Los 6 `CALL REPETIR_CARACTER` de este tramo usan como argumento `HL`
+apuntando DENTRO de `TEXTO_MENU_OPCIONES`/`TEXTO_HISTORIA_ATRACCION`
+(p. ej. `$7EFD`, `$7F4C`, `$7FBD`, `$80FB`). Antes de escribir esto se
+comprobó de nuevo, leyendo el propio código de `REPETIR_CARACTER`
+(`$7EF4`-`$7EFC`), que la rutina **repite un único carácter fijo B
+veces** (`LD B,(HL):INC HL:LD A,(HL):CALL FIRM_TXT_OUTPUT:DJNZ` al
+`LD A,(HL)`, sin volver a incrementar `HL`) — NO recorre ni imprime una
+cadena. Por tanto estas llamadas NO imprimen los rótulos "OH MUMMY -
+OPTIONS"/"SPEED OF GAME..." como texto legible: reutilizan como
+"contador+carácter" un par de bytes que, por coincidencia de layout,
+caen dentro de esas tablas de texto (p. ej. `$7FBD`→cuenta=3,
+carácter=`'Y'`). Se deja documentado con confianza baja/media sobre el
+efecto visual exacto (probable adorno/parpadeo) — la impresión real de
+los rótulos como texto queda sin localizar, pendiente en el resto del
+`INCBIN`.
+
+### Exploración (sin promover a fuente) más allá de `$6528`
+
+Para decidir el punto de corte se desensambló mecánicamente, sin
+comprometerlo a `mummy1_body.asm`, hasta bastante más allá ($6529-
+$68B2, no verificado con el mismo rigor). Deja pistas concretas para
+la siguiente sesión, todas con dirección exacta:
+
+- `$6529`: arranque de partida — inicializa contadores (`($816A)=5`,
+  `($815A)=0` puntuación probable, `($815C)`=nivel, `($8169)`=0),
+  limpia el array de entidades vía `BORRAR_BLOQUE_ESTADO`, y en
+  `$6685`-`$66A8` **resuelve un pendiente explícito de la Sesión 7**:
+  localiza por fin al llamador de `RELLENAR_MARCO_DIAGONAL_1..6` — un
+  despacho por `($815C)` (nivel) que parchea con código
+  automodificable el operando de un `CALL $7E29` en `$66BA`, eligiendo
+  una de 5 variantes (falta `RELLENAR_MARCO_DIAGONAL_2`) según el
+  nivel actual. Sin promover todavía — falta verificar el resto del
+  bloque (colocación aleatoria de hasta 14 elementos en `$81D6`
+  evitando colisión, `$65AD`-`$65D2`, posible generación del
+  laberinto/pirámide) con el mismo rigor que el resto de esta sesión.
+- `$66ED`-`$6736`: posible bucle principal de juego (llama en orden a
+  `$7578`, `$77D1`, `$7637`, `$7566`, `ESPERAR_TECLA_2C`, para cada
+  jugador con B=1 y B=2) — ninguna de esas 4 direcciones intermedias
+  está todavía resuelta.
+- `$6739`-`$68AC`: pantalla de "GAME OVER" — imprime varios fragmentos
+  de `TEXTO_HISTORIA_ATRACCION` (Sesión 8) en el orden exacto del
+  texto ($801B/$8040/$8064/$8088/$809D/$80B8/$80C2/$80E0/$80EA/$80FB/
+  $8125), y en `$6803`-$68AB` compara la puntuación en `($815A)` contra
+  una tabla de puntuaciones altas de 12-18 bytes por registro en
+  `$86D4`, desplazándola con `LDIR` si hay una nueva entrada — probable
+  gestión de la tabla HI-SCORE ya confirmada como dato en la Sesión 8.
+- `$68B2`: entrada `'I'` (instrucciones) desde `DESPACHAR_MENU_PRINCIPAL`,
+  sin explorar todavía.
+
+### Verificación
+
+`python tools/build_all.py`: **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes), verificado antes y después de cada cambio (tras
+añadir la etiqueta en la cabecera, tras sustituir el `INCBIN`, y de
+nuevo al cerrar la sesión).
+
+### Cambios en `mummy1_body.asm`
+
+- Etiqueta añadida (sin cambiar bytes) en la cabecera: `$636C` →
+  `REANUDAR_MENU_TRAS_NOMBRE`; los 2 saltos que apuntaban ahí por
+  dirección literal (`$6344`, `$6380`) pasan a usar el nombre
+  simbólico (`$6380` además pasa a `DESPACHAR_MENU_PRINCIPAL`).
+- `INCBIN "data/mummy1_resto_sin_analizar.bin", 0, 5227` sustituido por
+  296 bytes de código fuente real (`FIN_INTRODUCIR_NOMBRE`,
+  `DESPACHAR_MENU_PRINCIPAL`, `PANTALLA_OPCIONES`) + `INCBIN
+  "data/mummy1_resto_sin_analizar.bin", 296, 4931` para el resto
+  (`$6529`-`$786B`).
+
+### Documentación actualizada
+
+`README.md`, `README.en.md`, `src/README.md` (cifras del tramo
+pendiente actualizadas a 4931 bytes / `$6529`-`$786B`, tabla de
+rutinas de la Sesión 12 añadida en `src/README.md`),
+`recursos/flujo_programa.html` (3 entradas nuevas) y
+`recursos/flujo_detallado.html` (2 nodos de código nuevos —
+`DESPACHAR_MENU_PRINCIPAL`/`PANTALLA_OPCIONES` — y las aristas hacia
+`$6529`/`$68B2` marcadas como pendientes, según la regla de
+mantenimiento de `prompts/_base_reconstruccion.md`).
+
+### Pendiente para la siguiente sesión
+
+**Punto de entrada real desde el que continuar: `$6529`** (arranque de
+partida), justo donde termina el nuevo `INCBIN`. Ya hay pistas
+concretas (ver arriba) para no tener que redescubrirlas: la resolución
+del llamador de `RELLENAR_MARCO_DIAGONAL_1..6` en `$6685`, la
+colocación aleatoria de 14 elementos en `$81D6` (`$65AD`-`$65D2`,
+posible generación de pirámide/laberinto — sin verificar todavía), el
+posible bucle principal de juego en `$66ED`-`$6736` (con 4 llamadas
+internas sin resolver: `$7578`, `$77D1`, `$7637`, `$7566`), la pantalla
+de "GAME OVER"/HI-SCORE en `$6739`-`$68AC`, y la entrada `'I'` de
+instrucciones en `$68B2`. Sigue también todo lo pendiente de sesiones
+anteriores (orientación de las 4 direcciones de `'T'`, confirmación en
+emulador, numeración de teclas del firmware).

@@ -25,9 +25,9 @@ notice.
 
 Current status
 ---------------
-**Session 8 — only ONE stretch of the engine is left unanalyzed
-(`$6401`-`$786B`, 5227 bytes). Everything else is reconstructed**: 38
-code routines (1681 bytes) and 35 data tables/text blocks (5257
+**Session 12 — only ONE stretch of the engine is left unanalyzed
+(`$6529`-`$786B`, 4931 bytes). Everything else is reconstructed**: 42
+code routines (1977 bytes) and 35 data tables/text blocks (5257
 bytes, including the game's actual text), firmware identified, full
 `.dsk` regenerated from scratch. The disk's AMSDOS catalogue
 (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, standard CPCEMU
@@ -37,7 +37,7 @@ only has **2 files**:
 | File | Allocated blocks | Status |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenized and byte-verified** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$6401`-`$786B` (5227 bytes) pending |
+| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$6401`-`$6528` (296 bytes) reconstructed as code (Session 12)**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$6529`-`$786B` (4931 bytes) pending |
 
 `MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
 the "AMSOFT" logo (191 strokes, now rendered in
@@ -90,9 +90,15 @@ the main menu, and the real copyright string **`"OH MUMMY" (c) 1984
 GEM SOFTWARE`** (confirms `AVISO-LEGAL.md`). Also the 6 sound
 envelopes, the 4 decorative-frame tables (72 bytes each, boundaries
 confirmed by the code that uses them), and the circular sound script
-(90 9-byte records, running right up to the engine's last byte). Only
-**one** stretch of the engine is still unanalyzed (`$6401`-`$786B`,
-5227 bytes), included as-is via `INCBIN` — see `FINDINGS.md` for the
+(90 9-byte records, running right up to the engine's last byte).
+**Session 12** promoted the first stretch of the last gap
+(`$6401`-`$6528`, 296 bytes): the two real entry points reached after
+the "enter your name" screen (`FIN_INTRODUCIR_NOMBRE` and
+`DESPACHAR_MENU_PRINCIPAL`, which reads P/I/O for play/instructions/
+options) and the full options screen (`PANTALLA_OPCIONES`: game speed
+and difficulty 1-5, background music and sound effects Y/N). Only
+**one** stretch of the engine is still unanalyzed (`$6529`-`$786B`,
+4931 bytes), included as-is via `INCBIN` — see `FINDINGS.md` for the
 full call map, the per-routine/data confidence table, and the
 methodology used.
 
@@ -143,8 +149,8 @@ Repository structure
   `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each), `img/tiles/`,
   `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/`,
   `sound/` (these still empty for now) and
-  `mummy1_resto_sin_analizar.bin` (the 5227 still-undisassembled
-  engine bytes, `$6401`-`$786B`) — promoted to real source as analysis
+  `mummy1_resto_sin_analizar.bin` (the 4931 still-undisassembled
+  engine bytes, `$6529`-`$786B`) — promoted to real source as analysis
   progresses.
 - `src/load_disk/` — disk loader (Amstrad equivalent of the sibling
   tape projects' `load_cas/`): `mummy_bas.bas`, the loader's BASIC
