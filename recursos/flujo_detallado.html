@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<!-- Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com) -->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oh Mummy (Amstrad CPC) -- flujo detallado de llamadas</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --fg: #2a2621;
+    --panel: #ffffff;
+    --border: #ddd6cc;
+    --muted: #7a7266;
+    --accent-ok: #7fae6a;
+    --accent-hipotesis: #4e7ecf;
+    --accent-pendiente: #b08a3e;
+    --sub-arranque: #6a86ae;
+    --sub-firmware: #9a7a4e;
+    --sub-control: #8a6ab0;
+    --sub-entidades: #3e9a6a;
+    --sub-render: #ae5a7a;
+    --sub-sonido: #b09a3e;
+    --sub-menu: #3e9aa8;
+    --sub-pendiente: #b0653e;
+    --sub-datos: #7a746a;
+    --edge-call: #4a4640;
+    --edge-jump: #c07a2e;
+    --edge-jr: #8a4ea8;
+    --edge-data: #9a9488;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1a17;
+      --fg: #ece6da;
+      --panel: #262320;
+      --border: #3a352e;
+      --muted: #a39a8a;
+      --accent-ok: #8fc27a;
+      --accent-hipotesis: #5e9edf;
+      --accent-pendiente: #cf9f4e;
+      --sub-arranque: #7f9bc4;
+      --sub-firmware: #c4a06a;
+      --sub-control: #ae8fdf;
+      --sub-entidades: #6ecf9a;
+      --sub-render: #df8fa8;
+      --sub-sonido: #dfc26a;
+      --sub-menu: #6adfcf;
+      --sub-pendiente: #df9a6a;
+      --sub-datos: #b3aa9c;
+      --edge-call: #d8d2c4;
+      --edge-jump: #e0a860;
+      --edge-jr: #cba0e8;
+      --edge-data: #7a7468;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.2rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { font-size: 1rem; margin-top: 1.6rem; }
+  .subtitle { color: var(--muted); margin-top: 0; }
+  .attribution-line { color: var(--muted); font-size: 0.85rem; margin: -0.3rem 0 1.2rem 0; }
+  code { font-family: "SFMono-Regular", Consolas, monospace; }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  .note.alcance { border-left-color: var(--accent-pendiente); }
+  .note.alcance ul { margin: 0.4rem 0 0.2rem 1.2rem; padding: 0; }
+  .note.alcance li { margin-bottom: 0.35rem; }
+  .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 1.5rem 0; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 0.7rem 1.1rem; min-width: 120px; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; }
+  .stat .lbl { font-size: 0.78rem; color: var(--muted); }
+
+  /* -------- Leyenda -------- */
+  .leyenda { display: flex; flex-wrap: wrap; gap: 0.9rem 1.6rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 0.9rem 1.1rem; margin: 1rem 0; font-size: 0.85rem; }
+  .leyenda-grupo { display: flex; flex-direction: column; gap: 0.35rem; }
+  .leyenda-titulo { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.1rem; }
+  .leyenda-item { display: flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 0.9rem; height: 0.9rem; border-radius: 3px; flex: none; display: inline-block; }
+  .swatch-line { width: 1.6rem; height: 0; border-top-width: 3px; border-top-style: solid; flex: none; display: inline-block; }
+  .badge { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 9px; font-size: 0.72rem; color: white; }
+  .badge.confirmado { background: var(--accent-ok); }
+  .badge.hipotesis { background: var(--accent-hipotesis); }
+  .badge.pendiente { background: var(--accent-pendiente); }
+
+  /* -------- Controles -------- */
+  .controles { display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0 0.6rem; }
+  .controles .grupo { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .controles button {
+    background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.35rem 0.7rem; font-size: 0.85rem; cursor: pointer;
+  }
+  .controles button:hover, .controles button:focus-visible { border-color: var(--accent-hipotesis); }
+  #buscador {
+    flex: 1; min-width: 220px; padding: 0.45rem 0.7rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--fg); font-size: 0.9rem;
+  }
+  .filtro-subsistemas { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.82rem; margin: 0.4rem 0 1rem; }
+  .filtro-subsistemas label { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+
+  /* -------- Lienzo del grafo -------- */
+  #viewport {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    height: 62vh;
+    min-height: 420px;
+    overflow: auto;
+  }
+  #spacer { position: relative; }
+  #zoomLayer { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  #svgEdges { position: absolute; top: 0; left: 0; overflow: visible; }
+  .nodo {
+    position: absolute;
+    width: 172px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    border-left-width: 5px;
+    background: var(--panel);
+    padding: 0.4rem 0.5rem;
+    font-size: 0.72rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .nodo:hover, .nodo:focus-visible { outline: 2px solid var(--accent-hipotesis); outline-offset: 1px; }
+  .nodo.atenuado { opacity: 0.18; }
+  .nodo.oculto { display: none; }
+  .nodo.seleccionado { outline: 2px solid var(--fg); outline-offset: 1px; }
+  .nodo .n-addr { font-family: "SFMono-Regular", Consolas, monospace; font-size: 0.68rem; color: var(--muted); }
+  .nodo .n-nombre { font-weight: 600; display: block; margin: 0.1rem 0 0.15rem; word-break: break-word; }
+  .nodo .n-estado { font-size: 0.62rem; padding: 0.02rem 0.35rem; border-radius: 8px; color: white; }
+  .fila-etiqueta {
+    position: absolute; left: 0; width: 168px; font-size: 0.72rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.03em; font-weight: 600;
+  }
+
+  /* -------- Panel de detalle -------- */
+  #detalle {
+    margin-top: 1rem; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.2rem; font-size: 0.88rem;
+  }
+  #detalle.vacio { color: var(--muted); font-style: italic; }
+  #detalle dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.8rem; margin: 0.5rem 0 0; }
+  #detalle dt { color: var(--muted); }
+  #detalle dd { margin: 0; }
+  #detalle ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
+
+  /* -------- Tablas -------- */
+  table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+  td.dir, td code { font-family: "SFMono-Regular", Consolas, monospace; }
+  .tabla-scroll { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .empty-state { color: var(--muted); font-style: italic; padding: 1.4rem; text-align: center; }
+
+  footer { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>Oh Mummy (Amsoft, 1984) -- flujo detallado de llamadas</h1>
+<p class="attribution-line">Ingenieria inversa, herramientas y documentacion: Rafael Eduardo Martin Candial (raemca@hotmail.com)</p>
+<p class="subtitle">
+  Complementa a <code>recursos/flujo_programa.html</code> (inventario plano de rutinas) con el
+  <strong>grafo real de llamadas</strong> entre ellas. Punto de entrada confirmado: <code>$6000</code>
+  (<code>src/load_disk/mummy_bas.bas</code>, linea 570-580: <code>LOAD"!mummy1",&amp;6000:CALL &amp;6000</code>).
+  Ultima actualizacion: <strong>Sesion 9, 2026-09-07</strong> (creacion de esta pagina; ninguna rutina nueva
+  se ha desensamblado en esta sesion, ver el aviso de alcance).
+</p>
+
+<div class="note alcance">
+  <strong>Aviso de alcance -- leer antes de interpretar el grafo.</strong>
+  <ul>
+    <li><strong>Que se representa:</strong> las 38 rutinas de codigo ya reconstruidas y compiladas
+      (<code>$786C</code>-<code>$7EFC</code>, Sesiones 3-7), las 14 rutinas de firmware CPC identificadas
+      contra el manual oficial (Sesion 3), el bloque mecanico de arranque/menu <code>$6000</code>-<code>$6400</code>
+      (desensamblado y verificado desde la Sesion 2, pero sin nombres semanticos propios todavia), y el
+      cargador BASIC como origen externo de la primera llamada.</li>
+    <li><strong>Que tipos de relacion se incluyen:</strong> unicamente <code>CALL</code>/<code>CALL cc</code>/
+      <code>JP</code>/<code>JP cc</code>/<code>JR</code> demostrados por una instruccion real en
+      <code>src/mummy1_body.asm</code> (verificados de nuevo para esta pagina, direccion por direccion, no
+      copiados sin mas de <code>FINDINGS.md</code>) mas los casos confirmados de caida directa sin
+      <code>RET</code> (<em>fall-through</em>). Los accesos a datos (<code>LD</code>, tablas) se muestran
+      aparte, en una capa opcional desactivada por defecto, y NUNCA como aristas de llamada.</li>
+    <li><strong>Que sigue fuera del grafo:</strong> el bloque <code>$6401</code>-<code>$786B</code>
+      (5227 bytes, el unico tramo del motor sin desensamblar) se representa como un unico nodo
+      "pendiente" sin desglosar en rutinas internas -- no se inventa ninguna subrutina dentro de el.
+      Tampoco se detalla el contenido interno de las ~29 tablas de sprite/casilla de
+      <code>TABLAS_SPRITE_CASILLA</code> mas alla de lo ya nombrado (16 sprites + 10 losetas, Sesion 8).</li>
+    <li><strong>Flujo indirecto:</strong> a fecha de esta sesion <strong>no se ha confirmado ningun
+      <code>JP (HL)</code>/<code>JP (IX)</code>/<code>JP (IY)</code> ni tabla de punteros de codigo</strong>
+      en las 1681 bytes ya reconstruidos. Los grandes "dispatchers" (<code>DIBUJAR_ENTIDAD</code>,
+      <code>DIBUJAR_CASILLA_MAPA</code>) seleccionan que tabla de <em>datos</em> usar mediante cadenas
+      normales de <code>CP</code>/<code>JR</code>/<code>JP</code> a etiquetas fijas -- flujo directo y
+      estatico, no indirecto. Ver el panel "Relaciones no representadas como CALL directo" para los
+      saltos (<code>JP</code>/<code>JR</code>) y caidas confirmadas que si existen.</li>
+    <li>Este grafo documenta <strong>evidencia extraida del binario reconstruido</strong> (direcciones,
+      bytes, instrucciones reales), no una descripcion generica de "como suele ser" un arcade de
+      laberinto -- cuando una interpretacion es hipotesis funcional sin verificar en emulador, se marca
+      como tal en el nodo y en la tabla, nunca como hecho.</li>
+  </ul>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="num" id="stat-nodos">0</div><div class="lbl">nodos totales</div></div>
+  <div class="stat"><div class="num" id="stat-confirmados">0</div><div class="lbl">confirmados</div></div>
+  <div class="stat"><div class="num" id="stat-hipotesis">0</div><div class="lbl">hipotesis</div></div>
+  <div class="stat"><div class="num" id="stat-pendientes">0</div><div class="lbl">pendientes</div></div>
+  <div class="stat"><div class="num" id="stat-aristas">0</div><div class="lbl">relaciones de control (CALL/JP/JR)</div></div>
+  <div class="stat"><div class="num" id="stat-aristas-dato">0</div><div class="lbl">relaciones de acceso a dato</div></div>
+</div>
+
+<h2>Leyenda</h2>
+<div class="leyenda">
+  <div class="leyenda-grupo">
+    <span class="leyenda-titulo">Subsistema</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-arranque)"></span>Arranque / cargador</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-firmware)"></span>Firmware CPC</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-control)"></span>Motor y control (aleatoriedad)</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-entidades)"></span>Entidades, mapa y colisiones</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-render)"></span>Renderizado / graficos</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-sonido)"></span>Sonido</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-menu)"></span>Menu / HUD / entrada</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-pendiente)"></span>Pendiente (sin analizar)</span>
+    <span class="leyenda-item"><span class="swatch" style="background:var(--sub-datos)"></span>Datos (no ejecutable)</span>
+  </div>
+  <div class="leyenda-grupo">
+    <span class="leyenda-titulo">Estado (borde izquierdo del nodo)</span>
+    <span class="leyenda-item"><span class="badge confirmado">confirmado</span> bytes/llamada verificados contra el binario</span>
+    <span class="leyenda-item"><span class="badge hipotesis">hipotesis</span> interpretacion razonable, sin verificar en emulador</span>
+    <span class="leyenda-item"><span class="badge pendiente">pendiente</span> zona detectada, sin analisis suficiente</span>
+  </div>
+  <div class="leyenda-grupo">
+    <span class="leyenda-titulo">Tipo de relacion (linea)</span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-call)"></span><code>CALL</code> directo</span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-call); border-top-style:dashed"></span><code>CALL cc</code> condicional</span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-jump)"></span><code>JP</code> (salto, no retorna a quien lo emite)</span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-jump); border-top-style:dashed"></span><code>JP cc</code> condicional</span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-jr); border-top-style:dotted"></span><code>JR</code> entre rutinas / caida sin <code>RET</code></span>
+    <span class="leyenda-item"><span class="swatch-line" style="border-color:var(--edge-data); border-top-style:dashed"></span>acceso a dato (no es llamada)</span>
+  </div>
+</div>
+
+<h2>Controles</h2>
+<div class="controles">
+  <div class="grupo">
+    <button type="button" id="btn-zoom-in" title="Aumentar zoom">Zoom +</button>
+    <button type="button" id="btn-zoom-out" title="Reducir zoom">Zoom -</button>
+    <button type="button" id="btn-zoom-reset" title="Restablecer zoom al 100%">100%</button>
+    <button type="button" id="btn-zoom-fit" title="Ajustar el grafo al ancho de la ventana">Ajustar a ancho</button>
+  </div>
+  <input type="text" id="buscador" placeholder="Buscar por nombre, direccion, subsistema o estado...">
+</div>
+<div class="filtro-subsistemas" id="filtro-subsistemas" role="group" aria-label="Mostrar u ocultar subsistemas"></div>
+
+<div id="viewport" tabindex="0" aria-label="Grafo de llamadas -- use Tab para moverse entre nodos, flechas del teclado del navegador para desplazar la vista">
+  <div id="spacer">
+    <div id="zoomLayer">
+      <svg id="svgEdges"></svg>
+      <!-- nodos insertados por JS -->
+    </div>
+  </div>
+</div>
+
+<div id="detalle" class="vacio">Seleccione un nodo del grafo (clic, o Tab + Intro) para ver su detalle: direccion, subsistema, estado, confianza, evidencia y relaciones entrantes/salientes.</div>
+
+<h2>Inventario completo de nodos</h2>
+<p class="subtitle">Incluye tambien los nodos ocultos por los filtros de arriba -- esta tabla nunca filtra por subsistema, solo por el buscador de texto.</p>
+<div class="tabla-scroll">
+<table id="tabla-nodos">
+  <thead>
+    <tr><th>Direccion</th><th>Fin / tamano</th><th>Etiqueta</th><th>Subsistema</th><th>Estado</th><th>Confianza</th><th>Evidencia / sesion</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<h2>Relaciones no representadas como <code>CALL</code> directo</h2>
+<p class="subtitle">
+  Saltos (<code>JP</code>/<code>JR</code>), caidas sin <code>RET</code> (<em>fall-through</em>), destinos
+  sin resolver y rutinas sin llamador conocido -- cada una verificada linea a linea contra
+  <code>src/mummy1_body.asm</code> para esta pagina, no asumida de <code>FINDINGS.md</code> sin contraste.
+</p>
+<div class="tabla-scroll">
+<table id="tabla-indirectas">
+  <thead>
+    <tr><th>Origen</th><th>Destino</th><th>Tipo</th><th>Detalle</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+</div>
+
+<h2>Pendientes para la siguiente sesion</h2>
+<p class="subtitle">Extraidos literalmente de los cierres de sesion de <code>FINDINGS.md</code> -- no inventados para esta pagina.</p>
+<ul id="lista-pendientes"></ul>
+
+<footer>
+  Fuentes: <code>src/mummy1_body.asm</code> (verificado byte a byte contra <code>src/build/mummy1.bin</code>
+  via <code>python tools/build_all.py</code>), <code>FINDINGS.md</code> (Sesiones 1-9),
+  <code>recursos/flujo_programa.html</code> y <code>recursos/flujo_secuencial.html</code>.
+  Ver tambien <code>recursos/mapa_memoria.html</code> para las regiones/subregiones de memoria y
+  <code>recursos/sprites.html</code> para el explorador visual de <code>TABLAS_SPRITE_CASILLA</code>.
+</footer>
+
+<script>
+"use strict";
+
+// ============================================================================
+// SUBSISTEMAS -- orden de las "calles" (filas) del grafo, de arriba a abajo.
+// ============================================================================
+const SUBSISTEMAS = [
+  { id: "arranque",   nombre: "Arranque / cargador",              color: "var(--sub-arranque)" },
+  { id: "firmware",   nombre: "Firmware CPC",                     color: "var(--sub-firmware)" },
+  { id: "control",    nombre: "Motor y control (aleatoriedad)",   color: "var(--sub-control)" },
+  { id: "entidades",  nombre: "Entidades, mapa y colisiones",     color: "var(--sub-entidades)" },
+  { id: "render",     nombre: "Renderizado / graficos",           color: "var(--sub-render)" },
+  { id: "sonido",     nombre: "Sonido",                           color: "var(--sub-sonido)" },
+  { id: "menu",       nombre: "Menu / HUD / entrada",             color: "var(--sub-menu)" },
+  { id: "pendiente",  nombre: "Pendiente (sin analizar)",         color: "var(--sub-pendiente)" },
+  { id: "datos",      nombre: "Datos (opcional, oculto por defecto)", color: "var(--sub-datos)" },
+];
+
+// ============================================================================
+// NODOS -- cada uno: id, addr, addrFin (o "-" si es puntual/externo), nombre
+// mostrado, subsistema, estado (confirmado|hipotesis|pendiente), confianza,
+// evidencia (texto corto con direcciones/lineas reales) y sesion de origen.
+// El orden dentro de cada subsistema fija el orden horizontal en el grafo.
+// ============================================================================
+const NODOS = [
+  // ---- arranque ----
+  { id: "CARGADOR_BASIC", addr: "mummy_bas.bas", addrFin: "L570-580", nombre: "Cargador BASIC", subsistema: "arranque", tipo: "externo",
+    estado: "confirmado", confianza: "alta",
+    evidencia: "src/load_disk/mummy_bas.bas: MEMORY 15000:LOAD\"!mummy1\",&6000:CALL &6000. Sesion 2.", sesion: "2" },
+  { id: "ENTRADA_MOTOR", addr: "$6000", addrFin: "$6400", nombre: "$6000-$6400 (arranque + menu, sin nombre propio)", subsistema: "arranque", tipo: "codigo",
+    estado: "confirmado", confianza: "alta en estructura -- sin nombre semantico propio (reconstruccion mecanica de primera pasada)",
+    evidencia: "Desensamblado a mano y verificado byte a byte desde la Sesion 2. Llama a rutinas ya nombradas en tramos posteriores por direccion literal en varios puntos (ver panel de relaciones indirectas).", sesion: "2" },
+  { id: "BORRAR_BLOQUE_ESTADO", addr: "$7EAB", addrFin: "$7EB8", nombre: "BORRAR_BLOQUE_ESTADO", subsistema: "arranque", tipo: "codigo",
+    estado: "confirmado", confianza: "alta",
+    evidencia: "Borra a 0 desde ARRAY_ENTIDADES+5 ($8172) hasta el final de MAPA_CASILLAS ($860F), 1182 bytes, con LDIR origen=destino-1. Sesion 3/8.", sesion: "3" },
+  // ---- firmware ----
+  { id: "FIRM_KM_READ_CHAR", addr: "$BB09", addrFin: "-", nombre: "FIRM_KM_READ_CHAR", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "KM READ CHAR -- manual oficial CPC, seccion 14.1. Sesion 3.", sesion: "3" },
+  { id: "FIRM_KM_CHAR_RETURN", addr: "$BB0C", addrFin: "-", nombre: "FIRM_KM_CHAR_RETURN", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "KM CHAR RETURN. Sesion 5.", sesion: "5" },
+  { id: "FIRM_KM_TEST_KEY", addr: "$BB1E", addrFin: "-", nombre: "FIRM_KM_TEST_KEY", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "KM TEST KEY. Sesion 3.", sesion: "3" },
+  { id: "FIRM_TXT_OUTPUT", addr: "$BB5A", addrFin: "-", nombre: "FIRM_TXT_OUTPUT", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "TXT OUTPUT. Sesion 3.", sesion: "3" },
+  { id: "FIRM_TXT_WIN_ENABLE", addr: "$BB66", addrFin: "-", nombre: "FIRM_TXT_WIN_ENABLE", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "TXT WIN ENABLE. Sesion 3.", sesion: "3" },
+  { id: "FIRM_TXT_CLEAR_WINDOW", addr: "$BB6C", addrFin: "-", nombre: "FIRM_TXT_CLEAR_WINDOW", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "TXT CLEAR WINDOW. Sesion 3.", sesion: "3" },
+  { id: "FIRM_TXT_SET_CURSOR", addr: "$BB75", addrFin: "-", nombre: "FIRM_TXT_SET_CURSOR", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "TXT SET CURSOR. Sesion 3.", sesion: "3" },
+  { id: "FIRM_TXT_SET_PAPER", addr: "$BB96", addrFin: "-", nombre: "FIRM_TXT_SET_PAPER", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "TXT SET PAPER. Sesion 3.", sesion: "3" },
+  { id: "FIRM_SCR_DOT_POSITION", addr: "$BC1D", addrFin: "-", nombre: "FIRM_SCR_DOT_POSITION", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "SCR DOT POSITION. Sesion 3.", sesion: "3" },
+  { id: "FIRM_SOUND_RESET", addr: "$BCA7", addrFin: "-", nombre: "FIRM_SOUND_RESET", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "SOUND RESET. Sesion 3.", sesion: "3" },
+  { id: "FIRM_SOUND_QUEUE", addr: "$BCAA", addrFin: "-", nombre: "FIRM_SOUND_QUEUE", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "SOUND QUEUE. Sesion 6.", sesion: "6" },
+  { id: "FIRM_SOUND_AMPL_ENV", addr: "$BCBC", addrFin: "-", nombre: "FIRM_SOUND_AMPL_ENV", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "SOUND AMPL ENVELOPE. Sesion 3.", sesion: "3" },
+  { id: "FIRM_SOUND_TONE_ENV", addr: "$BCBF", addrFin: "-", nombre: "FIRM_SOUND_TONE_ENV", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "SOUND TONE ENVELOPE. Sesion 3.", sesion: "3" },
+  { id: "FIRM_KL_TIME_PLEASE", addr: "$BD0D", addrFin: "-", nombre: "FIRM_KL_TIME_PLEASE", subsistema: "firmware", tipo: "firmware",
+    estado: "confirmado", confianza: "alta", evidencia: "KL TIME PLEASE. Sesion 3.", sesion: "3" },
+  // ---- control / aleatoriedad ----
+  { id: "GENERAR_ALEATORIO", addr: "$7D53", addrFin: "$7D77", nombre: "GENERAR_ALEATORIO", subsistema: "control", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "PRNG sembrado con FIRM_KL_TIME_PLEASE en el arranque ($8151). Sesion 4/5.", sesion: "4" },
+  { id: "MEZCLAR_ALEATORIO", addr: "$7D78", addrFin: "$7D84", nombre: "MEZCLAR_ALEATORIO", subsistema: "control", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Funcion de mezcla interna del PRNG (duplica HL x8 sumando DE por acarreo). Sesion 5.", sesion: "5" },
+  // ---- entidades, mapa y colisiones ----
+  { id: "INICIALIZAR_ENTIDADES", addr: "$794F", addrFin: "$795A", nombre: "INICIALIZAR_ENTIDADES", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Llama a INICIALIZAR_UNA_ENTIDAD en bucle, contador en $8169 (=6 al arrancar). Sesion 4/5.", sesion: "4" },
+  { id: "INICIALIZAR_UNA_ENTIDAD", addr: "$795B", addrFin: "$7995", nombre: "INICIALIZAR_UNA_ENTIDAD", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Rellena un registro de ARRAY_ENTIDADES ($816D) con 2 bytes de GENERAR_ALEATORIO + posicion copiada de una tabla en $8645. Sesion 4/5.", sesion: "4" },
+  { id: "COLOCAR_ENTIDAD", addr: "$7996", addrFin: "$7A0F", nombre: "COLOCAR_ENTIDAD", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Comprueba HAY_COLISION en 2 casillas; si libres, elige direccion; si no, dibuja igual. Completada Sesion 6.", sesion: "6" },
+  { id: "HAY_COLISION", addr: "$7A10", addrFin: "$7A94", nombre: "HAY_COLISION", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Colision entidad-entidad (margenes +-8/+-2 sobre ARRAY_ENTIDADES) Y accesibilidad del mapa (offset 40/41 de una entrada de 42 bytes en $8200). Sesion 4, completada Sesion 6.", sesion: "4" },
+  { id: "CALCULAR_CASILLA_ADYACENTE", addr: "$7A95", addrFin: "$7AB5", nombre: "CALCULAR_CASILLA_ADYACENTE", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Calcula la celda adyacente en una direccion 0-3 (pasos 8px en X / 2px en Y). Sesion 5.", sesion: "5" },
+  { id: "ELEGIR_DIRECCION_HACIA_OBJETIVO", addr: "$7AB6", addrFin: "$7AF1", nombre: "ELEGIR_DIRECCION_HACIA_OBJETIVO", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Compara ejes contra una posicion objetivo, desempate aleatorio de eje via GENERAR_ALEATORIO -- patron de IA de persecucion en rejilla. Sesion 5/6.", sesion: "5" },
+  { id: "CONSULTAR_CASILLA_MAPA", addr: "$7D3E", addrFin: "$7D52", nombre: "CONSULTAR_CASILLA_MAPA", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Indexa MAPA_CASILLAS ($8200, paso de fila 5 bytes en esta lectura; ver HAY_COLISION para el paso de 42 bytes/entrada). Sesion 5.", sesion: "5" },
+  // ---- renderizado ----
+  { id: "PREPARAR_DIBUJAR_ENTIDAD", addr: "$7AF2", addrFin: "$7B38", nombre: "PREPARAR_DIBUJAR_ENTIDAD", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Sin RET propio -- cae directamente (sin salto) en DIBUJAR_ENTIDAD, confirmado Sesion 6: misma unidad logica con dos puntos de entrada.", sesion: "6" },
+  { id: "DIBUJAR_ENTIDAD", addr: "$7B39", addrFin: "$7CE5", nombre: "DIBUJAR_ENTIDAD", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta (estructura confirmada al 100%, identidad de sprites media-alta)",
+    evidencia: "429 bytes, dispatcher directo (CP/JR/JP a etiquetas fijas, sin JP indirecto) por tipo de entidad (' '/'T'/'A'/'O'), direccion y fotograma. 16 sprites JUGADOR/MOMIA confirmados. Sesion 6/8.", sesion: "6" },
+  { id: "DIBUJAR_CASILLA_MAPA", addr: "$7CE6", addrFin: "$7D3D", nombre: "DIBUJAR_CASILLA_MAPA", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Dispatcher de 9 tablas de casilla 2x8 bytes segun valor de MAPA_CASILLAS; termina con JR a $7CC4 (dentro de DIBUJAR_ENTIDAD), no en CONSULTAR_CASILLA_MAPA -- ver nota de correccion en el panel de relaciones indirectas. Sesion 6/8.", sesion: "6" },
+  { id: "COPIAR_BLOQUE_A_LIENZO", addr: "$7E73", addrFin: "$7E91", nombre: "COPIAR_BLOQUE_A_LIENZO", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Copia un bloque de 6x12 bytes desde una tabla (IY) con paso INC H (256, no el paso real de VRAM). Sesion 3/4.", sesion: "3" },
+  { id: "CASILLA_A_DIRECCION_PANTALLA", addr: "$7E92", addrFin: "$7EAA", nombre: "CASILLA_A_DIRECCION_PANTALLA", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Indexa TABLA_DIRECCIONES_PANTALLA ($8ECA, 200 entradas construidas en el arranque) por fila+columna. Sesion 4.", sesion: "4" },
+  { id: "DIBUJAR_TRAMO_MARCO_1", addr: "$7D85", addrFin: "$7D9C", nombre: "DIBUJAR_TRAMO_MARCO_1", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_1 ($877D). Sesion 5/6.", sesion: "5" },
+  { id: "DIBUJAR_TRAMO_MARCO_2", addr: "$7D9D", addrFin: "$7DB4", nombre: "DIBUJAR_TRAMO_MARCO_2", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_2 ($87C5). Sesion 5/6.", sesion: "5" },
+  { id: "DIBUJAR_TRAMO_MARCO_3", addr: "$7DB5", addrFin: "$7DCC", nombre: "DIBUJAR_TRAMO_MARCO_3", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_3 ($880D). Sesion 5/6.", sesion: "5" },
+  { id: "DIBUJAR_TRAMO_MARCO_4", addr: "$7DCD", addrFin: "$7DE4", nombre: "DIBUJAR_TRAMO_MARCO_4", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_MEDIO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_4 ($8855). Sesion 5/6/7.", sesion: "5" },
+  { id: "RELLENAR_MARCO_MEDIO", addr: "$7DE5", addrFin: "$7DEC", nombre: "RELLENAR_MARCO_MEDIO", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Mascara $0F, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_TRAMO_MARCO_4. Sesion 7.", sesion: "7" },
+  { id: "RELLENAR_MARCO_SOLIDO", addr: "$7DED", addrFin: "$7DF4", nombre: "RELLENAR_MARCO_SOLIDO", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Mascara $FF, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_TRAMO_MARCO_1/2/3. Sesion 7.", sesion: "7" },
+  { id: "RELLENAR_MARCO_VACIO", addr: "$7DF5", addrFin: "$7DFB", nombre: "RELLENAR_MARCO_VACIO", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Mascara $00, JP a PREPARAR_RELLENO_MASCARA_UNICA. SIN llamador conocido en todo el codigo ya reconstruido. Sesion 7.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_1", addr: "$7DFC", addrFin: "$7E04", nombre: "RELLENAR_MARCO_DIAGONAL_1", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $FF, mascara $A5. Llamador: ENTRADA_MOTOR via CALL $7DFC ($6176) -- corrige FINDINGS/flujo_programa.html, que la daban por 'sin llamador conocido' (ver panel de relaciones indirectas). Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_2", addr: "$7E05", addrFin: "$7E0D", nombre: "RELLENAR_MARCO_DIAGONAL_2", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $F0, mascara $AF. Llamador: ENTRADA_MOTOR via CALL $7E05 ($61D9) -- misma correccion que DIAGONAL_1. Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_3", addr: "$7E0E", addrFin: "$7E16", nombre: "RELLENAR_MARCO_DIAGONAL_3", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $0F, mascara $FA. Llamador: ENTRADA_MOTOR via CALL $7E0E ($6185) -- misma correccion. Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_4", addr: "$7E17", addrFin: "$7E1F", nombre: "RELLENAR_MARCO_DIAGONAL_4", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $F0, mascara $50. Llamador: ENTRADA_MOTOR via CALL $7E17 ($61CA) -- misma correccion. Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_5", addr: "$7E20", addrFin: "$7E28", nombre: "RELLENAR_MARCO_DIAGONAL_5", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $FF, mascara $55. SIN llamador conocido en todo el codigo ya reconstruido (la unica de las 6 diagonales sin caller, junto a RELLENAR_MARCO_VACIO). Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_6", addr: "$7E29", addrFin: "$7E2F", nombre: "RELLENAR_MARCO_DIAGONAL_6", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Parchea $7E47 con $0F, mascara $05, cae SIN JR en RELLENAR_MARCO_DIAGONAL_BUCLE (fall-through). Llamador: ENTRADA_MOTOR via CALL $7E29 (x4) -- misma correccion. Sesion 7/9.", sesion: "7" },
+  { id: "RELLENAR_MARCO_DIAGONAL_BUCLE", addr: "$7E30", addrFin: "$7E4E", nombre: "RELLENAR_MARCO_DIAGONAL_BUCLE", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta en estructura", evidencia: "Bucle compartido de las 6 variantes diagonales: 24 filas alternando mascara via XOR sobre el byte parcheado en $7E47 (codigo automodificable). Sesion 7.", sesion: "7" },
+  { id: "PREPARAR_RELLENO_MASCARA_UNICA", addr: "$7E4F", addrFin: "$7E58", nombre: "PREPARAR_RELLENO_MASCARA_UNICA", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Prepara un relleno de 24 filas con una unica mascara y cae (sin salto) en RELLENAR_FILAS_MASCARA. Sesion 7.", sesion: "7" },
+  { id: "RELLENAR_FILAS_MASCARA", addr: "$7E59", addrFin: "$7E72", nombre: "RELLENAR_FILAS_MASCARA", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Bucle de bajo nivel: por fila llama CASILLA_A_DIRECCION_PANTALLA y escribe 10 bytes de mascara. Reusado con B=24 o B=1. Sesion 7.", sesion: "7" },
+  // ---- sonido ----
+  { id: "ACTUALIZAR_SECUENCIA_SONIDO", addr: "$78D1", addrFin: "$78F6", nombre: "ACTUALIZAR_SECUENCIA_SONIDO", subsistema: "sonido", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Avanza PUNTERO_GUION_SONIDO de 9 en 9 bytes sobre GUION_SONIDO_CIRCULAR (confirmado circular: reinicia al llegar a GUION_SONIDO_ULTIMO_REGISTRO, $937D). Llamada docenas de veces desde ENTRADA_MOTOR. Sesion 3, completada Sesion 6.", sesion: "3" },
+  // ---- menu / hud / entrada ----
+  { id: "IMPRIMIR_NUMERO_HL", addr: "$786C", addrFin: "$7892", nombre: "IMPRIMIR_NUMERO_HL", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Imprime HL como numero decimal (resta repetida contra TABLA_POSICIONES_DECIMALES + digito final) via FIRM_TXT_OUTPUT. Sesion 5, corregido Sesion 8 (hasta 5 cifras, no 4).", sesion: "5" },
+  { id: "ESPERAR_TECLA_2C", addr: "$7893", addrFin: "$78B6", nombre: "ESPERAR_TECLA_2C", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Espera pulsacion+liberacion de la tecla $2C con antirrebote. Sesion 5.", sesion: "5" },
+  { id: "ANIMAR_OPCION_MENU", addr: "$78B7", addrFin: "$78D0", nombre: "ANIMAR_OPCION_MENU", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "baja", evidencia: "Cuenta atras en $8153 tras COLOCAR_ENTIDAD, ajusta B con tope 21. Sesion 3, compilada Sesion 5.", sesion: "3" },
+  { id: "MOVER_INDICADOR_MENU", addr: "$78F7", addrFin: "$794E", nombre: "MOVER_INDICADOR_MENU", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "media", evidencia: "Borra un indicador ('T') y dibuja otro ('A') en la posicion vecina via DIBUJAR_ENTIDAD. Sesion 6.", sesion: "6" },
+  { id: "BORRAR_RECTANGULO_VENTANA", addr: "$7EB9", addrFin: "$7EF3", nombre: "BORRAR_RECTANGULO_VENTANA", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Borra un rectangulo de VENTANA_TEXTO_HUD (paso 40B/fila) y usa firmware TXT WIN ENABLE/TXT CLEAR WINDOW. Sesion 3, subida a alta en Sesion 5.", sesion: "3" },
+  { id: "REPETIR_CARACTER", addr: "$7EF4", addrFin: "$7EFC", nombre: "REPETIR_CARACTER", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Repite un caracter N veces via FIRM_TXT_OUTPUT (formato cuenta+caracter). Sesion 3.", sesion: "3" },
+  // ---- pendiente ----
+  { id: "ZONA_PENDIENTE_6401_786B", addr: "$6401", addrFin: "$786B", nombre: "$6401-$786B -- sin analizar (5227 bytes)", subsistema: "pendiente", tipo: "pendiente",
+    estado: "pendiente", confianza: "n/a", evidencia: "Unico tramo del motor todavia incluido tal cual via INCBIN (data/mummy1_resto_sin_analizar.bin). No se le atribuye ninguna subrutina interna sin evidencia. Sesion 2-8.", sesion: "2" },
+  // ---- datos (capa opcional, oculta por defecto) ----
+  { id: "DATO_ENVOLVENTES", addr: "$7FCA", addrFin: "$801C", nombre: "Envolventes de sonido (6 tablas)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta (limites); formato de campos sin desglosar", evidencia: "ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3, direcciones confirmadas por las LD HL previas a cada CALL FIRM_SOUND_*_ENV en ENTRADA_MOTOR. Sesion 3/8.", sesion: "3" },
+  { id: "DATO_TEXTOS", addr: "varias", addrFin: "varias", nombre: "Textos del juego (menu, atraccion, HI-SCORE, copyright)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta (texto literal legible)", evidencia: "$7EFD-$7FC5, $801D-$8139, $867E-$8737, $8740-$877C. Incluye el copyright real \"OH MUMMY\" (c) 1984 GEM SOFTWARE. Sesion 8.", sesion: "8" },
+  { id: "DATO_TABLAS_MARCO", addr: "$877D", addrFin: "$889C", nombre: "TABLA_MARCO_1..4 (marco decorativo)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta (limites); confianza media en la lectura visual", evidencia: "4 tablas de 72 bytes exactos, limites confirmados por aritmetica de las 4 LD IY de DIBUJAR_TRAMO_MARCO_1..4. Sesion 8.", sesion: "8" },
+  { id: "DATO_ESTADO_MAPA", addr: "$8168", addrFin: "$8610", nombre: "Estado de partida + mapa (ARRAY_ENTIDADES/ESTADO_PARTIDA/VENTANA_TEXTO_HUD/MAPA_CASILLAS)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta (limites); hipotesis en el desglose interno", evidencia: "Todo el rango que limpia BORRAR_BLOQUE_ESTADO, mas variables de arranque justo antes. Sesion 3-8.", sesion: "3" },
+  { id: "DATO_SPRITE_CASILLA", addr: "$8919", addrFin: "$8EC9", nombre: "TABLAS_SPRITE_CASILLA (16 sprites + 10 losetas confirmados, resto sin nombrar)", subsistema: "datos", tipo: "dato",
+    estado: "hipotesis", confianza: "alta en la parte confirmada, media-alta en el resto", evidencia: "Inicio confirmado por LD IY,$8919 de DIBUJAR_ENTIDAD (caso por defecto). SPRITE_JUGADOR/MOMIA ($8AB9-$8E79) y LOSETA_* ($8999-$8AA9/89D9-8AB8) nombrados. Sesion 8 (varias continuaciones).", sesion: "8" },
+  { id: "DATO_DIRECCIONES_PANTALLA", addr: "$8ECA", addrFin: "$9059", nombre: "TABLA_DIRECCIONES_PANTALLA (construida en tiempo de ejecucion)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta", evidencia: "200 entradas x 2 bytes, rellenadas por el bucle de ENTRADA_MOTOR con FIRM_SCR_DOT_POSITION. El fichero la tiene a 0. Sesion 3/8.", sesion: "3" },
+  { id: "DATO_GUION_SONIDO", addr: "$905A", addrFin: "$9385", nombre: "PUNTERO_GUION_SONIDO + GUION_SONIDO_CIRCULAR (90 registros x 9 bytes)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta en estructura circular; media-alta en el formato de cada registro", evidencia: "Confirmado circular por ACTUALIZAR_SECUENCIA_SONIDO (reinicia al llegar a $937D). Sesion 6/8.", sesion: "6" },
+  { id: "DATO_POSICIONES_DECIMALES", addr: "$8738", addrFin: "$873F", nombre: "TABLA_POSICIONES_DECIMALES (10000,1000,100,10)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta", evidencia: "Confirmada y corregida en Sesion 8 (no empezaba en $8736 como se creia -- esos 2 bytes son el final de 'name' de TEXTO_MENU_PRINCIPAL).", sesion: "8" },
+  { id: "DATO_GAME_OVER", addr: "$813A", addrFin: "$8167", nombre: "TABLA_DESCONOCIDA_GAME_OVER", subsistema: "datos", tipo: "dato",
+    estado: "pendiente", confianza: "baja", evidencia: "Progresiones aritmeticas visibles, sin CALL/LD conocido que la lea. Sesion 8.", sesion: "8" },
+  { id: "DATO_OFFSETS_DIAMANTE", addr: "$8611", addrFin: "$8644", nombre: "TABLA_OFFSETS_DIAMANTE", subsistema: "datos", tipo: "dato",
+    estado: "pendiente", confianza: "baja-media", evidencia: "Pares byte-alto con patron ascendente/descendente, sin CALL/LD conocido. Sesion 8.", sesion: "8" },
+  { id: "DATO_PARAMETROS_PUNTUACIONES", addr: "$864B", addrFin: "$867D", nombre: "TABLA_PARAMETROS_TRANSICION_PUNTUACIONES", subsistema: "datos", tipo: "dato",
+    estado: "pendiente", confianza: "baja", evidencia: "Justo antes de TEXTO_TABLA_PUNTUACIONES, sin CALL/LD conocido. Sesion 8.", sesion: "8" },
+];
+
+// ============================================================================
+// ARISTAS de control (CALL / CALL cc / JP / JP cc / JR entre rutinas / caida
+// sin RET). Cada una verificada linea a linea en src/mummy1_body.asm para
+// esta pagina. "veces" es aproximado y solo informativo (ver evidencia).
+// ============================================================================
+const ARISTAS = [
+  { from: "CARGADOR_BASIC", to: "ENTRADA_MOTOR", tipo: "call", nota: "CALL &6000 (mummy_bas.bas linea 580)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_SOUND_RESET", tipo: "call", nota: "$6000" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_SOUND_AMPL_ENV", tipo: "call", nota: "x3 ($6008/$6018/$6028)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_SOUND_TONE_ENV", tipo: "call", nota: "x3 ($6010/$6020/$6030)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_KL_TIME_PLEASE", tipo: "call", nota: "$6039" },
+  { from: "ENTRADA_MOTOR", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "docenas de veces, intercalada por todo el bloque" },
+  { from: "ENTRADA_MOTOR", to: "BORRAR_BLOQUE_ESTADO", tipo: "call", nota: "x2 ($604B/$6231)" },
+  { from: "ENTRADA_MOTOR", to: "REPETIR_CARACTER", tipo: "call", nota: "varias veces (distintos textos)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_SCR_DOT_POSITION", tipo: "call", nota: "bucle x200 ($6085)" },
+  { from: "ENTRADA_MOTOR", to: "BORRAR_RECTANGULO_VENTANA", tipo: "call", nota: "x14 seguidas" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_TXT_WIN_ENABLE", tipo: "call", nota: "varias veces" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_1", tipo: "call", nota: "$6170" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_2", tipo: "call", nota: "$618E" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_3", tipo: "call", nota: "$61D0" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_4", tipo: "call", nota: "x3 ($617F/$61C1/$61DF)" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_1", tipo: "call", nota: "CALL $7DFC ($6176) -- direccion literal, no via etiqueta" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_2", tipo: "call", nota: "CALL $7E05 ($61D9) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_3", tipo: "call", nota: "CALL $7E0E ($6185) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_4", tipo: "call", nota: "CALL $7E17 ($61CA) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_6", tipo: "call", nota: "CALL $7E29 x4 ($6194/$61A3/$61AC/$61BB) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "INICIALIZAR_ENTIDADES", tipo: "call", nota: "x2 ($61EB/$6334)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "varias veces" },
+  { from: "ENTRADA_MOTOR", to: "ANIMAR_OPCION_MENU", tipo: "call", nota: "varias veces (1 y 2 jugadores)" },
+  { from: "ENTRADA_MOTOR", to: "MOVER_INDICADOR_MENU", tipo: "call", nota: "CALL $78F7 x2 ($6209/$6214) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "ESPERAR_TECLA_2C", tipo: "call", nota: "x2 ($620C/$621E)" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "$6219" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_TXT_CLEAR_WINDOW", tipo: "call", nota: "x3" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_TXT_SET_PAPER", tipo: "call", nota: "varias veces" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_TXT_SET_CURSOR", tipo: "call", nota: "varias veces" },
+  { from: "ENTRADA_MOTOR", to: "IMPRIMIR_NUMERO_HL", tipo: "call", nota: "CALL $786C x5 -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "varias veces" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "CALL $7B39 x2 ($6279/$628A) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "ZONA_PENDIENTE_6401_786B", tipo: "jpcc", cond: "Z", nota: "JP Z,$6404 ($6380) -- destino cae dentro del hueco pendiente, sin resolver" },
+
+  { from: "ACTUALIZAR_SECUENCIA_SONIDO", to: "FIRM_SOUND_QUEUE", tipo: "callcc", cond: "Z", nota: "CALL Z,FIRM_SOUND_QUEUE ($78DA), solo si FLAG_MUSICA_FONDO='Y'" },
+
+  { from: "ESPERAR_TECLA_2C", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "x2" },
+  { from: "ESPERAR_TECLA_2C", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "x2" },
+  { from: "ESPERAR_TECLA_2C", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "x2" },
+  { from: "ESPERAR_TECLA_2C", to: "FIRM_KM_CHAR_RETURN", tipo: "call", nota: "$78B3" },
+
+  { from: "ANIMAR_OPCION_MENU", to: "COLOCAR_ENTIDAD", tipo: "call", nota: "$78B8" },
+  { from: "ANIMAR_OPCION_MENU", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "$78BB" },
+
+  { from: "MOVER_INDICADOR_MENU", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "x2 ($7911/$794B)" },
+
+  { from: "INICIALIZAR_ENTIDADES", to: "INICIALIZAR_UNA_ENTIDAD", tipo: "call", nota: "$7954, en bucle DJNZ" },
+
+  { from: "INICIALIZAR_UNA_ENTIDAD", to: "GENERAR_ALEATORIO", tipo: "call", nota: "x2 ($7970/$7979)" },
+
+  { from: "COLOCAR_ENTIDAD", to: "GENERAR_ALEATORIO", tipo: "call", nota: "x2 ($79BD/$79D9)" },
+  { from: "COLOCAR_ENTIDAD", to: "ELEGIR_DIRECCION_HACIA_OBJETIVO", tipo: "callcc", cond: "Z", nota: "CALL Z ($79C1)" },
+  { from: "COLOCAR_ENTIDAD", to: "HAY_COLISION", tipo: "call", nota: "x2 ($79C7/$79D1)" },
+  { from: "COLOCAR_ENTIDAD", to: "PREPARAR_DIBUJAR_ENTIDAD", tipo: "jpcc", cond: "NZ", nota: "JP NZ x2 ($79CA/$79D4) -- salto, no CALL: no retorna a COLOCAR_ENTIDAD" },
+  { from: "COLOCAR_ENTIDAD", to: "DIBUJAR_ENTIDAD", tipo: "jp", nota: "JP $79E7, tail-jump incondicional" },
+
+  { from: "HAY_COLISION", to: "CALCULAR_CASILLA_ADYACENTE", tipo: "call", nota: "$7A16" },
+
+  { from: "PREPARAR_DIBUJAR_ENTIDAD", to: "CONSULTAR_CASILLA_MAPA", tipo: "call", nota: "x4" },
+  { from: "PREPARAR_DIBUJAR_ENTIDAD", to: "DIBUJAR_CASILLA_MAPA", tipo: "call", nota: "x4" },
+  { from: "PREPARAR_DIBUJAR_ENTIDAD", to: "DIBUJAR_ENTIDAD", tipo: "fallthrough", nota: "sin RET ni salto: la ultima instruccion de PREPARAR_DIBUJAR_ENTIDAD ($7B37-7B38) precede directamente a DIBUJAR_ENTIDAD ($7B39)" },
+
+  { from: "DIBUJAR_ENTIDAD", to: "CONSULTAR_CASILLA_MAPA", tipo: "call", nota: "varias veces, rama de tipo 'T'" },
+  { from: "DIBUJAR_ENTIDAD", to: "CASILLA_A_DIRECCION_PANTALLA", tipo: "call", nota: "$7CCC, en el bucle comun de volcado" },
+
+  { from: "DIBUJAR_CASILLA_MAPA", to: "DIBUJAR_ENTIDAD", tipo: "jr", nota: "JR $7CC4 ($7D3C) hacia el bucle de volcado compartido dentro de DIBUJAR_ENTIDAD -- NO hacia CONSULTAR_CASILLA_MAPA como resume el texto de FINDINGS.md Sesion 6; verificado de nuevo byte a byte para esta pagina (Sesion 9)." },
+
+  { from: "COPIAR_BLOQUE_A_LIENZO", to: "CASILLA_A_DIRECCION_PANTALLA", tipo: "call", nota: "$7E79" },
+
+  { from: "GENERAR_ALEATORIO", to: "MEZCLAR_ALEATORIO", tipo: "call", nota: "x2 ($7D57/$7D60)" },
+
+  { from: "ELEGIR_DIRECCION_HACIA_OBJETIVO", to: "GENERAR_ALEATORIO", tipo: "call", nota: "$7ADE" },
+
+  { from: "DIBUJAR_TRAMO_MARCO_1", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7D88" },
+  { from: "DIBUJAR_TRAMO_MARCO_1", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7D99" },
+  { from: "DIBUJAR_TRAMO_MARCO_2", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DA0" },
+  { from: "DIBUJAR_TRAMO_MARCO_2", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DB1" },
+  { from: "DIBUJAR_TRAMO_MARCO_3", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DB8" },
+  { from: "DIBUJAR_TRAMO_MARCO_3", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DC9" },
+  { from: "DIBUJAR_TRAMO_MARCO_4", to: "RELLENAR_MARCO_MEDIO", tipo: "call", nota: "$7DD0" },
+  { from: "DIBUJAR_TRAMO_MARCO_4", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DE1" },
+
+  { from: "RELLENAR_MARCO_MEDIO", to: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "jp", nota: "JP $7DEA, tail-jump" },
+  { from: "RELLENAR_MARCO_SOLIDO", to: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "jp", nota: "JP $7DF2, tail-jump" },
+  { from: "RELLENAR_MARCO_VACIO", to: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "jp", nota: "JP $7DF9, tail-jump" },
+
+  { from: "RELLENAR_MARCO_DIAGONAL_1", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "jr", nota: "JR $7E03" },
+  { from: "RELLENAR_MARCO_DIAGONAL_2", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "jr", nota: "JR $7E0C" },
+  { from: "RELLENAR_MARCO_DIAGONAL_3", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "jr", nota: "JR $7E15" },
+  { from: "RELLENAR_MARCO_DIAGONAL_4", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "jr", nota: "JR $7E1E" },
+  { from: "RELLENAR_MARCO_DIAGONAL_5", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "jr", nota: "JR $7E27" },
+  { from: "RELLENAR_MARCO_DIAGONAL_6", to: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "fallthrough", nota: "sin JR: cae directa en $7E30 (unica de las 6 sin salto explicito)" },
+
+  { from: "RELLENAR_MARCO_DIAGONAL_BUCLE", to: "RELLENAR_FILAS_MASCARA", tipo: "call", nota: "$7E40, con B=1 (una fila)" },
+  { from: "PREPARAR_RELLENO_MASCARA_UNICA", to: "RELLENAR_FILAS_MASCARA", tipo: "fallthrough", nota: "sin salto: $7E56 precede directamente a $7E59" },
+  { from: "RELLENAR_FILAS_MASCARA", to: "CASILLA_A_DIRECCION_PANTALLA", tipo: "call", nota: "$7E5A, por fila" },
+
+  { from: "BORRAR_RECTANGULO_VENTANA", to: "FIRM_TXT_WIN_ENABLE", tipo: "call", nota: "$7EED" },
+  { from: "BORRAR_RECTANGULO_VENTANA", to: "FIRM_TXT_CLEAR_WINDOW", tipo: "call", nota: "$7EF0" },
+
+  { from: "REPETIR_CARACTER", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "$7EF7, en bucle DJNZ" },
+  { from: "IMPRIMIR_NUMERO_HL", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "x2 ($7887/$788F)" },
+];
+
+// ============================================================================
+// ARISTAS de acceso a datos (capa opcional, no es CALL). Se muestran solo si
+// el usuario activa el subsistema "datos".
+// ============================================================================
+const ARISTAS_DATO = [
+  { from: "ENTRADA_MOTOR", to: "DATO_ENVOLVENTES", nota: "LD HL,$7FCA/$7FD4/.../$7FF9 antes de cada CALL FIRM_SOUND_*_ENV" },
+  { from: "REPETIR_CARACTER", to: "DATO_TEXTOS", nota: "HL pasado por el llamador apunta a texto+contador" },
+  { from: "DIBUJAR_TRAMO_MARCO_1", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_1 ($877D)" },
+  { from: "DIBUJAR_TRAMO_MARCO_2", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_2 ($87C5)" },
+  { from: "DIBUJAR_TRAMO_MARCO_3", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_3 ($880D)" },
+  { from: "DIBUJAR_TRAMO_MARCO_4", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_4 ($8855)" },
+  { from: "BORRAR_BLOQUE_ESTADO", to: "DATO_ESTADO_MAPA", nota: "limpia $8172-$860F (LDIR)" },
+  { from: "HAY_COLISION", to: "DATO_ESTADO_MAPA", nota: "LD IY,MAPA_CASILLAS ($8200) + ARRAY_ENTIDADES ($816D)" },
+  { from: "CONSULTAR_CASILLA_MAPA", to: "DATO_ESTADO_MAPA", nota: "LD HL,MAPA_CASILLAS ($8200)" },
+  { from: "INICIALIZAR_UNA_ENTIDAD", to: "DATO_ESTADO_MAPA", nota: "LD IX,ARRAY_ENTIDADES ($816D)" },
+  { from: "DIBUJAR_ENTIDAD", to: "DATO_SPRITE_CASILLA", nota: "LD IY,$8919/$8959/SPRITE_JUGADOR_*/SPRITE_MOMIA_*/LOSETA_*" },
+  { from: "DIBUJAR_CASILLA_MAPA", to: "DATO_SPRITE_CASILLA", nota: "LD IY,LOSETA_MAPA_PISADA_1..8 / $8959" },
+  { from: "CASILLA_A_DIRECCION_PANTALLA", to: "DATO_DIRECCIONES_PANTALLA", nota: "LD IX,TABLA_DIRECCIONES_PANTALLA ($8ECA)" },
+  { from: "ACTUALIZAR_SECUENCIA_SONIDO", to: "DATO_GUION_SONIDO", nota: "LD HL,(PUNTERO_GUION_SONIDO) / compara contra $937D" },
+  { from: "IMPRIMIR_NUMERO_HL", to: "DATO_POSICIONES_DECIMALES", nota: "LD IY,TABLA_POSICIONES_DECIMALES-2 ($8736)" },
+];
+
+// ============================================================================
+// RELACIONES NO REPRESENTADAS COMO CALL DIRECTO -- panel dedicado. Reutiliza
+// ARISTAS marcadas tipo jp/jpcc/jr/fallthrough, mas entradas propias para
+// "sin llamador conocido" y destinos sin resolver.
+// ============================================================================
+const RELACIONES_ADICIONALES = [
+  { origen: "RELLENAR_MARCO_VACIO ($7DF5)", destino: "-- (sin llamador)", tipo: "Rutina sin llamador conocido", detalle: "Ninguna instruccion CALL/JP/JR de todo el codigo ya reconstruido referencia $7DF5 ni la etiqueta RELLENAR_MARCO_VACIO. Candidata a vivir en el hueco pendiente $6401-$786B. Sesion 7." },
+  { origen: "RELLENAR_MARCO_DIAGONAL_5 ($7E20)", destino: "-- (sin llamador)", tipo: "Rutina sin llamador conocido", detalle: "Es la unica de las 6 variantes diagonales sin llamador confirmado -- las otras 5 SI tienen llamador conocido en ENTRADA_MOTOR (correccion de esta sesion, ver mas abajo). Sesion 7/9." },
+  { origen: "ENTRADA_MOTOR", destino: "RELLENAR_MARCO_DIAGONAL_1/2/3/4/6", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 7 y recursos/flujo_programa.html afirman 'sin llamador conocido todavia' para las 6 variantes diagonales. Releyendo src/mummy1_body.asm linea a linea para este grafo se confirma que 5 de las 6 (todas menos DIAGONAL_5) SI tienen llamador: el propio bloque ENTRADA_MOTOR ($6000-$6400) las llama por direccion literal (CALL $7DFC/$7E05/$7E0E/$7E17/$7E29) -- ese bloque nunca se renombro tras nombrar las rutinas destino en la Sesion 7, asi que la busqueda de 'llamador conocido' de esa sesion no lo detecto. Se propone actualizar flujo_programa.html y FINDINGS.md en consecuencia (ver la entrada de Sesion 9)." },
+  { origen: "DIBUJAR_CASILLA_MAPA ($7CE6)", destino: "DIBUJAR_ENTIDAD, en $7CC4", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 6 resume que DIBUJAR_CASILLA_MAPA 'cae directamente (sin RET) en CONSULTAR_CASILLA_MAPA ($7D3E)'. El disassembly real muestra que todas las ramas de DIBUJAR_CASILLA_MAPA terminan en 'JR $7CC4' ($7D3C), una direccion dentro de DIBUJAR_ENTIDAD (el bucle comun de volcado a pantalla), no en CONSULTAR_CASILLA_MAPA. La adyacencia fisica en el fichero (CONSULTAR_CASILLA_MAPA arranca justo en $7D3E, 2 bytes despues) es our probable origen de la confusion en el resumen, pero no hay fall-through real: el JR salta fuera de esa direccion. No se ha corregido el texto de FINDINGS.md de sesiones pasadas (no se reescribe historia), pero este grafo usa el flujo verificado." },
+  { origen: "ENTRADA_MOTOR", destino: "hueco pendiente $6404 (dentro de $6401-$786B)", tipo: "Salto a zona sin resolver", detalle: "JP Z,$6404 ($6380): el destino cae 3 bytes dentro del unico tramo del motor sin desensamblar. No se nombra ninguna rutina ahi -- se marca como salto hacia el nodo 'pendiente'." },
+  { origen: "COLOCAR_ENTIDAD", destino: "PREPARAR_DIBUJAR_ENTIDAD", tipo: "JP condicional (no CALL)", detalle: "JP NZ,PREPARAR_DIBUJAR_ENTIDAD, dos veces ($79CA/$79D4). Al ser JP y no CALL, la ejecucion no vuelve a COLOCAR_ENTIDAD: quien continua tras PREPARAR_DIBUJAR_ENTIDAD/DIBUJAR_ENTIDAD es el llamador original de COLOCAR_ENTIDAD." },
+  { origen: "COLOCAR_ENTIDAD", destino: "DIBUJAR_ENTIDAD", tipo: "JP incondicional (tail-jump)", detalle: "JP DIBUJAR_ENTIDAD ($79E7) tras decidir dibujar el sprite 'O' fijo -- mismo razonamiento que el caso anterior." },
+  { origen: "RELLENAR_MARCO_MEDIO / _SOLIDO / _VACIO", destino: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "JP incondicional (tail-jump)", detalle: "Las 3 fijan un byte de mascara y saltan (no llaman) a la preparacion comun -- ahorra el RET/CALL a cambio de que el RET final 'pertenece' a PREPARAR_RELLENO_MASCARA_UNICA/RELLENAR_FILAS_MASCARA." },
+  { origen: "PREPARAR_DIBUJAR_ENTIDAD", destino: "DIBUJAR_ENTIDAD", tipo: "Fall-through confirmado", detalle: "Sin RET ni salto entre $7B37-7B38 (fin de PREPARAR_DIBUJAR_ENTIDAD) y $7B39 (inicio de DIBUJAR_ENTIDAD) -- son, en la practica, una sola unidad logica con dos puntos de entrada (Sesion 6)." },
+  { origen: "RELLENAR_MARCO_DIAGONAL_6", destino: "RELLENAR_MARCO_DIAGONAL_BUCLE", tipo: "Fall-through confirmado", detalle: "Unica de las 6 variantes sin JR explicito -- cae directa en el bucle comun." },
+  { origen: "PREPARAR_RELLENO_MASCARA_UNICA", destino: "RELLENAR_FILAS_MASCARA", tipo: "Fall-through confirmado", detalle: "Sin salto entre preparar los parametros y el bucle de bajo nivel." },
+  { origen: "DIBUJAR_ENTIDAD (rama por defecto / ' ')", destino: "TABLAS_SPRITE_CASILLA ($8919 / $8959)", tipo: "No es flujo indirecto -- eleccion de dato por CP/JR directos", detalle: "El 'dispatcher' de DIBUJAR_ENTIDAD no usa JP (HL)/(IX)/(IY) ni una tabla de punteros de codigo: es una cadena de comparaciones (CP) y saltos (JR/JP) a etiquetas fijas que cada una carga un valor distinto en IY antes de converger en el bucle comun ($7CC4). Lo unico que varia dinamicamente es que TABLA de datos apunta IY, no a donde salta el codigo. Se documenta aqui para que no se confunda con un salto indirecto real (de los que no hay ninguno confirmado en el proyecto todavia)." },
+];
+
+// ============================================================================
+// PENDIENTES -- extraidos de los cierres de sesion de FINDINGS.md.
+// ============================================================================
+const PENDIENTES = [
+  "El unico hueco INCBIN que queda en el motor: $6401-$786B (5227 bytes) -- sesiones 2-8.",
+  "Localizar el llamador de RELLENAR_MARCO_VACIO ($7DF5) y de RELLENAR_MARCO_DIAGONAL_5 ($7E20) -- las unicas dos rutinas de renderizado del marco sin llamador conocido tras la correccion de esta sesion (las otras 5 diagonales SI tienen llamador, ver panel de relaciones indirectas).",
+  "Nombrar el resto de la rama 'T' de DIBUJAR_ENTIDAD: los fotogramas de escritura en $8A09 (valor 4), $8A29/$8A49 (valores 6/5) y $8A99 (valor 7), distintos de las LOSETA_MAPA_PISADA_* que lee DIBUJAR_CASILLA_MAPA para esos mismos valores -- Sesion 8.",
+  "Confirmar que valor de casilla corresponde a que direccion real (arriba/abajo/izquierda/derecha) y que distingue las 2 variantes de cada par de pisadas (pie/vista) -- Sesion 8.",
+  "Confirmar los 40 bytes restantes de cada entrada de 42 bytes en MAPA_CASILLAS ($8200) -- solo los offsets 40/41 (estado de colision) estan identificados -- Sesion 6.",
+  "Descifrar TABLA_DESCONOCIDA_GAME_OVER, TABLA_OFFSETS_DIAMANTE y TABLA_PARAMETROS_TRANSICION_PUNTUACIONES -- ninguna tiene todavia un CALL/LD conocido que la lea -- Sesion 8.",
+  "Numeracion de teclas del firmware (KM TEST KEY) para $2C/$3E sigue sin resolver -- pendiente desde la Sesion 3/4.",
+  "El bucle principal de juego (frame a frame) todavia no se ha localizado -- sigue pendiente desde la Sesion 5.",
+  "Confirmar el modo de pantalla real y las dimensiones de sprite contra una captura de pantalla en emulador (se asume Modo 1 sin verificar contra una imagen real del juego) -- Sesion 8.",
+  "Confirmar contra una captura de pantalla real si 'A' es el jugador y 'O' la momia (o al reves), y que grupo G1-G4 corresponde a que direccion -- Sesion 8.",
+];
+
+// ============================================================================
+// Render
+// ============================================================================
+const ESTADO_LABEL = { confirmado: "confirmado", hipotesis: "hipotesis", pendiente: "pendiente" };
+const TIPO_ARISTA_INFO = {
+  call:        { color: "var(--edge-call)", dash: "",      label: "CALL" },
+  callcc:      { color: "var(--edge-call)", dash: "6,4",   label: "CALL cc" },
+  jp:          { color: "var(--edge-jump)", dash: "",      label: "JP" },
+  jpcc:        { color: "var(--edge-jump)", dash: "6,4",   label: "JP cc" },
+  jr:          { color: "var(--edge-jr)",   dash: "2,3",   label: "JR" },
+  fallthrough: { color: "var(--edge-jr)",   dash: "2,3",   label: "fall-through" },
+};
+
+const nodosPorId = {};
+NODOS.forEach((n) => { nodosPorId[n.id] = n; });
+
+const COL_W = 190, ROW_H = 130, MARGIN_L = 190, MARGIN_T = 40, NODE_H = 62;
+let posiciones = {}; // id -> {x, y, col, row}
+
+function calcularLayout() {
+  posiciones = {};
+  SUBSISTEMAS.forEach((sub, rowIdx) => {
+    const nodosFila = NODOS.filter((n) => n.subsistema === sub.id);
+    nodosFila.forEach((n, colIdx) => {
+      posiciones[n.id] = {
+        x: MARGIN_L + colIdx * COL_W,
+        y: MARGIN_T + rowIdx * ROW_H,
+        row: rowIdx,
+      };
+    });
+  });
+}
+calcularLayout();
+
+function anchoBase() {
+  let maxCols = 1;
+  SUBSISTEMAS.forEach((sub) => {
+    const n = NODOS.filter((x) => x.subsistema === sub.id).length;
+    if (n > maxCols) maxCols = n;
+  });
+  return MARGIN_L + maxCols * COL_W + 40;
+}
+function altoBase() { return MARGIN_T + SUBSISTEMAS.length * ROW_H + 20; }
+
+let mostrarSubsistema = {};
+SUBSISTEMAS.forEach((s) => { mostrarSubsistema[s.id] = (s.id !== "datos"); });
+let filtroTexto = "";
+let zoom = 1;
+let seleccionActual = null;
+
+function nodoVisible(n) {
+  if (!mostrarSubsistema[n.subsistema]) return false;
+  if (!filtroTexto) return true;
+  const f = filtroTexto.toLowerCase();
+  return (
+    n.id.toLowerCase().includes(f) ||
+    n.nombre.toLowerCase().includes(f) ||
+    n.addr.toLowerCase().includes(f) ||
+    n.subsistema.toLowerCase().includes(f) ||
+    n.estado.toLowerCase().includes(f)
+  );
+}
+
+function construirFiltroSubsistemas() {
+  const cont = document.getElementById("filtro-subsistemas");
+  cont.innerHTML = "";
+  SUBSISTEMAS.forEach((s) => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = mostrarSubsistema[s.id];
+    cb.addEventListener("change", () => { mostrarSubsistema[s.id] = cb.checked; renderTodo(); });
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.style.background = s.color;
+    label.appendChild(cb);
+    label.appendChild(swatch);
+    label.appendChild(document.createTextNode(" " + s.nombre));
+    cont.appendChild(label);
+  });
+}
+
+function renderGrafo() {
+  const zoomLayer = document.getElementById("zoomLayer");
+  const svg = document.getElementById("svgEdges");
+  const spacer = document.getElementById("spacer");
+  const w = anchoBase(), h = altoBase();
+
+  // limpiar nodos previos (dejar el svg)
+  Array.from(zoomLayer.querySelectorAll(".nodo")).forEach((el) => el.remove());
+  Array.from(zoomLayer.querySelectorAll(".fila-etiqueta")).forEach((el) => el.remove());
+
+  zoomLayer.style.width = w + "px";
+  zoomLayer.style.height = h + "px";
+  zoomLayer.style.transform = "scale(" + zoom + ")";
+  spacer.style.width = (w * zoom) + "px";
+  spacer.style.height = (h * zoom) + "px";
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+
+  // marcadores de flecha (una vez)
+  svg.innerHTML =
+    '<defs>' +
+    '<marker id="arrowCall" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--edge-call)"/></marker>' +
+    '<marker id="arrowJump" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--edge-jump)"/></marker>' +
+    '<marker id="arrowJr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--edge-jr)"/></marker>' +
+    '<marker id="arrowData" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--edge-data)"/></marker>' +
+    '</defs>';
+
+  // etiquetas de fila
+  SUBSISTEMAS.forEach((s, rowIdx) => {
+    const et = document.createElement("div");
+    et.className = "fila-etiqueta";
+    et.style.top = (MARGIN_T + rowIdx * ROW_H - 18) + "px";
+    et.style.left = "6px";
+    et.textContent = s.nombre;
+    et.style.color = s.color;
+    zoomLayer.appendChild(et);
+  });
+
+  // nodos
+  NODOS.forEach((n) => {
+    const pos = posiciones[n.id];
+    if (!pos) return;
+    const div = document.createElement("div");
+    div.className = "nodo";
+    div.tabIndex = 0;
+    div.setAttribute("role", "button");
+    div.setAttribute("data-id", n.id);
+    div.style.left = pos.x + "px";
+    div.style.top = pos.y + "px";
+    const subColor = (SUBSISTEMAS.find((s) => s.id === n.subsistema) || {}).color || "var(--muted)";
+    div.style.borderLeftColor = subColor;
+    const estadoColorVar = n.estado === "confirmado" ? "var(--accent-ok)" : (n.estado === "hipotesis" ? "var(--accent-hipotesis)" : "var(--accent-pendiente)");
+    div.innerHTML =
+      '<span class="n-addr">' + n.addr + (n.addrFin && n.addrFin !== "-" ? " &ndash; " + n.addrFin : "") + '</span>' +
+      '<span class="n-nombre">' + n.nombre + '</span>' +
+      '<span class="n-estado" style="background:' + estadoColorVar + '">' + ESTADO_LABEL[n.estado] + '</span>';
+    if (!nodoVisible(n)) {
+      div.classList.add(filtroTexto ? "atenuado" : "oculto");
+    }
+    if (n.id === seleccionActual) div.classList.add("seleccionado");
+    div.addEventListener("click", () => seleccionarNodo(n.id));
+    div.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); seleccionarNodo(n.id); }
+    });
+    zoomLayer.appendChild(div);
+  });
+
+  // aristas de control
+  let svgPaths = "";
+  ARISTAS.forEach((a) => {
+    svgPaths += dibujarArista(a, posiciones[a.from], posiciones[a.to], nodosPorId[a.from], nodosPorId[a.to], false);
+  });
+  if (mostrarSubsistema["datos"]) {
+    ARISTAS_DATO.forEach((a) => {
+      svgPaths += dibujarArista({ from: a.from, to: a.to, tipo: "dato", nota: a.nota }, posiciones[a.from], posiciones[a.to], nodosPorId[a.from], nodosPorId[a.to], true);
+    });
+  }
+  svg.insertAdjacentHTML("beforeend", svgPaths);
+}
+
+function dibujarArista(a, p1, p2, n1, n2, esDato) {
+  if (!p1 || !p2 || !n1 || !n2) return "";
+  if (!nodoVisible(n1) || !nodoVisible(n2)) return "";
+  const x1 = p1.x + 86, y1 = p1.y + NODE_H;
+  const x2 = p2.x + 86, y2 = p2.y;
+  const midY = (y1 + y2) / 2;
+  const d = "M " + x1 + " " + y1 + " C " + x1 + " " + midY + ", " + x2 + " " + midY + ", " + x2 + " " + y2;
+  let stroke, dash, marker, extra = "";
+  if (esDato) {
+    stroke = "var(--edge-data)"; dash = "3,3"; marker = "arrowData"; extra = "opacity:0.55;";
+  } else {
+    const info = TIPO_ARISTA_INFO[a.tipo] || TIPO_ARISTA_INFO.call;
+    stroke = info.color; dash = info.dash; marker = a.tipo === "jp" || a.tipo === "jpcc" ? "arrowJump" : (a.tipo === "jr" || a.tipo === "fallthrough" ? "arrowJr" : "arrowCall");
+  }
+  const titulo = (n1.nombre || n1.id) + " -> " + (n2.nombre || n2.id) + (a.cond ? (" [cc " + a.cond + "]") : "") + (a.nota ? (": " + a.nota) : "");
+  return '<path d="' + d + '" fill="none" stroke="' + stroke + '" stroke-width="1.6" stroke-dasharray="' + dash + '" marker-end="url(#' + marker + ')" style="' + extra + '"><title>' + escaparHtml(titulo) + '</title></path>';
+}
+
+function escaparHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function seleccionarNodo(id) {
+  seleccionActual = id;
+  const n = nodosPorId[id];
+  const panel = document.getElementById("detalle");
+  if (!n) { panel.className = "vacio"; panel.textContent = "Nodo no encontrado."; return; }
+  const entrantes = ARISTAS.filter((a) => a.to === id);
+  const salientes = ARISTAS.filter((a) => a.from === id);
+  panel.className = "";
+  panel.innerHTML =
+    "<h3 style='margin-top:0'>" + escaparHtml(n.nombre) + " <code>" + escaparHtml(n.addr) + (n.addrFin && n.addrFin !== "-" ? " - " + escaparHtml(n.addrFin) : "") + "</code></h3>" +
+    "<dl>" +
+    "<dt>Subsistema</dt><dd>" + escaparHtml((SUBSISTEMAS.find((s) => s.id === n.subsistema) || {}).nombre || n.subsistema) + "</dd>" +
+    "<dt>Estado</dt><dd><span class='badge " + n.estado + "'>" + ESTADO_LABEL[n.estado] + "</span></dd>" +
+    "<dt>Confianza</dt><dd>" + escaparHtml(n.confianza) + "</dd>" +
+    "<dt>Sesion de origen</dt><dd>Sesion " + escaparHtml(n.sesion) + "</dd>" +
+    "<dt>Evidencia</dt><dd>" + escaparHtml(n.evidencia) + "</dd>" +
+    "<dt>Llamadas entrantes (" + entrantes.length + ")</dt><dd>" + (entrantes.length ? "<ul>" + entrantes.map((a) => "<li>" + escaparHtml((nodosPorId[a.from] || {}).nombre || a.from) + " -- " + (TIPO_ARISTA_INFO[a.tipo] || {}).label + (a.cond ? " " + a.cond : "") + (a.nota ? " (" + escaparHtml(a.nota) + ")" : "") + "</li>").join("") + "</ul>" : "<em>ninguna conocida</em>") + "</dd>" +
+    "<dt>Llamadas salientes (" + salientes.length + ")</dt><dd>" + (salientes.length ? "<ul>" + salientes.map((a) => "<li>" + escaparHtml((nodosPorId[a.to] || {}).nombre || a.to) + " -- " + (TIPO_ARISTA_INFO[a.tipo] || {}).label + (a.cond ? " " + a.cond : "") + (a.nota ? " (" + escaparHtml(a.nota) + ")" : "") + "</li>").join("") + "</ul>" : "<em>ninguna (rutina hoja)</em>") + "</dd>" +
+    "</dl>";
+  renderGrafo();
+}
+
+function renderTablaNodos() {
+  const tbody = document.querySelector("#tabla-nodos tbody");
+  const f = filtroTexto.toLowerCase();
+  const filas = NODOS.filter((n) => !f || nodoVisible(n) || (
+    n.id.toLowerCase().includes(f) || n.nombre.toLowerCase().includes(f) || n.addr.toLowerCase().includes(f) || n.subsistema.toLowerCase().includes(f) || n.estado.toLowerCase().includes(f)
+  ));
+  tbody.innerHTML = "";
+  if (filas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Ningun resultado para ese filtro.</div></td></tr>';
+    return;
+  }
+  filas.forEach((n) => {
+    const tr = document.createElement("tr");
+    const subNombre = (SUBSISTEMAS.find((s) => s.id === n.subsistema) || {}).nombre || n.subsistema;
+    tr.innerHTML =
+      '<td class="dir">' + escaparHtml(n.addr) + '</td>' +
+      '<td class="dir">' + escaparHtml(n.addrFin || "-") + '</td>' +
+      '<td><code>' + escaparHtml(n.nombre) + '</code></td>' +
+      '<td>' + escaparHtml(subNombre) + '</td>' +
+      '<td><span class="badge ' + n.estado + '">' + ESTADO_LABEL[n.estado] + '</span></td>' +
+      '<td>' + escaparHtml(n.confianza) + '</td>' +
+      '<td>' + escaparHtml(n.evidencia) + ' <em>(Sesion ' + escaparHtml(n.sesion) + ')</em></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTablaIndirectas() {
+  const tbody = document.querySelector("#tabla-indirectas tbody");
+  tbody.innerHTML = "";
+  RELACIONES_ADICIONALES.forEach((r) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>' + escaparHtml(r.origen) + '</td>' +
+      '<td>' + escaparHtml(r.destino) + '</td>' +
+      '<td>' + escaparHtml(r.tipo) + '</td>' +
+      '<td>' + escaparHtml(r.detalle) + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderPendientes() {
+  const ul = document.getElementById("lista-pendientes");
+  ul.innerHTML = "";
+  PENDIENTES.forEach((p) => {
+    const li = document.createElement("li");
+    li.textContent = p;
+    ul.appendChild(li);
+  });
+}
+
+function renderStats() {
+  document.getElementById("stat-nodos").textContent = NODOS.length;
+  document.getElementById("stat-confirmados").textContent = NODOS.filter((n) => n.estado === "confirmado").length;
+  document.getElementById("stat-hipotesis").textContent = NODOS.filter((n) => n.estado === "hipotesis").length;
+  document.getElementById("stat-pendientes").textContent = NODOS.filter((n) => n.estado === "pendiente").length;
+  document.getElementById("stat-aristas").textContent = ARISTAS.length;
+  document.getElementById("stat-aristas-dato").textContent = ARISTAS_DATO.length;
+}
+
+function renderTodo() {
+  renderGrafo();
+  renderTablaNodos();
+}
+
+// ---- controles de zoom ----
+document.getElementById("btn-zoom-in").addEventListener("click", () => { zoom = Math.min(zoom + 0.15, 2.5); renderGrafo(); });
+document.getElementById("btn-zoom-out").addEventListener("click", () => { zoom = Math.max(zoom - 0.15, 0.3); renderGrafo(); });
+document.getElementById("btn-zoom-reset").addEventListener("click", () => { zoom = 1; renderGrafo(); });
+document.getElementById("btn-zoom-fit").addEventListener("click", () => {
+  const viewport = document.getElementById("viewport");
+  zoom = Math.max(0.3, Math.min(2.5, (viewport.clientWidth - 20) / anchoBase()));
+  renderGrafo();
+});
+
+// ---- buscador ----
+const buscador = document.getElementById("buscador");
+buscador.addEventListener("input", () => { filtroTexto = buscador.value.trim(); renderTodo(); });
+
+// ---- inicializacion ----
+construirFiltroSubsistemas();
+renderStats();
+renderTodo();
+renderTablaIndirectas();
+renderPendientes();
+</script>
+
+</body>
+</html>

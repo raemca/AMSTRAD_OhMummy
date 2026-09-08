@@ -165,6 +165,10 @@ Estructura del repositorio
 - `recursos/` — páginas HTML autocontenidas (visores/inventarios):
   `mapa_memoria.html` (regiones confirmadas + subregiones hipótesis),
   `flujo_programa.html` (inventario de rutinas, firmware + hipótesis),
+  `flujo_detallado.html` (Sesión 9: grafo real de llamadas `CALL`/`JP`/
+  `JR` entre rutinas, con estado confirmado/hipótesis/pendiente por
+  nodo y por relación, zoom, filtros por subsistema y búsqueda — el
+  artefacto vivo del flujo de llamadas, se actualiza sesión a sesión),
   `flujo_secuencial.html` (orden de ejecución del arranque) y
   `portada.html` (el logo "AMSOFT" ya renderizado a partir de los 191
   trazos reales del BASIC) tienen contenido real desde la Sesión 3.

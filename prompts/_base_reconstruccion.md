@@ -25,6 +25,8 @@
    - Actualizar en paralelo `FINDINGS.md`, `README.md`, `src/README.md` y los archivos HTML de `recursos/` cuando haya cambios relevantes.
    - Mantener la documentación alineada con la fuente ASM.
    - Diferenciar claramente entre confirmado, hipótesis y pendiente.
+   - `recursos/flujo_detallado.html` (grafo real de llamadas `CALL`/`JP`/`JR` entre rutinas, con estado de confianza por nodo y por relación) debe revisarse siempre que cambien: el flujo de ejecución, las llamadas entre rutinas, los puntos de entrada, los despachadores (directos o indirectos) o el estado/confianza de una rutina ya nombrada.
+   - Regla explícita de mantenimiento: cada sesión que modifique el flujo de llamadas debe actualizar `recursos/flujo_detallado.html` (nodos, aristas, estados, panel de relaciones indirectas y pendientes) o, si el cambio de la sesión no afecta al flujo, dejar constancia explícita de ello en la entrada correspondiente de `FINDINGS.md` — no se actualiza el HTML por rutina, solo cuando hay evidencia nueva que lo justifique.
 
 6. Reglas de calidad del ASM:
    - No reescribir bloques ya verificados salvo que haya evidencia clara.

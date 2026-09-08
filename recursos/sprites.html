@@ -160,6 +160,35 @@
   .tile.out-of-range canvas { opacity: 0.35; }
   .tile .idx { font-family: "SFMono-Regular", Consolas, monospace; color: var(--fg); margin-top: 0.35rem; font-weight: 600; }
   .tile .addr { font-family: "SFMono-Regular", Consolas, monospace; color: var(--muted); }
+  .mixed-sheet {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 1rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  .mixed-tile {
+    flex: 0 0 auto;
+    width: max-content;
+    padding: 0.35rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.68rem;
+  }
+  .mixed-tile canvas {
+    display: block;
+    image-rendering: pixelated;
+    background: var(--pixel-off);
+    border: 1px solid var(--border);
+  }
+  .mixed-tile .mixed-label { margin-top: 0.3rem; font-weight: 600; }
+  .mixed-tile .mixed-meta { color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; }
   .empty-state {
     color: var(--muted);
     font-style: italic;
@@ -357,18 +386,37 @@ entre ellas.</p>
     <button class="preset" id="preset-g-pisadas8">CONFIRMADO: LOSETA_MAPA_PISADA_1..8 (8 casillas, $89D9-$8AB8, patron V-V-H-H-V-V-H-H)</button>
     <button class="preset" id="preset-g-89d9">LOSETA_MAPA_PISADA_1 (V) -- valor 0/1 ($89D9)</button>
     <button class="preset" id="preset-g-89e9">LOSETA_MAPA_PISADA_2 (V) -- valor 2 ($89E9)</button>
+    <button class="preset" id="preset-g-89e7">OBSERVACION EMULADOR: pie derecho (candidato, $89E7)</button>
     <button class="preset" id="preset-g-89f9">LOSETA_MAPA_PISADA_3 (H) -- valor 3 ($89F9)</button>
     <button class="preset" id="preset-g-8a19">LOSETA_MAPA_PISADA_4 (H) -- valor 4 ($8A19)</button>
     <button class="preset" id="preset-g-8a69">LOSETA_MAPA_PISADA_5 (V) -- valor 6 ($8A69)</button>
     <button class="preset" id="preset-g-8a79">LOSETA_MAPA_PISADA_6 (V) -- valor 5 ($8A79)</button>
     <button class="preset" id="preset-g-8a89">LOSETA_MAPA_PISADA_7 (H) -- valor 8 ($8A89)</button>
     <button class="preset" id="preset-g-8aa9">LOSETA_MAPA_PISADA_8 (H) -- valor 7 ($8AA9)</button>
+    <button class="preset" id="preset-g-8a09">LOSETA_PISADA_ESCRITURA_VALOR4 -- valor 4, 2x16 ($8A09)</button>
+    <button class="preset" id="preset-g-8a29">LOSETA_PISADA_ESCRITURA_VALOR6 -- valor 6, 4x8 ($8A29)</button>
+    <button class="preset" id="preset-g-8a49">LOSETA_PISADA_ESCRITURA_VALOR5 -- valor 5, 4x8 ($8A49)</button>
+    <button class="preset" id="preset-g-8a99">LOSETA_PISADA_ESCRITURA_VALOR7 -- valor 7, 2x16 ($8A99)</button>
     <button class="preset" id="preset-g-pisadas">CONFIRMADO: LOSETA_PISADAS_VERTICAL ($8999+$89B9, 4x16 juntas)</button>
-    <button class="preset" id="preset-g-reset">Ver el tramo completo (offset 0, salto 16)</button>
+    <button class="preset" id="preset-g-reset">Ver todo el bloque fisico $8919-$8AB8 (26 celdas 2x8)</button>
   </div>
   <p class="status" id="status-line-g"></p>
 </div>
 <div id="grid-sprites-g"></div>
+
+<div class="note pending">
+  <strong>Vista de bloque fisico:</strong> el preset de arriba recorre
+  secuencialmente los 416 bytes <code>$8919-$8AB8</code> como 26 celdas
+  consecutivas de 2x8 bytes. Sirve para comprobar si el conjunto tiene
+  sentido como una hoja de tiles ordenada, pero no impone que todas las
+  regiones usen ese formato al ejecutarse: las variantes de la rama
+  <code>'T'</code> se deben interpretar ademas con sus vistas reales de
+  2x16 y 4x8.
+</div>
+
+<h2>Hoja interpretada del bloque fisico ($8919-$8AB8)</h2>
+<p class="subtitle">Cada vista se renderiza con el ancho y alto que usa el codigo al dibujarla. Algunas vistas se solapan porque el mismo bloque de bytes se interpreta con dos geometrias distintas.</p>
+<div class="mixed-sheet" id="mixed-sheet"></div>
 
 <footer>
   Datos de <code>TABLAS_SPRITE_CASILLA</code> (<code>$8919</code>-<code>$8EC9</code>,
@@ -632,6 +680,10 @@ const CASILLA_ADDRS = {
   "preset-g-8a79": [2, 8, 0x8A79],
   "preset-g-8a89": [2, 8, 0x8A89],
   "preset-g-8aa9": [2, 8, 0x8AA9],
+  "preset-g-8a09": [2, 16, 0x8A09],
+  "preset-g-8a29": [4, 8, 0x8A29],
+  "preset-g-8a49": [4, 8, 0x8A49],
+  "preset-g-8a99": [2, 16, 0x8A99],
 };
 Object.keys(CASILLA_ADDRS).forEach((id) => {
   const [ancho, alto, addr] = CASILLA_ADDRS[id];
@@ -646,6 +698,11 @@ document.getElementById("preset-g-reset").addEventListener("click", () => explor
 document.getElementById("preset-g-pisadas8").addEventListener("click", () =>
   explorerCasillas.setPreset(2, 8, 0x89D9 - SPRITE_DATA_START_ADDR, 16, 8));
 
+// Observacion visual provisional del usuario en el emulador: offset 206
+// desde $8919, geometria 2x8 y salto 16.
+document.getElementById("preset-g-89e7").addEventListener("click", () =>
+  explorerCasillas.setPreset(2, 8, 0x89E7 - SPRITE_DATA_START_ADDR, 16, 1));
+
 // LOSETA_PISADAS_VERTICAL_1/_2 ($8999/$89B9, ver FINDINGS.md Sesion 8):
 // identificada por el usuario viendo las dos mitades de 32 bytes
 // juntas como una sola imagen de 4x16 -- offset 124 = 4 bytes antes
@@ -654,6 +711,51 @@ document.getElementById("preset-g-pisadas").addEventListener("click", () =>
   explorerCasillas.setPreset(4, 16, 0x8999 - SPRITE_DATA_START_ADDR - 4, 64, 1));
 
 explorerCasillas.render();
+
+// Hoja interpretada: cada vista conserva la geometria que usa el
+// codigo al volcarla; algunas vistas se solapan sobre los mismos bytes.
+const BLOQUE_MIXTO = [
+  [0x8919, 4, 16, "TABLA_BASE", "4x16"],
+  [0x8959, 4, 16, "TABLA_ESPACIO", "4x16"],
+  [0x8999, 4, 8, "PISADAS_VERTICAL_1", "4x8"],
+  [0x89B9, 4, 8, "PISADAS_VERTICAL_2", "4x8"],
+  [0x89D9, 2, 8, "PISADA_1 / valor 1", "2x8"],
+  [0x89E9, 2, 8, "PISADA_2 / valor 2", "2x8"],
+  [0x89F9, 2, 8, "PISADA_3 / valor 3", "2x8"],
+  [0x8A09, 2, 16, "ESCRITURA_VALOR4", "2x16"],
+  [0x8A19, 2, 8, "PISADA_4 / valor 4", "2x8"],
+  [0x8A29, 4, 8, "ESCRITURA_VALOR6", "4x8"],
+  [0x8A49, 4, 8, "ESCRITURA_VALOR5", "4x8"],
+  [0x8A69, 2, 8, "PISADA_5 / valor 6", "2x8"],
+  [0x8A79, 2, 8, "PISADA_6 / valor 5", "2x8"],
+  [0x8A89, 2, 8, "PISADA_7 / valor 8", "2x8"],
+  [0x8A99, 2, 16, "ESCRITURA_VALOR7", "2x16"],
+  [0x8AA9, 2, 8, "PISADA_8 / valor 7", "2x8"],
+];
+
+function renderBloqueMixto() {
+  const sheet = document.getElementById("mixed-sheet");
+  sheet.innerHTML = "";
+  for (const [addr, widthBytes, heightRows, label, geometry] of BLOQUE_MIXTO) {
+    const decoded = decodeSprite(addr - SPRITE_DATA_START_ADDR, widthBytes, heightRows, 1);
+    const card = document.createElement("div");
+    card.className = "mixed-tile";
+    const canvas = document.createElement("canvas");
+    drawSprite(canvas, decoded, 8, "gris", 1);
+    card.appendChild(canvas);
+    const title = document.createElement("div");
+    title.className = "mixed-label";
+    title.textContent = label;
+    card.appendChild(title);
+    const meta = document.createElement("div");
+    meta.className = "mixed-meta";
+    meta.textContent = hexAddr(addr) + " - " + geometry;
+    card.appendChild(meta);
+    sheet.appendChild(card);
+  }
+}
+
+renderBloqueMixto();
 
 // --- galeria de sprites confirmados (arriba del todo, siempre Modo 1
 // 4x16 -- son datos fijos, no dependen del panel de parametros) ---

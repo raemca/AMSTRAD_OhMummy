@@ -164,7 +164,12 @@ Repository structure
 - `recursos/` — self-contained HTML pages (viewers/inventories):
   `mapa_memoria.html` (confirmed regions + hypothesis sub-regions),
   `flujo_programa.html` (routine inventory, firmware + hypotheses),
-  `flujo_secuencial.html` (boot execution order) and `portada.html`
+  `flujo_detallado.html` (Session 9: the real call graph -- `CALL`/
+  `JP`/`JR` relations between routines, confirmed/hypothesis/pending
+  status per node and per edge, zoom, per-subsystem filters and
+  search -- the living artifact of the call flow, updated session by
+  session), `flujo_secuencial.html` (boot execution order) and
+  `portada.html`
   (the "AMSOFT" logo now rendered from the BASIC's 191 real strokes)
   have real content since Session 3. `sprites.html` (Session 8:
   interactive explorer for `TABLAS_SPRITE_CASILLA` with adjustable

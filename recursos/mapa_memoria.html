@@ -20,6 +20,8 @@
     --accent-niveles: #4ea6cf;
     --accent-unknown: #b3aa9c;
     --accent-sistema: #e4dfd4;
+    --accent-pisadas: #b0703e;
+    --accent-personajes: #8a6ab0;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -37,6 +39,8 @@
       --accent-niveles: #5eb6df;
       --accent-unknown: #4a453d;
       --accent-sistema: #322e28;
+      --accent-pisadas: #d0925e;
+      --accent-personajes: #a98fd4;
     }
   }
   * { box-sizing: border-box; }
@@ -175,7 +179,11 @@
   de sonido/marco decorativo con limites confirmados por el codigo que
   las referencia, y bloques de estado que se limpian en el arranque.
   Todo compila byte a byte identico -- ver la tabla de abajo para el
-  desglose de las 35 tablas/textos, con su nivel de confianza. Solo
+  desglose de las 35 tablas/textos, con su nivel de confianza.
+  <strong>Sesion 11</strong> separo en la barra, con color propio, las
+  12 losetas de pisadas (<code>$8999</code>-<code>$8AB9</code>) y los
+  16 sprites de personaje (<code>$8AB9</code>-<code>$8EB9</code>), que
+  antes quedaban fundidos en el bloque generico de dato. Solo
   queda <strong>un</strong> hueco <code>INCBIN</code> en todo el motor:
   <code>$6401</code>-<code>$786B</code> (5227 bytes). La barra cubre
   <strong>las 65536 direcciones completas</strong> (0000-FFFF),
@@ -192,6 +200,8 @@
   <span><span class="swatch" style="background:var(--accent-codigo)"></span>codigo (motor, verificado + firmware nombrado)</span>
   <span><span class="swatch" style="background:var(--accent-reconstruida)"></span>codigo reconstruido (verificado, nombres provisionales/hipotesis)</span>
   <span><span class="swatch" style="background:var(--accent-dato)"></span>dato confirmado (texto/tablas, limites verificados por el codigo)</span>
+  <span><span class="swatch" style="background:var(--accent-pisadas)"></span>sprites de pisadas (rama 'T' / DIBUJAR_CASILLA_MAPA)</span>
+  <span><span class="swatch" style="background:var(--accent-personajes)"></span>sprites de personajes (jugador/momia)</span>
   <span><span class="swatch" style="background:var(--accent-graficos)"></span>datos: graficos</span>
   <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
   <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
@@ -250,7 +260,10 @@ const REGIONS = [
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
   { start: 0x6401, end: 0x786C, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, 5227 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2 (pendiente)" },
   { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
-  { start: 0x7EFD, end: 0x6000 + 13190, label: "MUMMY1.BIN: dato confirmado (5257 bytes) -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado. 35 bloques con nombre, ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
+  { start: 0x7EFD, end: 0x8999, label: "MUMMY1.BIN: dato confirmado -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado, y los 2 rellenos por defecto de TABLAS_SPRITE_CASILLA. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
+  { start: 0x8999, end: 0x8AB9, label: "MUMMY1.BIN: sprites de pisadas -- 12 losetas nombradas (LOSETA_PISADAS_VERTICAL_1/_2, LOSETA_MAPA_PISADA_1..8, LOSETA_PISADA_ESCRITURA_VALOR4/5/6/7), rama 'T' de DIBUJAR_ENTIDAD + DIBUJAR_CASILLA_MAPA", kind: "pisadas", fuente: "FINDINGS.md Sesion 8 (continuacion 4/5), Sesion 10, Sesion 11 (compilado, 0 diferencias)" },
+  { start: 0x8AB9, end: 0x8EB9, label: "MUMMY1.BIN: sprites de personajes -- 16 sprites de 64 bytes (SPRITE_JUGADOR_G1_F1..G4_F2 / SPRITE_MOMIA_G1_F1..G4_F2), tipos 'A'/'O' de DIBUJAR_ENTIDAD", kind: "personajes", fuente: "FINDINGS.md Sesion 8 (continuacion 2/3) (compilado, 0 diferencias)" },
+  { start: 0x8EB9, end: 0x6000 + 13190, label: "MUMMY1.BIN: resto de dato confirmado -- cola de TABLAS_SPRITE_CASILLA sin identificar, tabla de direcciones de pantalla, guion de sonido circular. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
   { start: 0x6000 + 13190, end: 0x10000, label: "Sistema CPC / pantalla / RAM no usada por el motor -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
 ];
 
@@ -289,7 +302,8 @@ const SUBREGIONES = [
   { start: 0x880D, end: 0x8855, contenido: "TABLA_MARCO_3", usado_por: "DIBUJAR_TRAMO_MARCO_3 (LD IY,$880D)", confianza: "media" },
   { start: 0x8855, end: 0x889D, contenido: "TABLA_MARCO_4", usado_por: "DIBUJAR_TRAMO_MARCO_4 (LD IY,$8855)", confianza: "media" },
   { start: 0x889D, end: 0x8919, contenido: "DATOS_MARCO_Y_TEXTO_CONTINUAR -- mezcla sin separar con precision: mas mascara/grafico similar a las tablas de marco, mas el texto literal '\"C\" TO CONTINUE'", usado_por: "sin CALL conocido todavia", confianza: "baja-media" },
-  { start: 0x8919, end: 0x8AB9, contenido: "TABLAS_SPRITE_CASILLA -- tipos ' '/'T'/por defecto de DIBUJAR_ENTIDAD mas parte de las 9 casillas de DIBUJAR_CASILLA_MAPA, anchos variables (16-64 bytes), direcciones dispersas, sin desglosar individualmente todavia", usado_por: "DIBUJAR_ENTIDAD (LD IY,$8919/$8959) / DIBUJAR_CASILLA_MAPA", confianza: "media" },
+  { start: 0x8919, end: 0x8999, contenido: "TABLA_BASE ($8919, 4x16, todo $00) + TABLA_ESPACIO ($8959, 4x16, todo $F0) -- rellenos por defecto: tipo de entidad no reconocido / ' ' en DIBUJAR_ENTIDAD, y valor de casilla fuera de 1-8 en DIBUJAR_CASILLA_MAPA", usado_por: "DIBUJAR_ENTIDAD (LD IY,$8919/$8959) / DIBUJAR_CASILLA_MAPA", confianza: "alta" },
+  { start: 0x8999, end: 0x8AB9, contenido: "12 losetas de pisadas, todas nombradas (Sesiones 8/10/11): LOSETA_PISADAS_VERTICAL_1/_2 (4x8), LOSETA_MAPA_PISADA_1..8 (2x8, redibujado de suelo por DIBUJAR_CASILLA_MAPA), LOSETA_PISADA_ESCRITURA_VALOR4/5/6/7 (2x16 o 4x8, pintado en directo al pisar por la rama 'T')", usado_por: "DIBUJAR_ENTIDAD tipo 'T' / DIBUJAR_CASILLA_MAPA", confianza: "alta en estructura, media-alta en identidad visual (sin confirmar en emulador)" },
   { start: 0x8AB9, end: 0x8CB9, contenido: "SPRITE_JUGADOR_G1_F1..G4_F2 -- CONFIRMADO por el codigo: 8 sprites de 64 bytes (4x16), perfectamente contiguos. Identidad visual (\"jugador\") confirmada de forma independiente por el usuario probando recursos/sprites.html (Modo 1, offset 416, salto 64): primero en $8AB9, ultimo del grupo siguiente en $8E79", usado_por: "DIBUJAR_ENTIDAD, tipo 'A' ($41), sub-despacho en ($8157)", confianza: "alta en estructura, media-alta en identidad" },
   { start: 0x8CB9, end: 0x8EB9, contenido: "SPRITE_MOMIA_G1_F1..G4_F2 -- CONFIRMADO por el codigo: 8 sprites de 64 bytes (4x16), perfectamente contiguos, inmediatamente despues del grupo anterior. Identidad visual (\"momia\"/zombie) confirmada de forma independiente por el usuario con el mismo explorador", usado_por: "DIBUJAR_ENTIDAD, tipo 'O' ($4F), sub-despacho en ($8159)", confianza: "alta en estructura, media-alta en identidad" },
   { start: 0x8EB9, end: 0x8ECA, contenido: "Cola de TABLAS_SPRITE_CASILLA sin identificar (17 bytes)", usado_por: "sin CALL/LD conocido todavia", confianza: "baja" },
@@ -310,6 +324,8 @@ const KIND_VAR = {
   niveles: "--accent-niveles",
   unknown: "--accent-unknown",
   sistema: "--accent-sistema",
+  pisadas: "--accent-pisadas",
+  personajes: "--accent-personajes",
 };
 
 const bar = document.getElementById("bar");

@@ -130,7 +130,16 @@
 <p class="subtitle">Amstrad CPC, version de disco -- ver <code>FINDINGS.md</code> para el detalle tecnico completo de cada sesion.</p>
 
 <div class="note">
-  <strong>Actualizado Sesion 8.</strong> Esta tabla es el inventario de
+  <strong>Actualizado Sesion 9.</strong> Ver tambien
+  <code>recursos/flujo_detallado.html</code> (nuevo, Sesion 9): el grafo real de
+  llamadas <code>CALL</code>/<code>JP</code>/<code>JR</code> entre estas rutinas,
+  con estado de confianza por relacion y un panel dedicado a saltos/caidas que no
+  son <code>CALL</code> directo. Esa misma sesion corrigio las notas de
+  <code>RELLENAR_MARCO_DIAGONAL_1/2/3/4/6</code> de abajo: SI tienen llamador
+  conocido (el bloque <code>$6000</code>-<code>$6400</code> los llama por
+  direccion literal) -- solo <code>RELLENAR_MARCO_DIAGONAL_5</code> y
+  <code>RELLENAR_MARCO_VACIO</code> siguen sin llamador confirmado. Esta tabla
+  es el inventario de
   <strong>codigo</strong> (rutinas) -- la Sesion 8 no anadio rutinas
   nuevas, cerro en cambio el ultimo hueco <code>INCBIN</code> del motor
   identificandolo como <strong>dato</strong> (texto real del juego,
@@ -222,12 +231,12 @@ const RUTINAS = [
   { addr: "$7DE5", nombre: "RELLENAR_MARCO_MEDIO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Llamada real desde DIBUJAR_TRAMO_MARCO_4. Fija mascara $0F y salta a PREPARAR_RELLENO_MASCARA_UNICA (rellena 24x10 bytes). Compilada, 0 diferencias" },
   { addr: "$7DED", nombre: "RELLENAR_MARCO_SOLIDO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Llamada real desde DIBUJAR_TRAMO_MARCO_1/2/3. Fija mascara $FF y salta a PREPARAR_RELLENO_MASCARA_UNICA. Compilada, 0 diferencias" },
   { addr: "$7DF5", nombre: "RELLENAR_MARCO_VACIO", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Fija mascara $00 y salta a PREPARAR_RELLENO_MASCARA_UNICA. Sin llamador conocido todavia dentro de lo reconstruido. Compilada, 0 diferencias" },
-  { addr: "$7DFC", nombre: "RELLENAR_MARCO_DIAGONAL_1", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 1 de 6: parchea (codigo automodificable) el XOR $0F de $7E47 con $FF, fija mascara $A5, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
-  { addr: "$7E05", nombre: "RELLENAR_MARCO_DIAGONAL_2", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 2 de 6: parchea $7E47 con $F0, mascara $AF, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
-  { addr: "$7E0E", nombre: "RELLENAR_MARCO_DIAGONAL_3", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 3 de 6: parchea $7E47 con $0F, mascara $FA, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
-  { addr: "$7E17", nombre: "RELLENAR_MARCO_DIAGONAL_4", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 4 de 6: parchea $7E47 con $F0, mascara $50, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
-  { addr: "$7E20", nombre: "RELLENAR_MARCO_DIAGONAL_5", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 5 de 6: parchea $7E47 con $FF, mascara $55, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sin llamador conocido todavia. Compilada, 0 diferencias" },
-  { addr: "$7E29", nombre: "RELLENAR_MARCO_DIAGONAL_6", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 6 de 6: parchea $7E47 con $0F, mascara $05, cae en RELLENAR_MARCO_DIAGONAL_BUCLE (sin JR, fall-through directo). Sin llamador conocido todavia. Compilada, 0 diferencias" },
+  { addr: "$7DFC", nombre: "RELLENAR_MARCO_DIAGONAL_1", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 1 de 6: parchea (codigo automodificable) el XOR $0F de $7E47 con $FF, fija mascara $A5, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Llamador confirmado en Sesion 9: bloque $6000-$6400 via CALL $7DFC ($6176, direccion literal, sin renombrar en el punto de llamada). Compilada, 0 diferencias" },
+  { addr: "$7E05", nombre: "RELLENAR_MARCO_DIAGONAL_2", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 2 de 6: parchea $7E47 con $F0, mascara $AF, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Llamador confirmado en Sesion 9: bloque $6000-$6400 via CALL $7E05 ($61D9, direccion literal). Compilada, 0 diferencias" },
+  { addr: "$7E0E", nombre: "RELLENAR_MARCO_DIAGONAL_3", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 3 de 6: parchea $7E47 con $0F, mascara $FA, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Llamador confirmado en Sesion 9: bloque $6000-$6400 via CALL $7E0E ($6185, direccion literal). Compilada, 0 diferencias" },
+  { addr: "$7E17", nombre: "RELLENAR_MARCO_DIAGONAL_4", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 4 de 6: parchea $7E47 con $F0, mascara $50, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Llamador confirmado en Sesion 9: bloque $6000-$6400 via CALL $7E17 ($61CA, direccion literal). Compilada, 0 diferencias" },
+  { addr: "$7E20", nombre: "RELLENAR_MARCO_DIAGONAL_5", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 5 de 6: parchea $7E47 con $FF, mascara $55, cae en RELLENAR_MARCO_DIAGONAL_BUCLE. Sigue SIN llamador conocido tras revisar Sesion 9 (la unica de las 6 sin caller confirmado, junto a RELLENAR_MARCO_VACIO). Compilada, 0 diferencias" },
+  { addr: "$7E29", nombre: "RELLENAR_MARCO_DIAGONAL_6", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza media. Variante 6 de 6: parchea $7E47 con $0F, mascara $05, cae en RELLENAR_MARCO_DIAGONAL_BUCLE (sin JR, fall-through directo). Llamador confirmado en Sesion 9: bloque $6000-$6400 via CALL $7E29 (x4, direccion literal). Compilada, 0 diferencias" },
   { addr: "$7E30", nombre: "RELLENAR_MARCO_DIAGONAL_BUCLE", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta en estructura. Bucle compartido de las 6 variantes diagonales: dibuja 24 filas llamando a RELLENAR_FILAS_MASCARA con B=1 (una fila cada vez), alternando la mascara via XOR contra el byte parcheado en $7E47. Compilada, 0 diferencias" },
   { addr: "$7E4F", nombre: "PREPARAR_RELLENO_MASCARA_UNICA", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Prepara un relleno de 24 filas con una unica mascara (sin alternar) y cae en RELLENAR_FILAS_MASCARA. Compilada, 0 diferencias" },
   { addr: "$7E59", nombre: "RELLENAR_FILAS_MASCARA", subsistema: "marco decorativo (hipotesis)", estado: "reconstruida", notas: "Confianza alta. Bucle de bajo nivel: por cada fila llama a CASILLA_A_DIRECCION_PANTALLA, escribe 10 bytes de mascara, avanza fila (INC H). Reusado tanto por relleno unico (B=24) como por el bucle diagonal (llamado con B=1). Compilada, 0 diferencias" },

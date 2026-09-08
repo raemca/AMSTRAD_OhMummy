@@ -1661,3 +1661,342 @@ usó el usuario para el hallazgo).
 - Confirmar qué valor de casilla corresponde a qué dirección real
   (arriba/abajo/izquierda/derecha) y qué distingue las 2 variantes de
   cada par (pie/vista).
+
+## Sesión 10 — 2026-09-07: observación visual de la loseta de pisada en `$89E7`
+
+Durante la comparación del explorador `recursos/sprites.html` con una
+ejecución del emulador, se observó una loseta vertical que parece
+corresponder al **pie derecho** usando estos parámetros: anchura de 2
+bytes por fila, altura de 8 filas, offset inicial 206 desde
+`TABLAS_SPRITE_CASILLA` (`$8919`), desplazamiento vertical 0 y salto de
+16 bytes. El offset 206 corresponde a `$89E7`.
+
+Este hallazgo queda registrado como **observación visual provisional**.
+El código reconstruido de `DIBUJAR_CASILLA_MAPA` sigue teniendo
+`$89E9` como destino de `LOSETA_MAPA_PISADA_2`, offset 208, por lo que no
+se mueve todavía la etiqueta del ASM. La diferencia de dos bytes debe
+resolverse contrastando la captura del emulador y la alineación real de
+la imagen: `$89E7` puede ser un inicio visual útil para el sprite, pero
+no necesariamente el límite lógico de los 16 bytes que lee la rutina.
+
+`recursos/sprites.html` incorpora el preset `OBSERVACION EMULADOR:
+pie derecho (candidato, $89E7)` para reproducir exactamente la vista.
+
+## Sesión 10 (continuación) — verificación del despacho y de la dirección
+
+La revisión del código fuente confirma la correspondencia semántica de
+las ocho losetas que se observó visualmente. `DIBUJAR_CASILLA_MAPA`
+selecciona estas direcciones según el valor de la casilla:
+
+| Valor de casilla | Loseta | Offset | Lectura visual propuesta |
+|---:|---|---:|---|
+| 1 | `$89D9` | +192 | izquierda hacia arriba |
+| 2 | `$89E9` | +208 | derecha hacia arriba |
+| 3 | `$89F9` | +224 | izquierda hacia la derecha |
+| 4 | `$8A19` | +256 | derecha hacia la derecha |
+| 5 | `$8A79` | +352 | izquierda hacia abajo |
+| 6 | `$8A69` | +336 | derecha hacia abajo |
+| 7 | `$8AA9` | +400 | izquierda hacia la izquierda |
+| 8 | `$8A89` | +368 | derecha hacia la izquierda |
+
+La parte confirmada por el ASM es el valor, la dirección de memoria y
+el bloque de 16 bytes seleccionado. La rama `'T'` de `DIBUJAR_ENTIDAD`
+escribe los pares de valores en el mapa: `1/2` en `$7C0F-$7C2B`,
+`3/4` en `$7BDD-$7BFD`, `5/6` en `$7BA5-$7BCE` y `7/8` en
+`$7B73-$7BA2`. En cada par, `$8158` se alterna con `XOR $01`, por lo
+que el código confirma dos variantes consecutivas de pisada, pero no
+las llama pie izquierdo o derecho.
+
+La convención numérica de movimiento también queda confirmada por
+`CALCULAR_CASILLA_ADYACENTE` (`$7A95-$7AB5`) y
+`ELEGIR_DIRECCION_HACIA_OBJETIVO` (`$7AB6-$7AF1`): `1` modifica la
+coordenada alta con `-8`, `2` modifica la baja con `+2`, `3` modifica
+la alta con `+8` y `4` modifica la baja con `-2`. El código no nombra
+qué eje corresponde a arriba/abajo o izquierda/derecha en la pantalla,
+por lo que la lectura geométrica de la tabla sigue dependiendo de la
+comparación visual con el emulador.
+
+Los rangos de 16 bytes de las ocho losetas están alineados y no
+incluyen `$89E7`; por tanto, `$89E7` queda confirmado como un
+desplazamiento visual de dos bytes respecto a la loseta lógica
+`$89E9`, no como una nueva loseta ni como un nuevo límite de tabla.
+
+### Conclusiones
+
+- **Confirmado:** las ocho direcciones y sus valores de casilla.
+- **Confirmado:** cada pareja se alterna mediante `$8158` y se escribe
+  en el mapa desde la rama `'T'`.
+- **Hipótesis visual:** la orientación arriba/abajo/izquierda/derecha
+  propuesta por el usuario, pendiente de fijar contra la geometría de
+  coordenadas del emulador.
+- **No demostrado:** qué variante es exactamente el pie izquierdo o el
+  pie derecho. El ASM solo demuestra que son dos variantes alternadas.
+
+No se han movido bytes ni renombrado etiquetas del ASM por esta
+verificación.
+
+## Sesión 10 (continuación 2) — visor de las variantes intercaladas de `'T'`
+
+Para poder inspeccionar visualmente los datos que quedan entre las ocho
+losetas lógicas de `DIBUJAR_CASILLA_MAPA`, `recursos/sprites.html`
+incorpora cuatro presets nuevos. Las dimensiones no son una suposición
+visual: proceden de los parches que `DIBUJAR_ENTIDAD` hace sobre el
+bucle común de volcado:
+
+| Dirección | Valor escrito por `'T'` | Geometría usada al volcar |
+|---|---:|---|
+| `$8A09` | 4 | 2x16 |
+| `$8A29` | 6 | 4x8 |
+| `$8A49` | 5 | 4x8 |
+| `$8A99` | 7 | 2x16 |
+
+Estas variantes deben compararse con el emulador como imágenes
+independientes. El hecho de que estén intercaladas físicamente junto a
+`LOSETA_MAPA_PISADA_3..8` no las convierte en nuevas losetas del
+dispatcher `DIBUJAR_CASILLA_MAPA`: son los gráficos que la rama `'T'`
+selecciona mientras escribe valores en las celdas del mapa. La
+identidad exacta de cada pie y su orientación jugable siguen pendientes
+de confirmación visual.
+
+El visor conserva además una vista del bloque físico completo
+`$8919-$8AB8` (416 bytes) como 26 celdas consecutivas de 2x8 bytes.
+Esta vista permite comprobar visualmente si los datos parecen una hoja
+de tiles organizada, sin afirmar que todas las regiones se rendericen
+con esa misma geometría durante la ejecución: las variantes `$8A09`,
+`$8A29`, `$8A49` y `$8A99` se interpretan con sus dimensiones de 2x16
+o 4x8 cuando las selecciona la rama `'T'`.
+
+La hoja interpretada muestra **vistas**, no una partición exclusiva del
+bloque: `$8A09` como `2x16` ocupa `$8A09-$8A28` y por tanto se solapa
+con la vista `2x8` de `$8A19`; de forma análoga, `$8A99` como `2x16`
+ocupa `$8A99-$8AB8` y se solapa con `$8AA9`. Esto explica por qué una
+misma secuencia de bytes puede parecer un tile distinto según el punto
+de entrada y la geometría que aplica el bucle de volcado.
+
+### Pendiente
+
+- Confirmar si `$89E7` es el inicio real de la loseta o un desplazamiento
+  visual de la loseta lógica `$89E9`.
+- Determinar si la identificación como pie derecho puede demostrarse
+  desde la dirección de movimiento y el estado de animación, o si sigue
+  siendo solo una interpretación visual.
+
+## Sesión 9 — 2026-09-07: `recursos/flujo_detallado.html` — grafo real de llamadas, y una corrección de las Sesiones 6-7
+
+Sesión de documentación pura (guiada por
+`prompts/crear_y_mantener_flujo_detallado.md`): no se ha desensamblado
+ningún byte nuevo del motor. El objetivo era crear el equivalente
+conceptual, para Oh Mummy, del "flujo detallado de llamadas" que ya
+existe en el proyecto hermano de Mad Mix Game — sin copiar nombres,
+direcciones ni conclusiones de ese otro juego, solo la idea de tener
+un grafo interactivo y no solo una tabla plana.
+
+### Fuentes revisadas antes de escribir nada
+
+`FINDINGS.md` completo (todas las sesiones 1-8, no solo un resumen),
+`src/mummy1_body.asm` completo (1897 líneas), `src/main.asm`,
+`src/README.md`, `README.md`, `recursos/flujo_programa.html`,
+`recursos/flujo_secuencial.html` y `recursos/mapa_memoria.html`. Cada
+`CALL`/`JP`/`JR` que aparece en el grafo se extrajo con una búsqueda
+exhaustiva línea a línea sobre `mummy1_body.asm` (incluidas las
+llamadas por dirección literal como `CALL $786C`/`CALL $7B39`/
+`CALL $7DFC`, que el bloque `$6000`-`$6400` sigue usando porque nunca
+se renombró tras nombrarse las rutinas destino en sesiones
+posteriores) — no se ha dado por buena ninguna arista solo porque
+`FINDINGS.md` la describiera en prosa.
+
+### Corrección: 5 de las 6 variantes `RELLENAR_MARCO_DIAGONAL_*` SÍ tienen llamador conocido
+
+`FINDINGS.md` Sesión 7 y `recursos/flujo_programa.html` afirmaban que
+`RELLENAR_MARCO_DIAGONAL_1..6` (junto con `RELLENAR_MARCO_VACIO`) no
+tenían "llamador conocido todavía". Repasando **todas** las
+instrucciones `CALL`/`JP` de `mummy1_body.asm` (no solo las del bloque
+ya reconstruido con nombres, sino también las del bloque mecánico
+`$6000`-`$6400`) se confirma que el propio arranque **sí** llama a 5
+de las 6 variantes por dirección literal, sin usar la etiqueta:
+`CALL $7DFC` (`$6176`) → `RELLENAR_MARCO_DIAGONAL_1`, `CALL $7E05`
+(`$61D9`) → `_2`, `CALL $7E0E` (`$6185`) → `_3`, `CALL $7E17`
+(`$61CA`) → `_4`, `CALL $7E29` (x4: `$6194`/`$61A3`/`$61AC`/`$61BB`)
+→ `_6`. La búsqueda de "llamador conocido" de la Sesión 7 solo miró
+dentro del código ya reconstruido con nombres y pasó por alto que el
+bloque `$6000`-`$6400` (reconstruido desde la Sesión 2, nunca
+renombrado en esos puntos de llamada) ya las estaba llamando. Quedan
+genuinamente **sin llamador conocido** solo `RELLENAR_MARCO_DIAGONAL_5`
+(`$7E20`) y `RELLENAR_MARCO_VACIO` (`$7DF5`) — verificado que ninguna
+instrucción de todo el fichero referencia esas dos direcciones ni sus
+etiquetas. Corregido en `recursos/flujo_programa.html` (las 5 notas
+correspondientes) y reflejado en `recursos/flujo_detallado.html`.
+
+### Precisión: `DIBUJAR_CASILLA_MAPA` no cae en `CONSULTAR_CASILLA_MAPA`
+
+`FINDINGS.md` Sesión 6 resume que `DIBUJAR_CASILLA_MAPA` "cae
+directamente (sin `RET`) en `CONSULTAR_CASILLA_MAPA` (`$7D3E`)".
+Verificando de nuevo el disassembly para el grafo: **todas** las
+ramas de `DIBUJAR_CASILLA_MAPA` terminan en `JR $7CC4` (`$7D3C`),
+una dirección que cae dentro de `DIBUJAR_ENTIDAD` (el bucle común de
+volcado a pantalla), no en `CONSULTAR_CASILLA_MAPA` — que sí empieza
+2 bytes después (`$7D3E`) pero nunca se alcanza por caída, solo por
+`CALL` explícito desde otras rutinas. Es decir: hay un `JR` real (no
+un fall-through) y su destino real es distinto del que resume la
+prosa de la Sesión 6 — probablemente una confusión con la adyacencia
+física de las direcciones en el fichero. No se reescribe el texto de
+la Sesión 6 (no se reescribe historia ya cerrada), pero
+`recursos/flujo_detallado.html` documenta el flujo verificado y esta
+entrada dejа constancia del porqué difieren.
+
+### Grafo publicado
+
+`recursos/flujo_detallado.html`: 66 nodos (3 de arranque/cargador, 14
+de firmware CPC, 2 de aleatoriedad/control, 7 de entidades-mapa-
+colisiones, 21 de renderizado, 1 de sonido, 6 de menú/HUD/entrada, 1
+que representa el hueco pendiente `$6401`-`$786B`, y 11 nodos de
+datos agrupados en una capa opcional oculta por defecto), 82 aristas
+de control (`CALL`/`CALL cc`/`JP`/`JP cc`/`JR`/caída sin `RET`,
+verificadas una a una) y 15 aristas de acceso a dato (capa aparte,
+nunca mezcladas con las de control). Ningún nodo de código se marca
+como "confirmado": todas las 38 rutinas internas y el bloque
+`$6000`-`$6400` siguen en "hipótesis" salvo su estructura mecánica
+(bytes/compilación), tal como ya constaba en `FINDINGS.md` — esta
+sesión no promueve ninguna hipótesis a hecho. Se documenta
+explícitamente que **no existe ningún `JP (HL)`/`JP (IX)`/`JP (IY)`
+confirmado** en el código reconstruido: los "dispatchers"
+(`DIBUJAR_ENTIDAD`, `DIBUJAR_CASILLA_MAPA`) seleccionan tabla de datos
+con cadenas `CP`/`JR`/`JP` a etiquetas fijas, no con saltos
+indirectos — se marca así para no inventar "flujo indirecto" que no
+está en el binario. El hueco `$6401`-`$786B` se representa como un
+único nodo "pendiente" sin desglosar en subrutinas inventadas.
+
+### Verificación
+
+`python tools/build_all.py`: **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) — esta sesión solo tocó HTML/Markdown, ningún
+byte del ASM. La página se abrió con Microsoft Edge en modo headless
+(`--dump-dom`) para comprobar que el grafo no queda vacío: 66 nodos
+renderizados, 11 ocultos por defecto (capa de datos), 82 aristas de
+control dibujadas, tablas de nodos/relaciones indirectas pobladas
+(67 y 13 filas con cabecera incluida) y ningún error de JavaScript en
+consola.
+
+### Documentación actualizada en esta sesión
+
+`recursos/flujo_detallado.html` (nuevo), `recursos/flujo_programa.html`
+(corrección de las 5 notas de `RELLENAR_MARCO_DIAGONAL_*`, aviso en la
+nota superior), `README.md` y `src/README.md` (referencia a la nueva
+página), `prompts/_base_reconstruccion.md` (añadida
+`recursos/flujo_detallado.html` a la lista de documentación a revisar
+y una regla explícita de mantenimiento por sesión). No se ha
+modificado `recursos/flujo_secuencial.html` ni `recursos/mapa_memoria.html`
+— se revisaron y no contienen ninguna afirmación que contradiga este
+grafo.
+
+### Pendiente para próximas sesiones
+
+Todo lo que ya constaba pendiente en la Sesión 8 (hueco
+`$6401`-`$786B`, resto de la rama `'T'` de `DIBUJAR_ENTIDAD`, los 40
+bytes restantes de cada entrada de `MAPA_CASILLAS`, numeración de
+teclas del firmware, bucle principal de juego, confirmación en
+emulador de sprites/modo de pantalla) sigue pendiente — ver también la
+sección "Pendientes para la siguiente sesión" de
+`recursos/flujo_detallado.html`, que reproduce esta misma lista. A
+partir de ahora, cada sesión que cambie el flujo de llamadas debe
+actualizar `recursos/flujo_detallado.html` o dejar constancia explícita
+de que no se ha visto afectado (regla añadida a
+`prompts/_base_reconstruccion.md`).
+
+## Sesión 11 — 2026-09-08: se nombran las 4 losetas de escritura de `'T'` que quedaban pendientes — mecanismo de dos capas confirmado
+
+Sesión motivada por una pregunta del usuario tras revisar
+`recursos/sprites.html`: había observado que, además de las 8 losetas
+de 2x8 de `LOSETA_MAPA_PISADA_1..8`, conviven en la misma zona otras 6
+losetas — 4 de 4x8 y 2 de 2x16 — más las 2 losetas iniciales de 4x16 de
+un solo color (`$8919`/`$8959`). Hipótesis planteada: las de 4x8/2x16
+las usa el código para pintar la huella nueva al pisar, y las 8 de 2x8
+las usa para redibujar una huella ya existente cuando otro actor pasa
+por encima.
+
+### Verificación (releído `mummy1_body.asm` línea a línea, sin fiarse de la prosa de sesiones anteriores)
+
+Confirmado: existe un único bucle de volcado a pantalla, compartido
+por `DIBUJAR_ENTIDAD` y `DIBUJAR_CASILLA_MAPA`, en `$7CC4`. Su alto
+(`B` de filas, operando de la instrucción en `$7CC5`, dirección
+`$7CC6`) y su ancho (`B` de bytes/fila, operando de `$7CCF`, dirección
+`$7CD0`) se fijan por **código automodificable** antes de cada salto a
+`$7CC4` — de ahí que la misma rutina pueda volcar 4x16 (por defecto,
+sprites de jugador/momia), 2x8 (`DIBUJAR_CASILLA_MAPA`, fija siempre
+outer=8/inner=2 en `$7D32`/`$7D37`) o las geometrías variables de la
+rama `'T'`.
+
+La hipótesis del usuario se confirma, con un matiz importante que ya
+apuntaba `FINDINGS.md` Sesión 8 (continuación 5) sin haberlo resuelto
+del todo: la rama `'T'` de `DIBUJAR_ENTIDAD` (`$7B65`) escribe, para
+cada una de las 4 direcciones de `($8157)`, un par de valores 1-8 en el
+mapa (vía `CONSULTAR_CASILLA_MAPA`) y pinta en el momento un sprite con
+geometría variable; `DIBUJAR_CASILLA_MAPA` usa después ese mismo valor
+para elegir una de las 8 `LOSETA_MAPA_PISADA_*`, siempre en 2x8. En 2
+de las 4 direcciones, el sprite que pinta `'T'` **son los mismos bytes**
+que la loseta de redibujado (`$89F9`=`LOSETA_MAPA_PISADA_3`,
+`$8A89`=`LOSETA_MAPA_PISADA_7`, ya nombrados en Sesión 8). En las otras
+2 direcciones, `'T'` usa un sprite **propio y distinto**, hasta ahora
+sin nombrar:
+
+| Dirección | Rama | Valor escrito | Geometría confirmada | Etiqueta nueva |
+|---|---|---:|---|---|
+| `$8A09` | `($8157)==2`, 2º fotograma (`$7BF2`) | 4 | 2x16 (outer=16 por defecto, inner=2 de `$7BD7`) | `LOSETA_PISADA_ESCRITURA_VALOR4` |
+| `$8A29` | `($8157)==3`, 1er fotograma (`$7BA5`) | 6 | 4x8 (outer=8 de `$7BAB`, inner=4 por defecto) | `LOSETA_PISADA_ESCRITURA_VALOR6` |
+| `$8A49` | `($8157)==3`, 2º fotograma (`$7BC3`) | 5 | 4x8 (misma rama, outer=8 persiste) | `LOSETA_PISADA_ESCRITURA_VALOR5` |
+| `$8A99` | `($8157)>=4`, 2º fotograma (`$7B96`) | 7 | 2x16 (outer=16 por defecto, inner=2 de `$7B77`) | `LOSETA_PISADA_ESCRITURA_VALOR7` |
+
+Los valores/geometrías ya constaban en la tabla de la Sesión 10
+(continuación 2); esta sesión los verifica de nuevo directamente sobre
+el ASM (no se copian sin más) y les da etiqueta real, actualizando los
+4 `LD IY,$8Axx` que las referenciaban por dirección literal.
+
+`$8A09` (2x16, 32 bytes, `$8A09`-`$8A28`) **solapa** con los 16 bytes
+de `LOSETA_MAPA_PISADA_4` (`$8A19`-`$8A28`): son bytes distintos solo
+en `$8A09`-`$8A18`. Lo mismo ocurre entre `$8A99` (2x16,
+`$8A99`-`$8AB8`) y `LOSETA_MAPA_PISADA_8` (`$8AA9`-`$8AB8`). Ya lo
+señalaba la Sesión 10 (continuación 2); queda ahora documentado junto
+a las propias etiquetas en `mummy1_body.asm`. `$8A29`/`$8A49` (4x8,
+32 bytes cada uno) no solapan con ninguna `LOSETA_MAPA_PISADA_*`.
+
+Las 2 losetas de 4x16 de un único color que preguntaba el usuario
+(`$8919`, todo `$00`, y `$8959`, todo `$F0`) ya estaban identificadas
+desde la Sesión 8 (continuación 2): son el sprite por defecto de
+`DIBUJAR_ENTIDAD` para un tipo de entidad no reconocido y el del
+carácter `' '` respectivamente — este último es también el destino por
+defecto de `DIBUJAR_CASILLA_MAPA` para valores de casilla fuera de
+1-8. Forman parte del mismo mecanismo de dos capas (loseta "sin
+huella"), no son un caso nuevo.
+
+**Lo que sigue sin confirmarse**: la orientación real de cada una de
+las 4 direcciones (arriba/abajo/izquierda/derecha) y la identidad
+visual de las 4 losetas recién nombradas contra una captura de
+emulador — igual que el resto de losetas de pisada, están confirmadas
+en estructura y despacho, no en identidad visual verificada fuera del
+propio código y la inspección de píxeles.
+
+### Cambios en `mummy1_body.asm`
+
+4 etiquetas nuevas (`LOSETA_PISADA_ESCRITURA_VALOR4/_5/_6/_7`) con
+comentario de estructura/geometría/solape y nivel de confianza junto a
+cada una; 4 `LD IY,` renombrados de dirección literal a etiqueta;
+actualizado el comentario de cabecera de `DIBUJAR_ENTIDAD` que decía
+"pendiente de nombrar". Ningún byte del binario cambia.
+
+### Verificación
+
+`python tools/build_all.py`: **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) — verificado antes y después de escribir esta
+entrada.
+
+### Pendiente para próximas sesiones
+
+Sigue todo lo ya pendiente (hueco `$6401`-`$786B`, orientación real
+arriba/abajo/izquierda/derecha de las 4 direcciones de `'T'`,
+confirmación en emulador de todas las losetas de pisada, numeración de
+teclas del firmware, bucle principal de juego). Actualizado
+`recursos/flujo_programa.html` con las 4 etiquetas nuevas; no se ha
+tocado `recursos/flujo_detallado.html` en su grafo de llamadas (las 4
+etiquetas nuevas son datos, no rutinas, y ya estaban representadas como
+acceso a dato desde `DIBUJAR_ENTIDAD`) más allá de refrescar la fecha
+de última actualización.

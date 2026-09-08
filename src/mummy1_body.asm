@@ -864,12 +864,14 @@ PREPARAR_DIBUJAR_ENTIDAD:
     LD A,$4F                         ; 7B37: 3e4f
 ; Sesion 8: confirmado el despacho por tipo de entidad (byte en A al
 ; entrar): ' '($20)->IY=$8959, 'T'($54)->sub-dispatch en ($8157) con
-; anchos/altos variables (32-64 bytes, pendiente de nombrar), 'A'($41)
+; anchos/altos variables (32-64 bytes; Sesion 11: las 4 losetas que
+; faltaban por nombrar -- LOSETA_PISADA_ESCRITURA_VALOR4/_5/_6/_7 --
+; ya tienen etiqueta, ver mas abajo), 'A'($41)
 ; y 'O'($4F)->sub-dispatch en ($8157)/($8159) respectivamente hacia 8
 ; sprites de 64 bytes cada uno (SPRITE_JUGADOR_G1_F1.. / SPRITE_MOMIA_
 ; G1_F1.., ver mas abajo), cualquier otro caracter (por defecto,
 ; incluido fallthrough)->IY=TABLAS_SPRITE_CASILLA ($8919). Ver
-; FINDINGS.md Sesion 8.
+; FINDINGS.md Sesion 8 y Sesion 11.
 DIBUJAR_ENTIDAD:
     PUSH AF                          ; 7B39: f5
     LD A,$10                         ; 7B3A: 3e10
@@ -911,14 +913,14 @@ DIBUJAR_ENTIDAD:
     XOR $01                          ; 7B8E: ee01
     LD ($8158),A                     ; 7B90: 325881
     JP Z,$7CC4                       ; 7B93: cac47c
-    LD IY,$8A99                      ; 7B96: fd21998a
+    LD IY,LOSETA_PISADA_ESCRITURA_VALOR7 ; 7B96: fd21998a
     LD A,$07                         ; 7B9A: 3e07
     LD (HL),A                        ; 7B9C: 77
     ADD A,$19                        ; 7B9D: c619
     SBC HL,BC                        ; 7B9F: ed42
     LD (HL),A                        ; 7BA1: 77
     JP $7CC4                         ; 7BA2: c3c47c
-    LD IY,$8A29                      ; 7BA5: fd21298a
+    LD IY,LOSETA_PISADA_ESCRITURA_VALOR6 ; 7BA5: fd21298a
     LD A,$08                         ; 7BA9: 3e08
     LD ($7CC6),A                     ; 7BAB: 32c67c
     CALL CONSULTAR_CASILLA_MAPA      ; 7BAE: cd3e7d
@@ -931,7 +933,7 @@ DIBUJAR_ENTIDAD:
     XOR $01                          ; 7BBB: ee01
     LD ($8158),A                     ; 7BBD: 325881
     JP Z,$7CC4                       ; 7BC0: cac47c
-    LD IY,$8A49                      ; 7BC3: fd21498a
+    LD IY,LOSETA_PISADA_ESCRITURA_VALOR5 ; 7BC3: fd21498a
     LD A,$05                         ; 7BC7: 3e05
     LD (HL),A                        ; 7BC9: 77
     LD A,$20                         ; 7BCA: 3e20
@@ -952,7 +954,7 @@ DIBUJAR_ENTIDAD:
     XOR $01                          ; 7BEA: ee01
     LD ($8158),A                     ; 7BEC: 325881
     JP Z,$7CC4                       ; 7BEF: cac47c
-    LD IY,$8A09                      ; 7BF2: fd21098a
+    LD IY,LOSETA_PISADA_ESCRITURA_VALOR4 ; 7BF2: fd21098a
     LD A,$04                         ; 7BF6: 3e04
     LD (HL),A                        ; 7BF8: 77
     ADD A,$1C                        ; 7BF9: c61c
@@ -1060,6 +1062,11 @@ DIBUJAR_ENTIDAD:
     POP DE                           ; 7CE4: d1
     RET                              ; 7CE5: c9
 DIBUJAR_CASILLA_MAPA:
+; Despacho confirmado de las ocho losetas de pisadas: los valores de
+; casilla 1..8 seleccionan, respectivamente, $89D9, $89E9, $89F9,
+; $8A19, $8A79, $8A69, $8AA9 y $8A89. El orden de las dos variantes
+; dentro de cada direccion queda demostrado por el valor escrito, pero
+; "pie izquierdo/derecho" sigue siendo una interpretacion visual.
     CP $02                           ; 7CE6: fe02
     JR C,$7D2E                       ; 7CE8: 3844
     JR Z,$7D28                       ; 7CEA: 283c
@@ -1707,14 +1714,39 @@ LOSETA_MAPA_PISADA_2:
     DB $1E,$F0,$1E,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0 ; 89E9
 LOSETA_MAPA_PISADA_3:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$96,$0F,$96,$0F,$F0,$C3 ; 89F9
-    ; $8A09 (sin nombrar): fotograma de escritura de 'T' para el
-    ; valor 4, distinto del sprite que lee DIBUJAR_CASILLA_MAPA para
-    ; ese mismo valor (LOSETA_MAPA_PISADA_4, en $8A19) -- pendiente.
+; ---- LOSETA_PISADA_ESCRITURA_VALOR4 ---- Sesion 11: fotograma de
+; escritura de 'T' para el valor de casilla 4 (rama ($8157)==2,
+; segundo fotograma, alternado con LOSETA_MAPA_PISADA_3 via el flag
+; $8158, ver $7BF2). CONFIRMADO por el codigo que DIBUJAR_ENTIDAD lo
+; vuelca como 2x16 (outer=16 por defecto, inner=2 fijado en $7BD7 para
+; toda la rama) -- 32 bytes, $8A09-$8A28. Esto SOLAPA con los 16 bytes
+; de LOSETA_MAPA_PISADA_4 (2x8, $8A19-$8A28), que es la loseta que lee
+; DIBUJAR_CASILLA_MAPA para redibujar esa misma celda mas tarde: son
+; bytes fisicamente distintos en $8A09-$8A18, pero comparten los ultimos
+; 16 bytes con LOSETA_MAPA_PISADA_4. Confianza alta en estructura y
+; geometria, media-alta en identidad visual (sin confirmar en
+; emulador). Ver FINDINGS.md Sesion 11.
+LOSETA_PISADA_ESCRITURA_VALOR4:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A09
 LOSETA_MAPA_PISADA_4:
     DB $F0,$C3,$96,$0F,$96,$0F,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A19
+; ---- LOSETA_PISADA_ESCRITURA_VALOR6 ---- Sesion 11: fotograma de
+; escritura de 'T' para el valor de casilla 6 (rama ($8157)==3, primer
+; fotograma, ver $7BA5). CONFIRMADO por el codigo que DIBUJAR_ENTIDAD
+; lo vuelca como 4x8 (outer=8 fijado en $7BAB, inner=4 por defecto) --
+; 32 bytes, $8A29-$8A48, sin solape con ninguna LOSETA_MAPA_PISADA_*.
+; Confianza alta en estructura y geometria, sin confirmar identidad
+; visual/orientacion. Ver FINDINGS.md Sesion 11.
+LOSETA_PISADA_ESCRITURA_VALOR6:
     DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A29
     DB $F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$87,$F0,$F0,$F0,$87,$F0,$F0 ; 8A39
+; ---- LOSETA_PISADA_ESCRITURA_VALOR5 ---- Sesion 11: fotograma de
+; escritura de 'T' para el valor de casilla 5 (rama ($8157)==3,
+; segundo fotograma, alternado con LOSETA_PISADA_ESCRITURA_VALOR6 via
+; el flag $8158, ver $7BC3). Misma geometria 4x8 (32 bytes,
+; $8A49-$8A68), sin solape. Confianza alta en estructura y geometria,
+; sin confirmar identidad visual/orientacion. Ver FINDINGS.md Sesion 11.
+LOSETA_PISADA_ESCRITURA_VALOR5:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 8A49
     DB $F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0 ; 8A59
 LOSETA_MAPA_PISADA_5:
@@ -1723,9 +1755,19 @@ LOSETA_MAPA_PISADA_6:
     DB $F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$1E,$F0,$1E,$F0 ; 8A79
 LOSETA_MAPA_PISADA_7:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$0F,$96,$0F,$96,$3C,$F0 ; 8A89
-    ; $8A99 (sin nombrar): fotograma de escritura de 'T' para el
-    ; valor 7, distinto del sprite que lee DIBUJAR_CASILLA_MAPA para
-    ; ese mismo valor (LOSETA_MAPA_PISADA_8, en $8AA9) -- pendiente.
+; ---- LOSETA_PISADA_ESCRITURA_VALOR7 ---- Sesion 11: fotograma de
+; escritura de 'T' para el valor de casilla 7 (rama ($8157)>=4, segundo
+; fotograma, alternado con LOSETA_MAPA_PISADA_7 via el flag $8158, ver
+; $7B96). CONFIRMADO por el codigo que DIBUJAR_ENTIDAD lo vuelca como
+; 2x16 (outer=16 por defecto, inner=2 fijado en $7B77 para toda la
+; rama) -- 32 bytes, $8A99-$8AB8. Esto SOLAPA con los 16 bytes de
+; LOSETA_MAPA_PISADA_8 (2x8, $8AA9-$8AB8), que es la loseta que lee
+; DIBUJAR_CASILLA_MAPA para redibujar esa misma celda mas tarde: bytes
+; fisicamente distintos en $8A99-$8AA8, comparten los ultimos 16 bytes
+; con LOSETA_MAPA_PISADA_8. Confianza alta en estructura y geometria,
+; media-alta en identidad visual (sin confirmar en emulador). Ver
+; FINDINGS.md Sesion 11.
+LOSETA_PISADA_ESCRITURA_VALOR7:
     DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A99
 LOSETA_MAPA_PISADA_8:
     DB $3C,$F0,$0F,$96,$0F,$96,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8AA9

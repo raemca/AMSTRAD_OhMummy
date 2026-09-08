@@ -88,8 +88,15 @@ verdad, sesión a sesión.
 | `PREPARAR_RELLENO_MASCARA_UNICA` / `RELLENAR_FILAS_MASCARA` | Marco decorativo — preparadores compartidos del relleno de máscara, reutilizan `CASILLA_A_DIRECCION_PANTALLA` | Alta |
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
-dirección y `../FINDINGS.md` (Sesiones 3-7) para la evidencia, el
-nivel de confianza detallado, y el mapa de llamadas.
+dirección, `recursos/flujo_detallado.html` (Sesión 9) para el **grafo
+real de llamadas** (`CALL`/`CALL cc`/`JP`/`JP cc`/`JR`/caídas sin
+`RET`, cada una verificada contra el ASM, con panel dedicado a lo que
+NO es una llamada directa) y `../FINDINGS.md` (Sesiones 3-9) para la
+evidencia y el nivel de confianza detallado. `recursos/flujo_detallado.html`
+es el artefacto vivo del flujo de llamadas del proyecto: cada sesión
+que cambie una llamada, un punto de entrada, un despachador o el
+estado de una rutina debe actualizarlo (o dejar constancia de que no
+le afecta), según `prompts/_base_reconstruccion.md`.
 
 ## Compilar y verificar
 
