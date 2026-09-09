@@ -181,25 +181,29 @@
   Complementa a <code>recursos/flujo_programa.html</code> (inventario plano de rutinas) con el
   <strong>grafo real de llamadas</strong> entre ellas. Punto de entrada confirmado: <code>$6000</code>
   (<code>src/load_disk/mummy_bas.bas</code>, linea 570-580: <code>LOAD"!mummy1",&amp;6000:CALL &amp;6000</code>).
-  Ultima actualizacion: <strong>Sesion 13, 2026-09-09</strong> (segundo y tercer tramo del ultimo hueco
-  INCBIN, <code>$6529</code>-<code>$68B1</code> y <code>$7863</code>-<code>$786B</code>: 14 rutinas nuevas
-  -- <code>INICIAR_PARTIDA</code>, <code>PREPARAR_NIVEL</code>, <code>PREPARAR_TESOROS_NIVEL</code>,
-  <code>ACTUALIZAR_HUD_VIDAS</code>, <code>LIMPIAR_PANELES_NIVEL</code>,
-  <code>SELECCIONAR_DIAGONAL_MARCO_NIVEL</code> (resuelve el llamador de
-  <code>RELLENAR_MARCO_DIAGONAL_1..6</code> pendiente desde la Sesion 7),
-  <code>COLOCAR_JUGADOR_INICIAL</code>, <code>BUCLE_PRINCIPAL_JUEGO</code>,
-  <code>INICIO_TURNO_JUGADOR1</code>, <code>TRAMPOLIN_TECLA_B</code>, <code>PANTALLA_STOP_PRESS</code>,
-  <code>PANTALLA_GAME_OVER</code>, <code>ACTUALIZAR_TABLA_PUNTUACIONES</code>,
-  <code>IMPRIMIR_PUNTUACION_HUD</code>).
+  Ultima actualizacion: <strong>Sesion 17, 2026-09-10</strong> (renombrado
+  <code>DIBUJAR_ICONO_SARCOFAGO</code>/<code>LLAVE</code>/<code>PERGAMINO</code>/<code>TESORO</code>, antes
+  <code>DIBUJAR_TRAMO_MARCO_1..4</code>: identidad visual confirmada por el usuario con el explorador
+  parametrizable de <code>recursos/sprites.html</code> y corroborada por su unico llamador de cada una
+  -- CORRIGE la hipotesis de la Sesion 3 de "marco decorativo del nivel"; en realidad son los iconos que
+  se dibujan al descubrir el contenido de una de las 20 casillas del tablero). Sesion 14 cerro el ultimo
+  hueco INCBIN del motor, <code>$68B2</code>-<code>$7862</code>, 4017 bytes: <code>PANTALLA_INSTRUCCIONES</code>
+  + 23 bloques de texto (<code>TEXTO_INSTR_01..23</code>) + las 5 rutinas del bucle de juego que quedaban
+  sin resolver -- <code>PROCESAR_ENCUENTROS_ENTIDADES</code>, <code>PROCESAR_MOVIMIENTO_JUGADOR</code>,
+  <code>ACTUALIZAR_MARCO_TRAS_MOVIMIENTO</code> (+ <code>CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO</code>/
+  <code>MARCO_CONTENIDO_*</code>), <code>COMPROBAR_SALIDA_NIVEL</code>,
+  <code>ANIMAR_APARICION_MOMIA_GUARDIANA</code>. El motor completo <code>$6000</code>-<code>$9385</code>
+  queda sin ningun hueco <code>INCBIN</code> de codigo pendiente.
 </p>
 
 <div class="note alcance">
   <strong>Aviso de alcance -- leer antes de interpretar el grafo.</strong>
   <ul>
-    <li><strong>Que se representa:</strong> las 38 rutinas de codigo ya reconstruidas y compiladas
-      (<code>$786C</code>-<code>$7EFC</code>, Sesiones 3-7), las 3 rutinas de la Sesion 12
-      (<code>$6401</code>-<code>$6528</code>), las 14 rutinas nuevas de la Sesion 13
-      (<code>$6529</code>-<code>$68B1</code> y <code>$7863</code>-<code>$786B</code>), las 14 rutinas de
+    <li><strong>Que se representa:</strong> el motor COMPLETO, sin huecos: las 38 rutinas de codigo de
+      las Sesiones 3-7 (<code>$786C</code>-<code>$7EFC</code>), las 3 rutinas de la Sesion 12
+      (<code>$6401</code>-<code>$6528</code>), las 14 rutinas de la Sesion 13
+      (<code>$6529</code>-<code>$68B1</code> y <code>$7863</code>-<code>$786B</code>), las ~12 rutinas
+      nuevas de la Sesion 14 (<code>$68B2</code>-<code>$7862</code>, ultimo hueco cerrado), las 14 rutinas de
       firmware CPC identificadas contra el manual oficial (Sesion 3), el bloque mecanico de arranque/menu
       <code>$6000</code>-<code>$6400</code> (desensamblado y verificado desde la Sesion 2, pero sin nombres
       semanticos propios todavia), y el cargador BASIC como origen externo de la primera llamada.</li>
@@ -209,14 +213,11 @@
       copiados sin mas de <code>FINDINGS.md</code>) mas los casos confirmados de caida directa sin
       <code>RET</code> (<em>fall-through</em>). Los accesos a datos (<code>LD</code>, tablas) se muestran
       aparte, en una capa opcional desactivada por defecto, y NUNCA como aristas de llamada.</li>
-    <li><strong>Que sigue fuera del grafo:</strong> el bloque <code>$68B2</code>-<code>$7862</code>
-      (4017 bytes, el unico tramo del motor sin desensamblar tras la Sesion 13 -- la pantalla de
-      instrucciones) se representa como un unico nodo "pendiente" sin desglosar en rutinas internas -- no
-      se inventa ninguna subrutina dentro de el. Las 5 llamadas de <code>BUCLE_PRINCIPAL_JUEGO</code> que
-      caen ahi dentro (<code>$7578</code>/<code>$77D1</code>/<code>$7637</code>/<code>$7566</code>/<code>$7513</code>)
-      se representan como aristas hacia ese mismo nodo "pendiente".
-      Tampoco se detalla el contenido interno de las ~29 tablas de sprite/casilla de
-      <code>TABLAS_SPRITE_CASILLA</code> mas alla de lo ya nombrado (16 sprites + 10 losetas, Sesion 8).</li>
+    <li><strong>Que sigue fuera del grafo:</strong> ya no queda ningun bloque de codigo "pendiente" tras la
+      Sesion 14 -- no se detalla el contenido interno de las ~29 tablas de sprite/casilla de
+      <code>TABLAS_SPRITE_CASILLA</code> mas alla de lo ya nombrado (16 sprites + 10 losetas, Sesion 8), ni
+      la formula algebraica exacta de escalado de <code>CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO</code> (Sesion 14,
+      transcrita pero no resuelta).</li>
     <li><strong>Flujo indirecto:</strong> a fecha de esta sesion <strong>no se ha confirmado ningun
       <code>JP (HL)</code>/<code>JP (IX)</code>/<code>JP (IY)</code> ni tabla de punteros de codigo</strong>
       en las 1681 bytes ya reconstruidos. Los grandes "dispatchers" (<code>DIBUJAR_ENTIDAD</code>,
@@ -428,18 +429,18 @@ const NODOS = [
     estado: "hipotesis", confianza: "media", evidencia: "Copia un bloque de 6x12 bytes desde una tabla (IY) con paso INC H (256, no el paso real de VRAM). Sesion 3/4.", sesion: "3" },
   { id: "CASILLA_A_DIRECCION_PANTALLA", addr: "$7E92", addrFin: "$7EAA", nombre: "CASILLA_A_DIRECCION_PANTALLA", subsistema: "render", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Indexa TABLA_DIRECCIONES_PANTALLA ($8ECA, 200 entradas construidas en el arranque) por fila+columna. Sesion 4.", sesion: "4" },
-  { id: "DIBUJAR_TRAMO_MARCO_1", addr: "$7D85", addrFin: "$7D9C", nombre: "DIBUJAR_TRAMO_MARCO_1", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_1 ($877D). Sesion 5/6.", sesion: "5" },
-  { id: "DIBUJAR_TRAMO_MARCO_2", addr: "$7D9D", addrFin: "$7DB4", nombre: "DIBUJAR_TRAMO_MARCO_2", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_2 ($87C5). Sesion 5/6.", sesion: "5" },
-  { id: "DIBUJAR_TRAMO_MARCO_3", addr: "$7DB5", addrFin: "$7DCC", nombre: "DIBUJAR_TRAMO_MARCO_3", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_3 ($880D). Sesion 5/6.", sesion: "5" },
-  { id: "DIBUJAR_TRAMO_MARCO_4", addr: "$7DCD", addrFin: "$7DE4", nombre: "DIBUJAR_TRAMO_MARCO_4", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Llama RELLENAR_MARCO_MEDIO + COPIAR_BLOQUE_A_LIENZO con TABLA_MARCO_4 ($8855). Sesion 5/6/7.", sesion: "5" },
+  { id: "DIBUJAR_ICONO_SARCOFAGO", addr: "$7D85", addrFin: "$7D9C", nombre: "DIBUJAR_ICONO_SARCOFAGO", subsistema: "render", tipo: "codigo",
+    estado: "confirmado", confianza: "alta", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con SPRITE_ICONO_SARCOFAGO ($877D). Identidad 'sarcofago' confirmada visualmente por el usuario (recursos/sprites.html) y corroborada por su unico llamador, MARCO_CONTENIDO_MOMIA_REAL. Sesion 5/6, identidad Sesion 17.", sesion: "17" },
+  { id: "DIBUJAR_ICONO_LLAVE", addr: "$7D9D", addrFin: "$7DB4", nombre: "DIBUJAR_ICONO_LLAVE", subsistema: "render", tipo: "codigo",
+    estado: "confirmado", confianza: "alta", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con SPRITE_ICONO_LLAVE ($87C5). Identidad 'llave' confirmada visualmente por el usuario y corroborada por su unico llamador, MARCO_CONTENIDO_LLAVE. Sesion 5/6, identidad Sesion 17.", sesion: "17" },
+  { id: "DIBUJAR_ICONO_PERGAMINO", addr: "$7DB5", addrFin: "$7DCC", nombre: "DIBUJAR_ICONO_PERGAMINO", subsistema: "render", tipo: "codigo",
+    estado: "confirmado", confianza: "alta", evidencia: "Llama RELLENAR_MARCO_SOLIDO + COPIAR_BLOQUE_A_LIENZO con SPRITE_ICONO_PERGAMINO ($880D). Identidad 'pergamino' confirmada visualmente por el usuario y corroborada por su unico llamador, MARCO_CONTENIDO_PERGAMINO. Sesion 5/6, identidad Sesion 17.", sesion: "17" },
+  { id: "DIBUJAR_ICONO_TESORO", addr: "$7DCD", addrFin: "$7DE4", nombre: "DIBUJAR_ICONO_TESORO", subsistema: "render", tipo: "codigo",
+    estado: "confirmado", confianza: "alta", evidencia: "Llama RELLENAR_MARCO_MEDIO + COPIAR_BLOQUE_A_LIENZO con SPRITE_ICONO_TESORO ($8855). Identidad 'tesoro' confirmada visualmente por el usuario y corroborada por su unico llamador, MARCO_CONTENIDO_TESORO. Sesion 5/6/7, identidad Sesion 17.", sesion: "17" },
   { id: "RELLENAR_MARCO_MEDIO", addr: "$7DE5", addrFin: "$7DEC", nombre: "RELLENAR_MARCO_MEDIO", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Mascara $0F, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_TRAMO_MARCO_4. Sesion 7.", sesion: "7" },
+    estado: "hipotesis", confianza: "media", evidencia: "Mascara $0F, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_ICONO_TESORO. Sesion 7.", sesion: "7" },
   { id: "RELLENAR_MARCO_SOLIDO", addr: "$7DED", addrFin: "$7DF4", nombre: "RELLENAR_MARCO_SOLIDO", subsistema: "render", tipo: "codigo",
-    estado: "hipotesis", confianza: "media", evidencia: "Mascara $FF, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_TRAMO_MARCO_1/2/3. Sesion 7.", sesion: "7" },
+    estado: "hipotesis", confianza: "media", evidencia: "Mascara $FF, JP a PREPARAR_RELLENO_MASCARA_UNICA. Llamador conocido: DIBUJAR_ICONO_SARCOFAGO/LLAVE/PERGAMINO. Sesion 7.", sesion: "7" },
   { id: "RELLENAR_MARCO_VACIO", addr: "$7DF5", addrFin: "$7DFB", nombre: "RELLENAR_MARCO_VACIO", subsistema: "render", tipo: "codigo",
     estado: "hipotesis", confianza: "media", evidencia: "Mascara $00, JP a PREPARAR_RELLENO_MASCARA_UNICA. SIN llamador conocido en todo el codigo ya reconstruido. Sesion 7.", sesion: "7" },
   { id: "RELLENAR_MARCO_DIAGONAL_1", addr: "$7DFC", addrFin: "$7E04", nombre: "RELLENAR_MARCO_DIAGONAL_1", subsistema: "render", tipo: "codigo",
@@ -500,7 +501,7 @@ const NODOS = [
   { id: "COLOCAR_JUGADOR_INICIAL", addr: "$66CF", addrFin: "$66EC", nombre: "COLOCAR_JUGADOR_INICIAL", subsistema: "entidades", tipo: "codigo",
     estado: "hipotesis", confianza: "alta en estructura, media en el detalle de ($8157)=3", evidencia: "Llama INICIALIZAR_ENTIDADES (coloca tantos enemigos/coleccionables como el nivel) y dibuja al jugador ('A') en su posicion de salida fija $0820. Sesion 13.", sesion: "13" },
   { id: "BUCLE_PRINCIPAL_JUEGO", addr: "$66ED", addrFin: "$6738", nombre: "BUCLE_PRINCIPAL_JUEGO", subsistema: "menu", tipo: "codigo",
-    estado: "hipotesis", confianza: "alta en estructura, media en el papel de las llamadas sin resolver", evidencia: "Bucle de turnos por jugador (INICIO_TURNO_JUGADOR1); comprueba tecla 'B' via TRAMPOLIN_TECLA_B (ambas ramas confluyen, sin efecto observable). Contiene 5 llamadas SIN RESOLVER: $7578, $77D1, $7637, $7566, $7513 -- caen dentro del hueco $68B2-$7862 todavia sin analizar. 2 saltos JP C,PANTALLA_GAME_OVER por turno (hipotesis alta: jugador atrapado por una momia). Sesion 13.", sesion: "13" },
+    estado: "hipotesis", confianza: "alta", evidencia: "Bucle de turnos por jugador (INICIO_TURNO_JUGADOR1); comprueba tecla 'B' via TRAMPOLIN_TECLA_B (ambas ramas confluyen, sin efecto observable). Llama a PROCESAR_ENCUENTROS_ENTIDADES/PROCESAR_MOVIMIENTO_JUGADOR/ACTUALIZAR_MARCO_TRAS_MOVIMIENTO/COMPROBAR_SALIDA_NIVEL, las 5 llamadas ($7578/$77D1/$7637/$7566/$7513) resueltas en la Sesion 14. 2 saltos JP C,PANTALLA_GAME_OVER por turno (hipotesis alta: jugador atrapado por una momia). Sesion 13/14.", sesion: "13" },
   { id: "TRAMPOLIN_TECLA_B", addr: "$68AF", addrFin: "$68B1", nombre: "TRAMPOLIN_TECLA_B", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta en estructura, baja en proposito", evidencia: "JP a INICIO_TURNO_JUGADOR1 -- destino de la comprobacion de 'B' de BUCLE_PRINCIPAL_JUEGO; ambas ramas (pulsada o no) confluyen aqui. Posible resto de una funcionalidad no terminada. Sesion 13.", sesion: "13" },
   { id: "PANTALLA_STOP_PRESS", addr: "$6739", addrFin: "$67B2", nombre: "PANTALLA_STOP_PRESS", subsistema: "menu", tipo: "codigo",
@@ -511,16 +512,28 @@ const NODOS = [
     estado: "hipotesis", confianza: "alta", evidencia: "Compara la puntuacion contra la tabla HI-SCORE ($86C2-$8749, 5x18 bytes, ya leida por ENTRADA_MOTOR en $6310). Si no la supera, JP $6039 (vuelve al modo atraccion); si la supera, calcula el rango, desplaza entradas con LDIR, escribe puntuacion+espacios y JP $6223 (entrada de nombre, dentro de ENTRADA_MOTOR). Sesion 13.", sesion: "13" },
   { id: "IMPRIMIR_PUNTUACION_HUD", addr: "$7863", addrFin: "$786B", nombre: "IMPRIMIR_PUNTUACION_HUD", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Cierra el ultimo tramo del INCBIN original. Posiciona el cursor en (9,1) y cae (sin salto) en IMPRIMIR_NUMERO_HL con HL=($815A). Sesion 13.", sesion: "13" },
-  // ---- pendiente ----
-  { id: "ZONA_PENDIENTE_68B2_7862", addr: "$68B2", addrFin: "$7862", nombre: "$68B2-$7862 -- sin analizar (4017 bytes)", subsistema: "pendiente", tipo: "pendiente",
-    estado: "pendiente", confianza: "n/a", evidencia: "Unico tramo del motor todavia incluido tal cual via INCBIN (data/mummy1_resto_sin_analizar.bin, offset 1201) -- la pantalla de instrucciones (entrada 'I'/'i'). Explorado mecanicamente sin comprometer a fuente en la Sesion 13: un despachador corto en $68B2 que llama a $69D2/$698A/$69AC y a $7D85/$7D9D (ya definidas en RELLENAR_FILAS_MASCARA, sin resolver su papel aqui), y a partir de ~$69EA bloques de texto literal (la pantalla de instrucciones). Recibe tambien las 5 llamadas sin resolver de BUCLE_PRINCIPAL_JUEGO ($7578/$77D1/$7637/$7566/$7513) -- ver FINDINGS.md Sesion 13 para el detalle. No se le atribuye ninguna subrutina interna sin evidencia solida.", sesion: "2" },
+  // ---- Sesion 14: CIERRE del ultimo hueco INCBIN del motor ($68B2-$7862, 4017 bytes) ----
+  { id: "PANTALLA_INSTRUCCIONES", addr: "$68B2", addrFin: "$69EA", nombre: "PANTALLA_INSTRUCCIONES", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta", evidencia: "Despachador de la entrada 'I'/'i': dibuja 2 iconos de contenido de casilla como cabecera visual (DIBUJAR_ICONO_SARCOFAGO/DIBUJAR_ICONO_LLAVE, identidad confirmada Sesion 17) e imprime, via IMPRIMIR_PARRAFO_INSTRUCCIONES, los 23 parrafos de TEXTO_INSTR_01..23, con pausas ESPERAR_CONTINUAR_INSTRUCCIONES entre grupos. CONFIRMA con precision byte a byte la hipotesis mecanica de la Sesion 13. Sesion 14.", sesion: "14" },
+  { id: "TEXTO_INSTR_01_23", addr: "$69EB", addrFin: "$7512", nombre: "TEXTO_INSTR_01..23 (23 parrafos de instrucciones)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta (texto legible, limites verificados byte a byte)", evidencia: "2856 bytes, 23 bloques [longitud][texto] CONTIGUOS (verificado programaticamente, sin huecos) -- el manual real de OH MUMMY en ingles: escenario, reglas de las 20 casillas, controles, dificultad. Termina EXACTAMENTE en el byte anterior a $7513 (primer punto de entrada del bucle de juego). Sesion 14.", sesion: "14" },
+  { id: "ANIMAR_APARICION_MOMIA_GUARDIANA", addr: "$7513", addrFin: "$7565", nombre: "ANIMAR_APARICION_MOMIA_GUARDIANA", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Llamada condicional (CALL NZ) desde BUCLE_PRINCIPAL_JUEGO cuando ($816D)<>0: decrementa un contador iniciado en 31 y copia progresivamente 4 bytes del sprite SPRITE_MOMIA_G1_F1 ($8CB9) a la casilla en VARIABLE_CASILLA_APARICION_MOMIA ($8136) -- efecto de 'la Momia Guardiana emergiendo poco a poco', coherente con TEXTO_INSTR_12 ('it will dig its way out'). Sesion 14.", sesion: "14" },
+  { id: "COMPROBAR_SALIDA_NIVEL", addr: "$7566", addrFin: "$7577", nombre: "COMPROBAR_SALIDA_NIVEL", subsistema: "menu", tipo: "codigo",
+    estado: "hipotesis", confianza: "media-alta", evidencia: "Si Llave ($816F) y Momia Real ($8170) estan ambos descubiertos y la columna del jugador es $08, aborta el turno saltando a $654C (punto medio de PREPARAR_NIVEL, antes de su CALL BORRAR_BLOQUE_ESTADO) -- coherente con TEXTO_INSTR_15 ('When the boxes holding the Key and the Royal Mummy have been uncovered, you will be able to leave the level'). Sesion 14.", sesion: "14" },
+  { id: "PROCESAR_ENCUENTROS_ENTIDADES", addr: "$7578", addrFin: "$7636", nombre: "PROCESAR_ENCUENTROS_ENTIDADES", subsistema: "entidades", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta en estructura, media-alta en el papel de cada rama", evidencia: "Recorre ARRAY_ENTIDADES comparando posicion almacenada contra la del jugador con tolerancia (+/-8 fila, +/-2 columna); segun ($816E) distingue recogida de coleccionable (refresca HUD) de captura por Momia Guardiana (resta vida en $816A, acarreo si llegan a 0 -> JP C,PANTALLA_GAME_OVER en el llamador). Sesion 14.", sesion: "14" },
+  { id: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", addr: "$7637", addrFin: "$77D0", nombre: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO / CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO / MARCO_CONTENIDO_*", subsistema: "render", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta en estructura, media-alta en la correspondencia flag-objeto", evidencia: "Valida el movimiento contra la rejilla de 20 casillas (CPIR contra TABLA_FILAS_VALIDAS_CASILLAS/TABLA_COLUMNAS_VALIDAS_CASILLAS) y despacha via CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO segun el contenido del lado recorrido: MARCO_CONTENIDO_MOMIA_REAL/_LLAVE/_MOMIA_GUARDIANA/_PERGAMINO/_TESORO, o por defecto (nivel actual) RELLENAR_MARCO_DIAGONAL_1/3/4/5/6 -- SEGUNDO llamador independiente de esas 5 variantes (el primero, Sesion 13, es SELECCIONAR_DIAGONAL_MARCO_NIVEL); RELLENAR_MARCO_DIAGONAL_2 sigue sin ningun llamador conocido. Sesion 14.", sesion: "14" },
+  { id: "PROCESAR_MOVIMIENTO_JUGADOR", addr: "$77D1", addrFin: "$7862", nombre: "PROCESAR_MOVIMIENTO_JUGADOR", subsistema: "entrada", tipo: "codigo",
+    estado: "hipotesis", confianza: "alta en estructura, media en el mapeo exacto de teclas", evidencia: "Lee 8 codigos de tecla de firmware (TABLA_TECLAS_DIRECCION, 2 por direccion -- hipotesis alta: teclado+joystick, coherente con TEXTO_INSTR_20), reordena la prioridad de direccion segun la orientacion del jugador ($8157), y mueve saltando a mitad de MOVER_INDICADOR_MENU -- confirma que esa rutina (nombrada en la Sesion 6 pensando en el cursor del menu) se reutiliza tambien durante la partida real. Sesion 14.", sesion: "14" },
   // ---- datos (capa opcional, oculta por defecto) ----
   { id: "DATO_ENVOLVENTES", addr: "$7FCA", addrFin: "$801C", nombre: "Envolventes de sonido (6 tablas)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta (limites); formato de campos sin desglosar", evidencia: "ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3, direcciones confirmadas por las LD HL previas a cada CALL FIRM_SOUND_*_ENV en ENTRADA_MOTOR. Sesion 3/8.", sesion: "3" },
   { id: "DATO_TEXTOS", addr: "varias", addrFin: "varias", nombre: "Textos del juego (menu, atraccion, HI-SCORE, copyright)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta (texto literal legible)", evidencia: "$7EFD-$7FC5, $801D-$8139, $867E-$8737, $8740-$877C. Incluye el copyright real \"OH MUMMY\" (c) 1984 GEM SOFTWARE. Sesion 8.", sesion: "8" },
-  { id: "DATO_TABLAS_MARCO", addr: "$877D", addrFin: "$889C", nombre: "TABLA_MARCO_1..4 (marco decorativo)", subsistema: "datos", tipo: "dato",
-    estado: "confirmado", confianza: "alta (limites); confianza media en la lectura visual", evidencia: "4 tablas de 72 bytes exactos, limites confirmados por aritmetica de las 4 LD IY de DIBUJAR_TRAMO_MARCO_1..4. Sesion 8.", sesion: "8" },
+  { id: "DATO_TABLAS_MARCO", addr: "$877D", addrFin: "$889C", nombre: "SPRITE_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta", evidencia: "4 tablas de 72 bytes exactos, limites confirmados por aritmetica de las 4 LD IY de DIBUJAR_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO (Sesion 8). Identidad visual (sarcofago/llave/pergamino/tesoro) confirmada por el usuario con el explorador parametrizable de recursos/sprites.html, corroborada por el unico llamador de cada una (MARCO_CONTENIDO_MOMIA_REAL/_LLAVE/_PERGAMINO/_TESORO). CORRIGE la hipotesis de Sesion 3 ('marco decorativo'). Sesion 17.", sesion: "17" },
   { id: "DATO_ESTADO_MAPA", addr: "$8168", addrFin: "$8610", nombre: "Estado de partida + mapa (ARRAY_ENTIDADES/ESTADO_PARTIDA/VENTANA_TEXTO_HUD/MAPA_CASILLAS)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta (limites); hipotesis en el desglose interno", evidencia: "Todo el rango que limpia BORRAR_BLOQUE_ESTADO, mas variables de arranque justo antes. Sesion 3-8.", sesion: "3" },
   { id: "DATO_SPRITE_CASILLA", addr: "$8919", addrFin: "$8EC9", nombre: "TABLAS_SPRITE_CASILLA (16 sprites + 10 losetas confirmados, resto sin nombrar)", subsistema: "datos", tipo: "dato",
@@ -531,8 +544,8 @@ const NODOS = [
     estado: "confirmado", confianza: "alta en estructura circular; media-alta en el formato de cada registro", evidencia: "Confirmado circular por ACTUALIZAR_SECUENCIA_SONIDO (reinicia al llegar a $937D). Sesion 6/8.", sesion: "6" },
   { id: "DATO_POSICIONES_DECIMALES", addr: "$8738", addrFin: "$873F", nombre: "TABLA_POSICIONES_DECIMALES (10000,1000,100,10)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta", evidencia: "Confirmada y corregida en Sesion 8 (no empezaba en $8736 como se creia -- esos 2 bytes son el final de 'name' de TEXTO_MENU_PRINCIPAL).", sesion: "8" },
-  { id: "DATO_GAME_OVER", addr: "$813A", addrFin: "$8167", nombre: "TABLA_DESCONOCIDA_GAME_OVER", subsistema: "datos", tipo: "dato",
-    estado: "pendiente", confianza: "baja", evidencia: "Progresiones aritmeticas visibles, sin CALL/LD conocido que la lea. Sesion 8.", sesion: "8" },
+  { id: "DATO_GAME_OVER", addr: "$813A", addrFin: "$8167", nombre: "TABLA_FILAS_VALIDAS_CASILLAS / TABLA_COLUMNAS_VALIDAS_CASILLAS / TABLA_TECLAS_DIRECCION", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta", evidencia: "CORREGIDO en la Sesion 14: no son umbrales de puntuacion -- son 5 filas validas + 6 columnas validas de la rejilla (CPIR en ACTUALIZAR_MARCO_TRAS_MOVIMIENTO, (5-1)x(6-1)=20 coincide con 'twenty boxes') + 8 codigos de tecla de firmware (PROCESAR_MOVIMIENTO_JUGADOR). Antes 'TABLA_DESCONOCIDA_GAME_OVER', Sesion 8.", sesion: "14" },
   { id: "DATO_OFFSETS_DIAMANTE", addr: "$8611", addrFin: "$8644", nombre: "TABLA_OFFSETS_DIAMANTE", subsistema: "datos", tipo: "dato",
     estado: "pendiente", confianza: "baja-media", evidencia: "Pares byte-alto con patron ascendente/descendente, sin CALL/LD conocido. Sesion 8.", sesion: "8" },
   { id: "DATO_PARAMETROS_PUNTUACIONES", addr: "$864B", addrFin: "$867D", nombre: "TABLA_PARAMETROS_TRANSICION_PUNTUACIONES", subsistema: "datos", tipo: "dato",
@@ -556,10 +569,10 @@ const ARISTAS = [
   { from: "ENTRADA_MOTOR", to: "FIRM_SCR_DOT_POSITION", tipo: "call", nota: "bucle x200 ($6085)" },
   { from: "ENTRADA_MOTOR", to: "BORRAR_RECTANGULO_VENTANA", tipo: "call", nota: "x14 seguidas" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_WIN_ENABLE", tipo: "call", nota: "varias veces" },
-  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_1", tipo: "call", nota: "$6170" },
-  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_2", tipo: "call", nota: "$618E" },
-  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_3", tipo: "call", nota: "$61D0" },
-  { from: "ENTRADA_MOTOR", to: "DIBUJAR_TRAMO_MARCO_4", tipo: "call", nota: "x3 ($617F/$61C1/$61DF)" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_SARCOFAGO", tipo: "call", nota: "$6170" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_LLAVE", tipo: "call", nota: "$618E" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_PERGAMINO", tipo: "call", nota: "$61D0" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_TESORO", tipo: "call", nota: "x3 ($617F/$61C1/$61DF)" },
   { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_1", tipo: "call", nota: "CALL $7DFC ($6176) -- direccion literal, no via etiqueta" },
   { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_2", tipo: "call", nota: "CALL $7E05 ($61D9) -- direccion literal" },
   { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_3", tipo: "call", nota: "CALL $7E0E ($6185) -- direccion literal" },
@@ -585,7 +598,7 @@ const ARISTAS = [
   { from: "DESPACHAR_MENU_PRINCIPAL", to: "ENTRADA_MOTOR", tipo: "jpcc", cond: "NC/incondicional", nota: "JP NC,$6372 ($6407) y JP $6372 ($6428), ambos a REANUDAR_MENU_TRAS_NOMBRE. Sesion 12." },
   { from: "DESPACHAR_MENU_PRINCIPAL", to: "PANTALLA_OPCIONES", tipo: "jpcc", cond: "Z", nota: "JP Z,$642B x2 ($6420 'O', $6425 'o'). Sesion 12." },
   { from: "DESPACHAR_MENU_PRINCIPAL", to: "INICIAR_PARTIDA", tipo: "jpcc", cond: "Z", nota: "JP Z,$6529 x2 ($640C 'P', $6411 'p') -- jugar/empezar partida. Sesion 12, resuelta Sesion 13." },
-  { from: "DESPACHAR_MENU_PRINCIPAL", to: "ZONA_PENDIENTE_68B2_7862", tipo: "jpcc", cond: "Z", nota: "JP Z,$68B2 x2 ($6416 'I', $641B 'i') -- instrucciones, todavia dentro del hueco pendiente. Sesion 12/13." },
+  { from: "DESPACHAR_MENU_PRINCIPAL", to: "PANTALLA_INSTRUCCIONES", tipo: "jpcc", cond: "Z", nota: "JP Z,$68B2 x2 ($6416 'I', $641B 'i') -- instrucciones. Sesion 12, resuelta Sesion 14." },
   // ---- partida / juego (Sesion 13) ----
   { from: "INICIAR_PARTIDA", to: "PREPARAR_NIVEL", tipo: "fallthrough", nota: "sin salto: cae directamente. Sesion 13." },
   { from: "PREPARAR_NIVEL", to: "BORRAR_BLOQUE_ESTADO", tipo: "call", nota: "$654C. Sesion 13." },
@@ -612,10 +625,38 @@ const ARISTAS = [
   { from: "BUCLE_PRINCIPAL_JUEGO", to: "TRAMPOLIN_TECLA_B", tipo: "jpcc", cond: "NZ", nota: "JP NZ,$68AF ($66F2), comprobacion de tecla 'B' sin efecto observable. Sesion 13." },
   { from: "TRAMPOLIN_TECLA_B", to: "BUCLE_PRINCIPAL_JUEGO", tipo: "jp", nota: "JP $66F5 (INICIO_TURNO_JUGADOR1, dentro de BUCLE_PRINCIPAL_JUEGO). Sesion 13." },
   { from: "BUCLE_PRINCIPAL_JUEGO", to: "ANIMAR_OPCION_MENU", tipo: "call", nota: "x2 (una por jugador). Sesion 13." },
-  { from: "BUCLE_PRINCIPAL_JUEGO", to: "ZONA_PENDIENTE_68B2_7862", tipo: "call", nota: "5 llamadas SIN RESOLVER: $7578 (x4), $77D1 (x2), $7637 (x2), $7566 (x2), $7513 (CALL NZ, x1) -- todas caen dentro del hueco pendiente. Sesion 13." },
-  { from: "BUCLE_PRINCIPAL_JUEGO", to: "PANTALLA_GAME_OVER", tipo: "jpcc", cond: "C", nota: "JP C x4, tras cada CALL $7578 -- hipotesis alta: jugador atrapado por una momia. Sesion 13." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "PROCESAR_ENCUENTROS_ENTIDADES", tipo: "call", nota: "CALL $7578 x4 (2 por jugador). Sesion 13, resuelta Sesion 14." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "PROCESAR_MOVIMIENTO_JUGADOR", tipo: "call", nota: "CALL $77D1 x2 (1 por jugador). Sesion 13, resuelta Sesion 14." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", tipo: "call", nota: "CALL $7637 x2 (1 por jugador). Sesion 13, resuelta Sesion 14." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "COMPROBAR_SALIDA_NIVEL", tipo: "call", nota: "CALL $7566 x2 (1 por jugador). Sesion 13, resuelta Sesion 14." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "ANIMAR_APARICION_MOMIA_GUARDIANA", tipo: "call", nota: "CALL NZ,$7513 x1, cuando ($816D)<>0. Sesion 13, resuelta Sesion 14." },
+  { from: "BUCLE_PRINCIPAL_JUEGO", to: "PANTALLA_GAME_OVER", tipo: "jpcc", cond: "C", nota: "JP C x4, tras cada CALL PROCESAR_ENCUENTROS_ENTIDADES -- hipotesis alta: jugador atrapado por una momia. Sesion 13/14." },
   { from: "BUCLE_PRINCIPAL_JUEGO", to: "ESPERAR_TECLA_2C", tipo: "call", nota: "x2 (una por jugador). Sesion 13." },
   { from: "BUCLE_PRINCIPAL_JUEGO", to: "BUCLE_PRINCIPAL_JUEGO", tipo: "jp", nota: "JP $66ED ($6736), cierre del bucle de turnos. Sesion 13." },
+  // ---- Sesion 14: interior del ultimo hueco cerrado ----
+  { from: "PANTALLA_INSTRUCCIONES", to: "TEXTO_INSTR_01_23", tipo: "call", nota: "CALL IMPRIMIR_PARRAFO_INSTRUCCIONES con HL apuntando a cada uno de los 23 bloques. Sesion 14." },
+  { from: "PANTALLA_INSTRUCCIONES", to: "DIBUJAR_ICONO_SARCOFAGO", tipo: "call", nota: "$68C4, cabecera visual con 2 iconos de contenido. Sesion 14/17." },
+  { from: "PANTALLA_INSTRUCCIONES", to: "DIBUJAR_ICONO_LLAVE", tipo: "call", nota: "$68D0, cabecera visual con 2 iconos de contenido. Sesion 14/17." },
+  { from: "PANTALLA_INSTRUCCIONES", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, intercalada (bombeo de sonido). Sesion 14." },
+  { from: "PROCESAR_ENCUENTROS_ENTIDADES", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "$75ED, redibuja al jugador ('A') tras el encuentro. Sesion 14." },
+  { from: "PROCESAR_ENCUENTROS_ENTIDADES", to: "DIBUJAR_CASILLA_MAPA", tipo: "call", nota: "entrada intermedia en $7CE6 (linea 'CP $02'), x4 (redibuja las 4 casillas alrededor). Sesion 14." },
+  { from: "PROCESAR_ENCUENTROS_ENTIDADES", to: "CONSULTAR_CASILLA_MAPA", tipo: "call", nota: "$75BF/$75C8/$75D3/$75DC, x4. Sesion 14." },
+  { from: "PROCESAR_ENCUENTROS_ENTIDADES", to: "IMPRIMIR_PUNTUACION_HUD", tipo: "call", nota: "$7604, tras recoger un coleccionable. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO", tipo: "call", nota: "$76C8/$76E2, x2 (una por lado de casilla). Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "RELLENAR_MARCO_DIAGONAL_1", tipo: "jp", nota: "caso por defecto de CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO, nivel>=5. SEGUNDO llamador (el primero es SELECCIONAR_DIAGONAL_MARCO_NIVEL). Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "RELLENAR_MARCO_DIAGONAL_3", tipo: "jp", nota: "caso por defecto, nivel<2. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "RELLENAR_MARCO_DIAGONAL_4", tipo: "jp", nota: "caso por defecto, nivel==3. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "RELLENAR_MARCO_DIAGONAL_5", tipo: "jp", nota: "caso por defecto, nivel==4. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "RELLENAR_MARCO_DIAGONAL_6", tipo: "jp", nota: "caso por defecto, nivel==2. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "DIBUJAR_ICONO_SARCOFAGO", tipo: "jp", nota: "MARCO_CONTENIDO_MOMIA_REAL, +50 puntos. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "DIBUJAR_ICONO_LLAVE", tipo: "jp", nota: "MARCO_CONTENIDO_LLAVE, sin puntos. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "DIBUJAR_ICONO_PERGAMINO", tipo: "jp", nota: "MARCO_CONTENIDO_PERGAMINO, sin puntos. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "DIBUJAR_ICONO_TESORO", tipo: "jp", nota: "MARCO_CONTENIDO_TESORO, +5 puntos. Sesion 14." },
+  { from: "ACTUALIZAR_MARCO_TRAS_MOVIMIENTO", to: "IMPRIMIR_PUNTUACION_HUD", tipo: "call", nota: "en 3 de las 5 ramas de contenido. Sesion 14." },
+  { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "x8 (2 por direccion, teclado+joystick). Sesion 14." },
+  { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "CALCULAR_CASILLA_ADYACENTE", tipo: "call", nota: "entrada intermedia en $7A98 (usa HL ya cargado). Sesion 14." },
+  { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "HAY_COLISION", tipo: "call", nota: "entrada intermedia en $7A64 (linea 'LD ($8166),DE'). Sesion 14." },
+  { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "MOVER_INDICADOR_MENU", tipo: "jp", nota: "entra en mitad de la rutina ($790B, linea 'LD A,$54') -- confirma que MOVER_INDICADOR_MENU se reutiliza para el movimiento real del jugador, no solo el cursor del menu. Sesion 14." },
   { from: "PANTALLA_STOP_PRESS", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, intercalada. Sesion 13." },
   { from: "PANTALLA_STOP_PRESS", to: "REPETIR_CARACTER", tipo: "call", nota: "varias veces, imprime TEXTO_HISTORIA_ATRACCION. Sesion 13." },
   { from: "PANTALLA_STOP_PRESS", to: "GENERAR_ALEATORIO", tipo: "call", nota: "$675F, sortea bonus de puntos vs. vida extra. Sesion 13." },
@@ -678,14 +719,14 @@ const ARISTAS = [
 
   { from: "ELEGIR_DIRECCION_HACIA_OBJETIVO", to: "GENERAR_ALEATORIO", tipo: "call", nota: "$7ADE" },
 
-  { from: "DIBUJAR_TRAMO_MARCO_1", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7D88" },
-  { from: "DIBUJAR_TRAMO_MARCO_1", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7D99" },
-  { from: "DIBUJAR_TRAMO_MARCO_2", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DA0" },
-  { from: "DIBUJAR_TRAMO_MARCO_2", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DB1" },
-  { from: "DIBUJAR_TRAMO_MARCO_3", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DB8" },
-  { from: "DIBUJAR_TRAMO_MARCO_3", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DC9" },
-  { from: "DIBUJAR_TRAMO_MARCO_4", to: "RELLENAR_MARCO_MEDIO", tipo: "call", nota: "$7DD0" },
-  { from: "DIBUJAR_TRAMO_MARCO_4", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DE1" },
+  { from: "DIBUJAR_ICONO_SARCOFAGO", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7D88" },
+  { from: "DIBUJAR_ICONO_SARCOFAGO", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7D99" },
+  { from: "DIBUJAR_ICONO_LLAVE", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DA0" },
+  { from: "DIBUJAR_ICONO_LLAVE", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DB1" },
+  { from: "DIBUJAR_ICONO_PERGAMINO", to: "RELLENAR_MARCO_SOLIDO", tipo: "call", nota: "$7DB8" },
+  { from: "DIBUJAR_ICONO_PERGAMINO", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DC9" },
+  { from: "DIBUJAR_ICONO_TESORO", to: "RELLENAR_MARCO_MEDIO", tipo: "call", nota: "$7DD0" },
+  { from: "DIBUJAR_ICONO_TESORO", to: "COPIAR_BLOQUE_A_LIENZO", tipo: "call", nota: "$7DE1" },
 
   { from: "RELLENAR_MARCO_MEDIO", to: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "jp", nota: "JP $7DEA, tail-jump" },
   { from: "RELLENAR_MARCO_SOLIDO", to: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "jp", nota: "JP $7DF2, tail-jump" },
@@ -716,10 +757,10 @@ const ARISTAS = [
 const ARISTAS_DATO = [
   { from: "ENTRADA_MOTOR", to: "DATO_ENVOLVENTES", nota: "LD HL,$7FCA/$7FD4/.../$7FF9 antes de cada CALL FIRM_SOUND_*_ENV" },
   { from: "REPETIR_CARACTER", to: "DATO_TEXTOS", nota: "HL pasado por el llamador apunta a texto+contador" },
-  { from: "DIBUJAR_TRAMO_MARCO_1", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_1 ($877D)" },
-  { from: "DIBUJAR_TRAMO_MARCO_2", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_2 ($87C5)" },
-  { from: "DIBUJAR_TRAMO_MARCO_3", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_3 ($880D)" },
-  { from: "DIBUJAR_TRAMO_MARCO_4", to: "DATO_TABLAS_MARCO", nota: "LD IY,TABLA_MARCO_4 ($8855)" },
+  { from: "DIBUJAR_ICONO_SARCOFAGO", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_SARCOFAGO ($877D)" },
+  { from: "DIBUJAR_ICONO_LLAVE", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_LLAVE ($87C5)" },
+  { from: "DIBUJAR_ICONO_PERGAMINO", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_PERGAMINO ($880D)" },
+  { from: "DIBUJAR_ICONO_TESORO", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_TESORO ($8855)" },
   { from: "BORRAR_BLOQUE_ESTADO", to: "DATO_ESTADO_MAPA", nota: "limpia $8172-$860F (LDIR)" },
   { from: "HAY_COLISION", to: "DATO_ESTADO_MAPA", nota: "LD IY,MAPA_CASILLAS ($8200) + ARRAY_ENTIDADES ($816D)" },
   { from: "CONSULTAR_CASILLA_MAPA", to: "DATO_ESTADO_MAPA", nota: "LD HL,MAPA_CASILLAS ($8200)" },
@@ -743,8 +784,8 @@ const RELACIONES_ADICIONALES = [
   { origen: "DIBUJAR_CASILLA_MAPA ($7CE6)", destino: "DIBUJAR_ENTIDAD, en $7CC4", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 6 resume que DIBUJAR_CASILLA_MAPA 'cae directamente (sin RET) en CONSULTAR_CASILLA_MAPA ($7D3E)'. El disassembly real muestra que todas las ramas de DIBUJAR_CASILLA_MAPA terminan en 'JR $7CC4' ($7D3C), una direccion dentro de DIBUJAR_ENTIDAD (el bucle comun de volcado a pantalla), no en CONSULTAR_CASILLA_MAPA. La adyacencia fisica en el fichero (CONSULTAR_CASILLA_MAPA arranca justo en $7D3E, 2 bytes despues) es our probable origen de la confusion en el resumen, pero no hay fall-through real: el JR salta fuera de esa direccion. No se ha corregido el texto de FINDINGS.md de sesiones pasadas (no se reescribe historia), pero este grafo usa el flujo verificado." },
   { origen: "ENTRADA_MOTOR", destino: "DESPACHAR_MENU_PRINCIPAL ($6404)", tipo: "Salto resuelto en la Sesion 12", detalle: "JP Z,$6404 ($6380): hasta la Sesion 11 el destino caia en el hueco sin resolver. La Sesion 12 desensambla y nombra DESPACHAR_MENU_PRINCIPAL -- ya no aparece en este panel como 'salto a zona sin resolver'." },
   { origen: "ENTRADA_MOTOR", destino: "INICIAR_PARTIDA ($6529)", tipo: "Salto resuelto en la Sesion 13", detalle: "JP Z,$6529 x2 (tecla P/p, jugar): hasta la Sesion 12 el destino caia en el hueco sin resolver. La Sesion 13 desensambla y nombra INICIAR_PARTIDA -- ya no aparece en este panel como 'salto a zona sin resolver'." },
-  { origen: "DESPACHAR_MENU_PRINCIPAL", destino: "hueco pendiente $68B2 (dentro de $68B2-$7862)", tipo: "Salto a zona sin resolver", detalle: "JP Z,$68B2 (tecla I/i, instrucciones): el destino cae dentro del resto del hueco INCBIN, todavia sin desensamblar. Se marca como salto hacia el nodo 'pendiente'. Sesion 12/13." },
-  { origen: "BUCLE_PRINCIPAL_JUEGO", destino: "hueco pendiente $68B2-$7862 (5 llamadas)", tipo: "Salto a zona sin resolver", detalle: "$7578 (x4), $77D1 (x2), $7637 (x2), $7566 (x2) y CALL NZ,$7513 (x1): las 5 llamadas internas del bucle de turnos que la Sesion 12 ya sospechaba dentro del hueco -- la Sesion 13 confirma que, en efecto, caen dentro de $68B2-$7862. Sesion 12/13." },
+  { origen: "DESPACHAR_MENU_PRINCIPAL", destino: "PANTALLA_INSTRUCCIONES ($68B2)", tipo: "Salto resuelto en la Sesion 14", detalle: "JP Z,$68B2 (tecla I/i, instrucciones): hasta la Sesion 13 el destino caia en el hueco sin resolver (explorado mecanicamente sin promover). La Sesion 14 desensambla y nombra PANTALLA_INSTRUCCIONES -- ya no aparece en este panel como 'salto a zona sin resolver'. Sesion 12/13/14." },
+  { origen: "BUCLE_PRINCIPAL_JUEGO", destino: "PROCESAR_ENCUENTROS_ENTIDADES / PROCESAR_MOVIMIENTO_JUGADOR / ACTUALIZAR_MARCO_TRAS_MOVIMIENTO / COMPROBAR_SALIDA_NIVEL / ANIMAR_APARICION_MOMIA_GUARDIANA", tipo: "5 llamadas RESUELTAS en la Sesion 14", detalle: "$7578 (x4), $77D1 (x2), $7637 (x2), $7566 (x2) y CALL NZ,$7513 (x1): las 5 llamadas internas del bucle de turnos que la Sesion 12 ya sospechaba dentro del hueco y la Sesion 13 confirmo que caian en $68B2-$7862 -- la Sesion 14 las desensambla y nombra por completo, cerrando el ultimo hueco INCBIN del motor. Sesion 12/13/14." },
   { origen: "PANTALLA_OPCIONES", destino: "REPETIR_CARACTER, pares de bytes reciclados de TEXTO_MENU_OPCIONES", tipo: "Aclaracion sobre REPETIR_CARACTER", detalle: "Los 6 CALL REPETIR_CARACTER de PANTALLA_OPCIONES pasan HL apuntando DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION (p.ej. $7EFD, $7FBD, $80FB). Releyendo el propio codigo de REPETIR_CARACTER se confirma que repite UN SOLO caracter fijo B veces (no recorre una cadena) -- estas llamadas NO imprimen los rotulos 'OH MUMMY - OPTIONS'/'SPEED OF GAME...' como texto legible, reutilizan un par de bytes incidental como 'contador+caracter'. La impresion real de esos rotulos como texto sigue sin localizarse. Sesion 12." },
   { origen: "COLOCAR_ENTIDAD", destino: "PREPARAR_DIBUJAR_ENTIDAD", tipo: "JP condicional (no CALL)", detalle: "JP NZ,PREPARAR_DIBUJAR_ENTIDAD, dos veces ($79CA/$79D4). Al ser JP y no CALL, la ejecucion no vuelve a COLOCAR_ENTIDAD: quien continua tras PREPARAR_DIBUJAR_ENTIDAD/DIBUJAR_ENTIDAD es el llamador original de COLOCAR_ENTIDAD." },
   { origen: "COLOCAR_ENTIDAD", destino: "DIBUJAR_ENTIDAD", tipo: "JP incondicional (tail-jump)", detalle: "JP DIBUJAR_ENTIDAD ($79E7) tras decidir dibujar el sprite 'O' fijo -- mismo razonamiento que el caso anterior." },
@@ -759,16 +800,18 @@ const RELACIONES_ADICIONALES = [
 // PENDIENTES -- extraidos de los cierres de sesion de FINDINGS.md.
 // ============================================================================
 const PENDIENTES = [
-  "El unico hueco INCBIN que queda en el motor: $68B2-$7862 (4017 bytes, tras promover $6529-$68B1 y $7863-$786B en la Sesion 13) -- sesiones 2-13.",
-  "Punto de entrada real para continuar: $68B2 (entrada 'I'/'i' de instrucciones desde DESPACHAR_MENU_PRINCIPAL). Pistas ya localizadas sin promover a fuente (Sesion 13): un despachador corto en $68B2 que llama en cadena a $69D2/$698A/$69AC y a $7D85/$7D9D (ya definidas en RELLENAR_FILAS_MASCARA, sin resolver su papel aqui); a partir de ~$69EA, bloques de texto literal (la pantalla de instrucciones). Tambien caen aqui las 5 llamadas sin resolver de BUCLE_PRINCIPAL_JUEGO: $7578/$77D1/$7637/$7566/$7513.",
-  "Localizar el llamador de RELLENAR_MARCO_VACIO ($7DF5) -- unica rutina de renderizado del marco que sigue sin llamador CONFIRMADO (RELLENAR_MARCO_DIAGONAL_5 se resolvio en la Sesion 13, ver panel de relaciones indirectas).",
-  "Localizar el consumo real de ($816A) como 'vidas restantes' -- se confirma en la Sesion 13 que se inicializa a 5, se dibuja en el HUD, y sube hasta un tope de 7 como premio en PANTALLA_STOP_PRESS, pero no se ha encontrado ningun punto que lo DECREMENTE (candidato: alguna de las 5 llamadas sin resolver de BUCLE_PRINCIPAL_JUEGO).",
+  "NINGUN hueco INCBIN de codigo queda en el motor desde la Sesion 14 -- $68B2-$7862 (4017 bytes, el ultimo) se cierra por completo: PANTALLA_INSTRUCCIONES + 23 bloques de texto + las 5 rutinas del bucle de juego (PROCESAR_ENCUENTROS_ENTIDADES/PROCESAR_MOVIMIENTO_JUGADOR/ACTUALIZAR_MARCO_TRAS_MOVIMIENTO/COMPROBAR_SALIDA_NIVEL/ANIMAR_APARICION_MOMIA_GUARDIANA). Lo que queda es refinar hipotesis con estructura ya confirmada.",
+  "Confirmar en emulador la correspondencia exacta flag-objeto de CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO ($816E=Pergamino, $816F=Llave, $8170=Momia Real) -- apoyada por 3 cruces con el texto de instrucciones pero no observada visualmente. Sesion 14.",
+  "Resolver algebraicamente la formula de escalado B->HL en CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO ($76EC-$770B) -- transcrita pero no explicada. Sesion 14.",
+  "Mapear los 8 bytes de TABLA_TECLAS_DIRECCION ($8145-$814C) a teclas/joystick fisicos concretos. Sesion 14.",
+  "Confirmar si COMPROBAR_SALIDA_NIVEL incrementa realmente ($815C) (nivel) camino de $654C/PREPARAR_NIVEL, o si el avance de nivel ocurre por otro mecanismo no visto en este tramo. Sesion 14.",
+  "Localizar el llamador de RELLENAR_MARCO_VACIO ($7DF5) -- unica rutina de renderizado del marco que sigue sin llamador CONFIRMADO (RELLENAR_MARCO_DIAGONAL_5 se resolvio en la Sesion 13, RELLENAR_MARCO_DIAGONAL_2 confirmado SIN llamador en la Sesion 14, ver panel de relaciones indirectas).",
+  "Localizar el consumo real de ($816A) como 'vidas restantes' -- se confirma en la Sesion 13 que se inicializa a 5, se dibuja en el HUD, y sube hasta un tope de 7 como premio en PANTALLA_STOP_PRESS; la Sesion 14 confirma que SI se decrementa, en PROCESAR_ENCUENTROS_ENTIDADES al ser atrapado por una Momia Guardiana.",
   "Nombrar el resto de la rama 'T' de DIBUJAR_ENTIDAD: los fotogramas de escritura en $8A09 (valor 4), $8A29/$8A49 (valores 6/5) y $8A99 (valor 7), distintos de las LOSETA_MAPA_PISADA_* que lee DIBUJAR_CASILLA_MAPA para esos mismos valores -- Sesion 8.",
   "Confirmar que valor de casilla corresponde a que direccion real (arriba/abajo/izquierda/derecha) y que distingue las 2 variantes de cada par de pisadas (pie/vista) -- Sesion 8.",
   "Confirmar los 40 bytes restantes de cada entrada de 42 bytes en MAPA_CASILLAS ($8200) -- solo los offsets 40/41 (estado de colision) estan identificados -- Sesion 6.",
-  "Descifrar TABLA_DESCONOCIDA_GAME_OVER, TABLA_OFFSETS_DIAMANTE y TABLA_PARAMETROS_TRANSICION_PUNTUACIONES -- ninguna tiene todavia un CALL/LD conocido que la lea -- Sesion 8.",
+  "Descifrar TABLA_OFFSETS_DIAMANTE y TABLA_PARAMETROS_TRANSICION_PUNTUACIONES -- ninguna tiene todavia un CALL/LD conocido que la lea (TABLA_DESCONOCIDA_GAME_OVER SI se descifro en la Sesion 14, ver DATO_GAME_OVER) -- Sesion 8.",
   "Numeracion de teclas del firmware (KM TEST KEY) para $2C/$3E sigue sin resolver -- pendiente desde la Sesion 3/4.",
-  "El bucle principal de juego (BUCLE_PRINCIPAL_JUEGO, $66ED) se localizo y nombro en la Sesion 13, pero 5 de sus llamadas internas por turno de jugador ($7578/$77D1/$7637/$7566/$7513) siguen sin resolver -- pendiente desde la Sesion 5, con estructura ya confirmada desde la Sesion 13.",
   "Confirmar el modo de pantalla real y las dimensiones de sprite contra una captura de pantalla en emulador (se asume Modo 1 sin verificar contra una imagen real del juego) -- Sesion 8.",
   "Confirmar contra una captura de pantalla real si 'A' es el jugador y 'O' la momia (o al reves), y que grupo G1-G4 corresponde a que direccion -- Sesion 8.",
 ];

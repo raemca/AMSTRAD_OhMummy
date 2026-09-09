@@ -31,6 +31,7 @@ FIRM_TXT_OUTPUT         EQU $BB5A   ; Sacar caracter/codigo de control al Text V
 FIRM_TXT_WIN_ENABLE     EQU $BB66   ; Fijar tamano de la ventana de texto actual
 FIRM_TXT_CLEAR_WINDOW   EQU $BB6C   ; Borrar la ventana de texto actual
 FIRM_TXT_SET_CURSOR     EQU $BB75   ; Fijar posicion del cursor de texto
+FIRM_TXT_SET_PEN        EQU $BB90   ; Fijar tinta de trazo (pen) para texto
 FIRM_TXT_SET_PAPER      EQU $BB96   ; Fijar tinta de fondo para texto
 FIRM_SCR_DOT_POSITION   EQU $BC1D   ; Convertir coordenadas base a direccion de pantalla
 FIRM_SOUND_RESET        EQU $BCA7   ; Reset del gestor de sonido (silencia PSG, vacia colas)
@@ -211,17 +212,17 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 ; al "marco_decorativo" de los proyectos hermanos. Ver FINDINGS.md
 ; Sesion 3.
     LD HL,$2808                  ; 616D: 210828
-    CALL DIBUJAR_TRAMO_MARCO_1                   ; 6170: cd857d
+    CALL DIBUJAR_ICONO_SARCOFAGO                   ; 6170: cd857d
     LD HL,$2816                  ; 6173: 211628
     CALL $7DFC                   ; 6176: cdfc7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6179: cdd178
     LD HL,$2824                  ; 617C: 212428
-    CALL DIBUJAR_TRAMO_MARCO_4                   ; 617F: cdcd7d
+    CALL DIBUJAR_ICONO_TESORO                   ; 617F: cdcd7d
     LD HL,$2832                  ; 6182: 213228
     CALL $7E0E                   ; 6185: cd0e7e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6188: cdd178
     LD HL,$2840                  ; 618B: 214028
-    CALL DIBUJAR_TRAMO_MARCO_2                   ; 618E: cd9d7d
+    CALL DIBUJAR_ICONO_LLAVE                   ; 618E: cd9d7d
     LD HL,$5008                  ; 6191: 210850
     CALL $7E29                   ; 6194: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6197: cdd178
@@ -238,17 +239,17 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     LD HL,$7840                  ; 61B8: 214078
     CALL $7E29                   ; 61BB: cd297e
     LD HL,$A008                  ; 61BE: 2108a0
-    CALL DIBUJAR_TRAMO_MARCO_4                   ; 61C1: cdcd7d
+    CALL DIBUJAR_ICONO_TESORO                   ; 61C1: cdcd7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61C4: cdd178
     LD HL,$A016                  ; 61C7: 2116a0
     CALL $7E17                   ; 61CA: cd177e
     LD HL,$A024                  ; 61CD: 2124a0
-    CALL DIBUJAR_TRAMO_MARCO_3                   ; 61D0: cdb57d
+    CALL DIBUJAR_ICONO_PERGAMINO                   ; 61D0: cdb57d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61D3: cdd178
     LD HL,$A032                  ; 61D6: 2132a0
     CALL $7E05                   ; 61D9: cd057e
     LD HL,$A040                  ; 61DC: 2140a0
-    CALL DIBUJAR_TRAMO_MARCO_4                   ; 61DF: cdcd7d
+    CALL DIBUJAR_ICONO_TESORO                   ; 61DF: cdcd7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61E2: cdd178
     LD HL,$860F                  ; 61E5: 210f86
     LD ($8645),HL                ; 61E8: 224586
@@ -476,10 +477,10 @@ REANUDAR_MENU_TRAS_NOMBRE:
     LD A,$03                     ; 63FC: 3e03
     CALL FIRM_TXT_SET_PAPER                   ; 63FE: cd96bb
 
-; ---- Mas alla de $6400: 2 bloques reconstruidos (26 rutinas, 1539
-; bytes) intercalados con el resto sin analizar todavia (INCBIN con
-; offset/longitud). Ver FINDINGS.md Sesiones 3-6 para el detalle y
-; el nivel de confianza de cada hipotesis. ----
+; ---- Mas alla de $6400: reconstruccion completa del motor (Sesion 14
+; cierra el ultimo hueco INCBIN, ver $68B2-$7862 mas abajo). Ver
+; FINDINGS.md Sesiones 3-14 para el detalle y el nivel de confianza de
+; cada hipotesis. ----
 
 ; ---- $6401-$6528 (296 bytes): primer tramo promovido del INCBIN --
 ; Sesion 12. Dos puntos de entrada reales (ver cabecera del fichero):
@@ -500,8 +501,8 @@ FIN_INTRODUCIR_NOMBRE:
 ; principal ya confirmado como texto literal en TEXTO_MENU_PRINCIPAL
 ; (Sesion 8, "Instructions/Options/Play" o similar). P/p -> $6529
 ; (jugar/empezar partida, hipotesis alta -- inicializa contadores de
-; partida, ver mas abajo); I/i -> $68B2 (instrucciones, sin analizar
-; todavia); O/o -> PANTALLA_OPCIONES. Sin coincidencia, vuelve a
+; partida, ver mas abajo); I/i -> PANTALLA_INSTRUCCIONES ($68B2, Sesion
+; 14); O/o -> PANTALLA_OPCIONES. Sin coincidencia, vuelve a
 ; REANUDAR_MENU_TRAS_NOMBRE ($6372, dentro de ese bucle) a seguir
 ; animando y esperando tecla.
 DESPACHAR_MENU_PRINCIPAL:
@@ -671,8 +672,8 @@ PANTALLA_OPCIONES:
 ; Sesion 13. Arranca desde el punto de entrada real confirmado en la
 ; Sesion 12 ($6529, destino de los 2 "JP Z,$6529" de tecla P/p en
 ; DESPACHAR_MENU_PRINCIPAL) y sigue el hilo de llamadas/saltos hasta
-; $68B1 (justo antes de la entrada 'I' de instrucciones en $68B2, que
-; queda sin analizar -- ver el INCBIN mas abajo). Cubre: arranque de
+; $68B1 (justo antes de la entrada 'I' de instrucciones en $68B2,
+; PANTALLA_INSTRUCCIONES, reconstruida en la Sesion 14 mas abajo). Cubre: arranque de
 ; partida e inicio de cada nivel (INICIAR_PARTIDA/PREPARAR_NIVEL),
 ; colocacion aleatoria de tesoros (PREPARAR_TESOROS_NIVEL), HUD de
 ; vidas/puntuacion (ACTUALIZAR_HUD_VIDAS), limpieza de paneles
@@ -680,11 +681,12 @@ PANTALLA_OPCIONES:
 ; que quedaba pendiente desde la Sesion 7/12
 ; (SELECCIONAR_DIAGONAL_MARCO_NIVEL), colocacion del jugador
 ; (COLOCAR_JUGADOR_INICIAL), el bucle principal de juego
-; (BUCLE_PRINCIPAL_JUEGO, con 5 llamadas internas que siguen sin
-; resolver: $7578, $77D1, $7637, $7566, $7513 -- caen dentro del hueco
-; $68B2-$7862 que sigue sin analizar), y las pantallas de fin de
-; partida (PANTALLA_STOP_PRESS/PANTALLA_GAME_OVER/
-; ACTUALIZAR_TABLA_PUNTUACIONES). Ver FINDINGS.md Sesion 13 para el
+; (BUCLE_PRINCIPAL_JUEGO, con 5 llamadas internas -- $7578, $77D1,
+; $7637, $7566, $7513 -- resueltas en la Sesion 14: PROCESAR_ENCUENTROS_
+; ENTIDADES/PROCESAR_MOVIMIENTO_JUGADOR/ACTUALIZAR_MARCO_TRAS_MOVIMIENTO/
+; COMPROBAR_SALIDA_NIVEL/ANIMAR_APARICION_MOMIA_GUARDIANA, ver mas abajo),
+; y las pantallas de fin de partida (PANTALLA_STOP_PRESS/PANTALLA_GAME_OVER/
+; ACTUALIZAR_TABLA_PUNTUACIONES). Ver FINDINGS.md Sesiones 13-14 para el
 ; detalle completo, confianza por rutina, y los pendientes exactos. ----
 
 ; INICIAR_PARTIDA ($6529): punto de entrada real confirmado -- destino
@@ -1002,9 +1004,10 @@ COLOCAR_JUGADOR_INICIAL:
 ; byte a byte; confianza baja en su proposito: posible resto de una
 ; funcionalidad no terminada, o un simple consumo del buffer de
 ; teclado). Para cada jugador (B=1, luego B=2) hace: ANIMAR_OPCION_MENU,
-; y una secuencia de 4 llamadas SIN RESOLVER TODAVIA ($7578, $77D1,
-; $7637, $7566 -- las mismas 4 que dejo pendientes la Sesion 12, caen
-; dentro del hueco todavia sin analizar $68B2-$7862) que probablemente
+; y una secuencia de 4 llamadas -- $7578, $77D1, $7637, $7566 -- que la
+; Sesion 14 identifico y nombro (ver $68B2-$7862 mas abajo):
+; PROCESAR_ENCUENTROS_ENTIDADES, PROCESAR_MOVIMIENTO_JUGADOR,
+; ACTUALIZAR_MARCO_TRAS_MOVIMIENTO y COMPROBAR_SALIDA_NIVEL, que
 ; implementan el movimiento/logica de turno de cada jugador -- 2 de
 ; ellas comprueban el acarreo ("JP C,PANTALLA_GAME_OVER") tras
 ; CALL $7578, hipotesis alta de que el acarreo senaliza "jugador
@@ -1023,26 +1026,26 @@ BUCLE_PRINCIPAL_JUEGO:
 INICIO_TURNO_JUGADOR1:
     LD B,$01                          ; 66F5: 0601
     CALL ANIMAR_OPCION_MENU           ; 66F7: cdb778
-    CALL $7578                        ; 66FA: cd7875
+    CALL PROCESAR_ENCUENTROS_ENTIDADES ; 66FA: cd7875
     JP C,PANTALLA_GAME_OVER           ; 66FD: dab367
-    CALL $77D1                        ; 6700: cdd177
-    CALL $7578                        ; 6703: cd7875
+    CALL PROCESAR_MOVIMIENTO_JUGADOR   ; 6700: cdd177
+    CALL PROCESAR_ENCUENTROS_ENTIDADES ; 6703: cd7875
     JP C,PANTALLA_GAME_OVER           ; 6706: dab367
-    CALL $7637                        ; 6709: cd3776
-    CALL $7566                        ; 670C: cd6675
+    CALL ACTUALIZAR_MARCO_TRAS_MOVIMIENTO ; 6709: cd3776
+    CALL COMPROBAR_SALIDA_NIVEL        ; 670C: cd6675
     CALL ESPERAR_TECLA_2C             ; 670F: cd9378
     LD A,($816D)                      ; 6712: 3a6d81
     OR A                              ; 6715: b7
-    CALL NZ,$7513                     ; 6716: c41375
+    CALL NZ,ANIMAR_APARICION_MOMIA_GUARDIANA ; 6716: c41375
     LD B,$02                          ; 6719: 0602
     CALL ANIMAR_OPCION_MENU           ; 671B: cdb778
-    CALL $7578                        ; 671E: cd7875
+    CALL PROCESAR_ENCUENTROS_ENTIDADES ; 671E: cd7875
     JP C,PANTALLA_GAME_OVER           ; 6721: dab367
-    CALL $77D1                        ; 6724: cdd177
-    CALL $7578                        ; 6727: cd7875
+    CALL PROCESAR_MOVIMIENTO_JUGADOR   ; 6724: cdd177
+    CALL PROCESAR_ENCUENTROS_ENTIDADES ; 6727: cd7875
     JP C,PANTALLA_GAME_OVER           ; 672A: dab367
-    CALL $7637                        ; 672D: cd3776
-    CALL $7566                        ; 6730: cd6675
+    CALL ACTUALIZAR_MARCO_TRAS_MOVIMIENTO ; 672D: cd3776
+    CALL COMPROBAR_SALIDA_NIVEL        ; 6730: cd6675
     CALL ESPERAR_TECLA_2C             ; 6733: cd9378
     JP BUCLE_PRINCIPAL_JUEGO          ; 6736: c3ed66
 
@@ -1283,22 +1286,1018 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
 TRAMPOLIN_TECLA_B:
     JP INICIO_TURNO_JUGADOR1          ; 68AF: c3f566
 
-; ---- $68B2-$7862 (4017 bytes): resto sin analizar todavia. Explorado
-; mecanicamente en la Sesion 13 (sin promover a codigo fuente) -- es la
-; entrada 'I' (instrucciones) desde DESPACHAR_MENU_PRINCIPAL. Estructura
-; observada sin verificar con el mismo rigor que el resto de esta
-; sesion: un despachador corto en $68B2-$69EAish que llama en cadena a
-; $69D2 (posible "imprimir bloque de texto", recibe HL apuntando a un
-; parrafo), $698A y $69AC (posiblemente separadores/paginas), y a
-; $7D85/$7D9D (ya definidas mas abajo en RELLENAR_FILAS_MASCARA, sin
-; resolver su papel aqui); a partir de $69EA y durante la mayor parte
-; del tramo el contenido son bloques de TEXTO LITERAL (la pantalla de
-; instrucciones del juego), apuntados por los HL de cada CALL $69D2.
-; No se ha verificado byte a byte ni separado con precision donde acaba
-; el codigo del despachador y donde empieza cada bloque de texto -- se
-; deja completo como INCBIN, pendiente para la siguiente sesion. Ver
-; FINDINGS.md Sesion 13.
-    INCBIN "data/mummy1_resto_sin_analizar.bin", 1201, 4017  ; $68B2-$7862, sin analizar todavia
+; ---- PANTALLA_INSTRUCCIONES / IMPRIMIR_PARRAFO_INSTRUCCIONES / LIMPIAR_VENTANA_INSTRUCCIONES /
+; RESTAURAR_VENTANA_TEXTO_COMPLETA / ESPERAR_CONTINUAR_INSTRUCCIONES ----
+; Sesion 14: primer tramo del ultimo hueco del motor ($68B2-$69EA, 313
+; bytes). Destino de la entrada 'I'/'i' (instrucciones) desde
+; DESPACHAR_MENU_PRINCIPAL (dos "JP Z,$68B2" ya reconstruidos). Es un
+; DESPACHADOR de pantalla de texto a paginas: dibuja dos iconos de
+; contenido de casilla (DIBUJAR_ICONO_SARCOFAGO/DIBUJAR_ICONO_LLAVE,
+; Sesion 17 -- ver mas abajo, antes mal identificados como "marco
+; decorativo") como cabecera visual y despues
+; imprime, en orden, los 23 parrafos de texto literal declarados mas abajo
+; (TEXTO_INSTR_01..23 -- el texto real de "OH MUMMY" en ingles: historia,
+; reglas del tablero de 20 casillas, controles y niveles de dificultad),
+; con una pausa "pulsa C o el boton de fuego para continuar" entre grupos
+; de 2-3 parrafos (ESPERAR_CONTINUAR_INSTRUCCIONES). Confianza ALTA --
+; verificado instruccion a instruccion; la Sesion 13 ya habia intuido esta
+; estructura sin promoverla a codigo fuente (ver FINDINGS.md Sesion 13),
+; esta sesion la confirma y establece el limite EXACTO (verificado con el
+; primer byte de longitud de cada bloque de texto, ver mas abajo) entre
+; el codigo del despachador y el primer bloque de texto en $69EB.
+PANTALLA_INSTRUCCIONES:
+    LD HL,TEXTO_INSTR_01              ; 68B2: 21eb69
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68B5: cdd269
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 68B8: cd8a69
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 68BB: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 68BE: cdd178
+    LD HL,$0004                       ; 68C1: 210400
+    CALL DIBUJAR_ICONO_SARCOFAGO        ; 68C4: cd857d
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 68C7: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 68CA: cdd178
+    LD HL,$0042                       ; 68CD: 214200
+    CALL DIBUJAR_ICONO_LLAVE        ; 68D0: cd9d7d
+    LD HL,TEXTO_INSTR_02              ; 68D3: 21f469
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68D6: cdd269
+    LD HL,TEXTO_INSTR_03              ; 68D9: 210f6a
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68DC: cdd269
+    LD HL,TEXTO_INSTR_04              ; 68DF: 21ba6a
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68E2: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 68E5: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 68E8: cd8a69
+    LD HL,TEXTO_INSTR_05              ; 68EB: 21786b
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68EE: cdd269
+    LD HL,TEXTO_INSTR_06              ; 68F1: 21ec6b
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68F4: cdd269
+    LD HL,TEXTO_INSTR_07              ; 68F7: 21756c
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 68FA: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 68FD: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 6900: cd8a69
+    LD HL,TEXTO_INSTR_08              ; 6903: 21e06c
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6906: cdd269
+    LD HL,TEXTO_INSTR_09              ; 6909: 213a6d
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 690C: cdd269
+    LD HL,TEXTO_INSTR_10              ; 690F: 21a26d
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6912: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 6915: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 6918: cd8a69
+    LD HL,TEXTO_INSTR_11              ; 691B: 210a6e
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 691E: cdd269
+    LD HL,TEXTO_INSTR_12              ; 6921: 21966e
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6924: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 6927: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 692A: cd8a69
+    LD HL,TEXTO_INSTR_13              ; 692D: 217d6f
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6930: cdd269
+    LD HL,TEXTO_INSTR_14              ; 6933: 213c70
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6936: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 6939: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 693C: cd8a69
+    LD HL,TEXTO_INSTR_15              ; 693F: 21ae70
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6942: cdd269
+    LD HL,TEXTO_INSTR_16              ; 6945: 217071
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6948: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 694B: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 694E: cd8a69
+    LD HL,TEXTO_INSTR_17              ; 6951: 21f471
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6954: cdd269
+    LD HL,TEXTO_INSTR_18              ; 6957: 218872
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 695A: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 695D: cdac69
+    CALL LIMPIAR_VENTANA_INSTRUCCIONES; 6960: cd8a69
+    LD HL,TEXTO_INSTR_19              ; 6963: 216e73
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6966: cdd269
+    LD HL,TEXTO_INSTR_20              ; 6969: 218d73
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 696C: cdd269
+    LD HL,TEXTO_INSTR_21              ; 696F: 21dd73
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6972: cdd269
+    LD HL,TEXTO_INSTR_22              ; 6975: 212474
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 6978: cdd269
+    LD HL,TEXTO_INSTR_23              ; 697B: 21e774
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 697E: cdd269
+    CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 6981: cdac69
+    CALL RESTAURAR_VENTANA_TEXTO_COMPLETA; 6984: cd9c69
+    JP $6223                          ; 6987: c32362
+
+; LIMPIAR_VENTANA_INSTRUCCIONES ($698A): pausa de sonido + define una
+; ventana de texto (HL=$0005/DE=$2718, ver firmware TXT WIN ENABLE) y la
+; borra -- hipotesis media en la geometria exacta de la ventana (formato
+; de parametros H/L/D/E sin confirmar del todo). Cae directamente en
+; RESTAURAR_VENTANA_TEXTO_COMPLETA para volver a dejar la ventana de texto
+; a pantalla completa (columnas 0-39, filas 0-24) antes de la siguiente
+; pagina.
+LIMPIAR_VENTANA_INSTRUCCIONES:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 698A: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 698D: cdd178
+    LD HL,$0005                       ; 6990: 210500
+    LD DE,$2718                       ; 6993: 111827
+    CALL FIRM_TXT_WIN_ENABLE          ; 6996: cd66bb
+    CALL FIRM_TXT_CLEAR_WINDOW        ; 6999: cd6cbb
+RESTAURAR_VENTANA_TEXTO_COMPLETA:
+    LD HL,$0000                       ; 699C: 210000
+    LD DE,$2718                       ; 699F: 111827
+    CALL FIRM_TXT_WIN_ENABLE          ; 69A2: cd66bb
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69A5: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69A8: cdd178
+    RET                               ; 69AB: c9
+
+; ESPERAR_CONTINUAR_INSTRUCCIONES ($69AC): imprime el aviso "Press C or
+; Fire Button to Continue" reutilizando el MISMO texto que la pantalla de
+; GAME OVER ($80FB, ver TABLA_DESCONOCIDA_GAME_OVER/bloque "Press...to
+; Continue" mas arriba) y espera a que se pulse la tecla 'C' ($4C) o el
+; boton de fuego ($3E) bombeando el motor de sonido mientras tanto;
+; despues vacia el buffer de teclado (drena cualquier caracter que haya
+; quedado pendiente) antes de devolver el control. Confianza alta.
+ESPERAR_CONTINUAR_INSTRUCCIONES:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69AC: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69AF: cdd178
+    LD HL,$80FB                       ; 69B2: 21fb80
+    CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 69B5: cdd269
+ESPERAR_CONTINUAR_INSTRUCCIONES_BUCLE:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69B8: cdd178
+    LD A,$4C                          ; 69BB: 3e4c
+    CALL FIRM_KM_TEST_KEY             ; 69BD: cd1ebb
+    JR NZ,ESPERAR_CONTINUAR_INSTRUCCIONES_VACIAR                       ; 69C0: 2007
+    LD A,$3E                          ; 69C2: 3e3e
+    CALL FIRM_KM_TEST_KEY             ; 69C4: cd1ebb
+    JR Z,ESPERAR_CONTINUAR_INSTRUCCIONES_BUCLE                        ; 69C7: 28ef
+ESPERAR_CONTINUAR_INSTRUCCIONES_VACIAR:
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69C9: cdd178
+    CALL FIRM_KM_READ_CHAR            ; 69CC: cd09bb
+    RET NC                            ; 69CF: d0
+    JR ESPERAR_CONTINUAR_INSTRUCCIONES_VACIAR                          ; 69D0: 18f7
+
+; IMPRIMIR_PARRAFO_INSTRUCCIONES ($69D2): HL apunta a un bloque de texto
+; con formato [longitud][bytes...] (ver TEXTO_INSTR_01..23 mas abajo).
+; Imprime cada byte con el firmware TXT OUTPUT; el codigo de control $1F
+; (posicionar cursor, seguido de 2 bytes columna/fila) recibe un bombeo
+; extra del motor de sonido antes de imprimirse -- igual que $1F y sus 2
+; parametros se imprimen como bytes normales en las siguientes 2
+; iteraciones del bucle (no hay tratamiento especial aparte del bombeo de
+; sonido). Confianza alta -- verificado ademas por el propio formato de
+; los 23 bloques de texto (cada linea del parrafo empieza con $1F,col,fila).
+IMPRIMIR_PARRAFO_INSTRUCCIONES:
+    LD B,(HL)                         ; 69D2: 46
+IMPRIMIR_PARRAFO_INSTRUCCIONES_BUCLE:
+    INC HL                            ; 69D3: 23
+    LD A,(HL)                         ; 69D4: 7e
+    CP $1F                            ; 69D5: fe1f
+    JR NZ,IMPRIMIR_PARRAFO_INSTRUCCIONES_CARACTER                       ; 69D7: 200c
+    PUSH AF                           ; 69D9: f5
+    PUSH BC                           ; 69DA: c5
+    PUSH HL                           ; 69DB: e5
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69DC: cdd178
+    CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 69DF: cdd178
+    POP HL                            ; 69E2: e1
+    POP BC                            ; 69E3: c1
+    POP AF                            ; 69E4: f1
+IMPRIMIR_PARRAFO_INSTRUCCIONES_CARACTER:
+    CALL FIRM_TXT_OUTPUT              ; 69E5: cd5abb
+    DJNZ IMPRIMIR_PARRAFO_INSTRUCCIONES_BUCLE                        ; 69E8: 10e9
+    RET                               ; 69EA: c9
+
+; ---- TEXTO_INSTR_01..23 ($69EB-$7512, 2856 bytes): texto literal de la
+; pantalla de instrucciones ----
+; Sesion 14: confirma y ACOTA CON EXACTITUD BYTE A BYTE la hipotesis de la
+; Sesion 13 ("a partir de $69EA, mayormente texto literal"). Son 23
+; bloques CONTIGUOS (sin huecos ni relleno entre ellos, verificado
+; programaticamente: cada bloque empieza justo donde termina el anterior)
+; con formato [1 byte de longitud][texto de esa longitud], exactamente el
+; formato que consume IMPRIMIR_PARRAFO_INSTRUCCIONES. El ultimo bloque
+; (TEXTO_INSTR_23) termina EXACTAMENTE en $7512, el byte justo antes de
+; $7513 -- que es el primer punto de entrada real del bucle de juego (ver
+; ANIMAR_APARICION_MOMIA_GUARDIANA mas abajo). Es decir: el limite entre
+; "despachador de instrucciones" y "bucle de juego" cae EXACTAMENTE en la
+; frontera entre datos y codigo, sin solape ni relleno -- confirmacion muy
+; fuerte de que la reconstruccion de ambos tramos es correcta. Es el texto
+; real de "OH MUMMY" (escenario, reglas de las 20 casillas, controles y
+; niveles de dificultad), en ingles, identico al de la version original.
+; Bloque 1/23 de PANTALLA_INSTRUCCIONES (separador/cabecera de control antes del titulo (codigos VDU, sin texto legible)).
+TEXTO_INSTR_01:
+    DB $08                    ; 69EB (longitud: 8)
+    DB $0E,$00,$0C,$1D,$18,$18,$0E,$01 ; 69EC
+
+; Bloque 2/23 de PANTALLA_INSTRUCCIONES ("OH MUMMY - SCENARIO" (titulo de la pantalla de historia)).
+TEXTO_INSTR_02:
+    DB $1A                    ; 69F4 (longitud: 26)
+    DB $0E,$00,$0F,$03,$1F,$0C,$02    ; 69F5
+    DB "OH MUMMY - SCENARIO"          ; 69FC
+
+; Bloque 3/23 de PANTALLA_INSTRUCCIONES (historia: expedicion arqueologica a Egipto).
+TEXTO_INSTR_03:
+    DB $AA                    ; 6A0F (longitud: 170)
+    DB $0E,$01,$0F,$00,$1F,$05,$08    ; 6A10
+    DB "You have been appointed head of an" ; 6A17
+    DB $1F,$03,$09                    ; 6A39
+    DB "archeological expedition,  sponsored" ; 6A3C
+    DB $1F,$03,$0A                    ; 6A60
+    DB "by the British Museum, and have been" ; 6A63
+    DB $1F,$03,$0B                    ; 6A87
+    DB "sent to Egypt to explore newly found" ; 6A8A
+    DB $1F,$03,$0C                    ; 6AAE
+    DB "pyramids."                    ; 6AB1
+
+; Bloque 4/23 de PANTALLA_INSTRUCCIONES (historia: el equipo y el objetivo (5 miembros, 5 niveles, momias reales)).
+TEXTO_INSTR_04:
+    DB $BD                    ; 6ABA (longitud: 189)
+    DB $1F,$05,$0F                    ; 6ABB
+    DB "Your party, initially, consists of" ; 6ABE
+    DB $1F,$03,$10                    ; 6AE0
+    DB "five members.  Your task is to enter" ; 6AE3
+    DB $1F,$03,$11                    ; 6B07
+    DB "the five levels of each pyramid, and" ; 6B0A
+    DB $1F,$03,$12                    ; 6B2E
+    DB "recover from them five Royal Mummies" ; 6B31
+    DB $1F,$03,$13                    ; 6B55
+    DB "and as much treasure as you can." ; 6B58
+
+; Bloque 5/23 de PANTALLA_INSTRUCCIONES (historia: los niveles ya semi-excavados).
+TEXTO_INSTR_05:
+    DB $73                    ; 6B78 (longitud: 115)
+    DB $1F,$05,$08,$0F,$00            ; 6B79
+    DB "Each level has already been partly" ; 6B7E
+    DB $1F,$03,$09                    ; 6BA0
+    DB "uncovered by local workers and it is" ; 6BA3
+    DB $1F,$03,$0A                    ; 6BC7
+    DB "up to your team to finish the dig." ; 6BCA
+
+; Bloque 6/23 de PANTALLA_INSTRUCCIONES (historia: los guardianes despertados).
+TEXTO_INSTR_06:
+    DB $88                    ; 6BEC (longitud: 136)
+    DB $1F,$05,$0D                    ; 6BED
+    DB "Unfortunately, the workers digging" ; 6BF0
+    DB $1F,$03,$0E                    ; 6C12
+    DB "aroused Guardians left behind by the" ; 6C15
+    DB $1F,$03,$0F                    ; 6C39
+    DB "ancient Egyptian Pharoahs to protect" ; 6C3C
+    DB $1F,$03,$10                    ; 6C60
+    DB "their royal tombs."           ; 6C63
+
+; Bloque 7/23 de PANTALLA_INSTRUCCIONES (historia: las 2 momias guardianas por nivel).
+TEXTO_INSTR_07:
+    DB $6A                    ; 6C75 (longitud: 106)
+    DB $1F,$05,$13                    ; 6C76
+    DB "Each level has 2 Guardian Mummies," ; 6C79
+    DB $1F,$03,$14                    ; 6C9B
+    DB "one lies hidden while the other goes" ; 6C9E
+    DB $1F,$03,$15                    ; 6CC2
+    DB "in search of the intruders."  ; 6CC5
+
+; Bloque 8/23 de PANTALLA_INSTRUCCIONES (reglas: el tablero son 20 casillas (grid)).
+TEXTO_INSTR_08:
+    DB $59                    ; 6CE0 (longitud: 89)
+    DB $1F,$05,$08,$0F,$00            ; 6CE1
+    DB "The partly excavated levels are in" ; 6CE6
+    DB $1F,$03,$09                    ; 6D08
+    DB "the form of a grid made up of twenty" ; 6D0B
+    DB $1F,$03,$0A                    ; 6D2F
+    DB "'boxes'."                     ; 6D32
+
+; Bloque 9/23 de PANTALLA_INSTRUCCIONES (reglas: como descubrir una casilla).
+TEXTO_INSTR_09:
+    DB $67                    ; 6D3A (longitud: 103)
+    DB $1F,$05,$0D                    ; 6D3B
+    DB "To uncover a 'box', move your team" ; 6D3E
+    DB $1F,$03,$0E                    ; 6D60
+    DB "along the four sides of the box from" ; 6D63
+    DB $1F,$03,$0F                    ; 6D87
+    DB "each corner to the next."     ; 6D8A
+
+; Bloque 10/23 de PANTALLA_INSTRUCCIONES (reglas: no hace falta descubrirlas todas para salir).
+TEXTO_INSTR_10:
+    DB $67                    ; 6DA2 (longitud: 103)
+    DB $1F,$05,$12                    ; 6DA3
+    DB "Not all boxes need to be uncovered" ; 6DA6
+    DB $1F,$03,$13                    ; 6DC8
+    DB "to enable you to go through the Exit" ; 6DCB
+    DB $1F,$03,$14                    ; 6DEF
+    DB "and into the next level."     ; 6DF2
+
+; Bloque 11/23 de PANTALLA_INSTRUCCIONES (reglas: contenido de las casillas (tesoro, momia real, momia guardiana, llave, pergamino)).
+TEXTO_INSTR_11:
+    DB $8B                    ; 6E0A (longitud: 139)
+    DB $1F,$05,$08,$0F,$00            ; 6E0B
+    DB "Each level contains,  ten Treasure" ; 6E10
+    DB $1F,$03,$09                    ; 6E32
+    DB "boxes, six empty boxes, and the rest" ; 6E35
+    DB $1F,$03,$0A                    ; 6E59
+    DB "hold a Royal Mummy, a Guardian Mummy" ; 6E5C
+    DB $1F,$03,$0B                    ; 6E80
+    DB "a Key and a Scroll."          ; 6E83
+
+; Bloque 12/23 de PANTALLA_INSTRUCCIONES (reglas: la momia guardiana persigue y mata al equipo (o viceversa)).
+TEXTO_INSTR_12:
+    DB $E6                    ; 6E96 (longitud: 230)
+    DB $1F,$05,$0E                    ; 6E97
+    DB "If you uncover the box holding the" ; 6E9A
+    DB $1F,$03,$0F                    ; 6EBC
+    DB "Guardian Mummy, it will dig it's way" ; 6EBF
+    DB $1F,$03,$10                    ; 6EE3
+    DB "out and persue you.  Being caught by" ; 6EE6
+    DB $1F,$03,$11                    ; 6F0A
+    DB "a Guardian Mummy kills one member of" ; 6F0D
+    DB $1F,$03,$12                    ; 6F31
+    DB "your team and the Mummy, unless that" ; 6F34
+    DB $1F,$03,$13                    ; 6F58
+    DB "is, you have uncovered the Scroll." ; 6F5B
+
+; Bloque 13/23 de PANTALLA_INSTRUCCIONES (reglas: el pergamino protege de una momia guardiana).
+TEXTO_INSTR_13:
+    DB $BE                    ; 6F7D (longitud: 190)
+    DB $1F,$05,$08,$0F,$00            ; 6F7E
+    DB "The Magic Scroll will allow you to" ; 6F83
+    DB $1F,$03,$09                    ; 6FA5
+    DB "be caught by a Guardian, without any" ; 6FA8
+    DB $1F,$03,$0A                    ; 6FCC
+    DB "harm to your team.  The Scroll works" ; 6FCF
+    DB $1F,$03,$0B                    ; 6FF3
+    DB "only on the level on which found, it" ; 6FF6
+    DB $1F,$03,$0C                    ; 701A
+    DB "will only destroy one Guardian." ; 701D
+
+; Bloque 14/23 de PANTALLA_INSTRUCCIONES (reglas: como se consiguen puntos).
+TEXTO_INSTR_14:
+    DB $71                    ; 703C (longitud: 113)
+    DB $1F,$05,$0F                    ; 703D
+    DB "There are two ways to gain points," ; 7040
+    DB $1F,$03,$10                    ; 7062
+    DB "one is by uncovering the Royal Mummy" ; 7065
+    DB $1F,$03,$11                    ; 7089
+    DB "the other, by uncovering Treasure." ; 708C
+
+; Bloque 15/23 de PANTALLA_INSTRUCCIONES (reglas: la llave y la momia real abren la salida).
+TEXTO_INSTR_15:
+    DB $C1                    ; 70AE (longitud: 193)
+    DB $1F,$05,$08,$0F,$00            ; 70AF
+    DB "When the boxes holding the Key and" ; 70B4
+    DB $1F,$03,$09                    ; 70D6
+    DB "the Royal Mummy have been uncovered," ; 70D9
+    DB $1F,$03,$0A                    ; 70FD
+    DB "you will be able to leave the level." ; 7100
+    DB $1F,$03,$0B                    ; 7124
+    DB "Any remaining Guardians will be able" ; 7127
+    DB $1F,$03,$0C                    ; 714B
+    DB "to follow you onto the next level." ; 714E
+
+; Bloque 16/23 de PANTALLA_INSTRUCCIONES (reglas: paso a la siguiente piramide tras el nivel 5).
+TEXTO_INSTR_16:
+    DB $83                    ; 7170 (longitud: 131)
+    DB $1F,$05,$0F                    ; 7171
+    DB "After completing all 5 levels of a" ; 7174
+    DB $1F,$03,$10                    ; 7196
+    DB "pyramid you will, when you leave the" ; 7199
+    DB $1F,$03,$11                    ; 71BD
+    DB "fifth level, move to level 1, of the" ; 71C0
+    DB $1F,$03,$12                    ; 71E4
+    DB "next pyramid."                ; 71E7
+
+; Bloque 17/23 de PANTALLA_INSTRUCCIONES (reglas: recompensa al completar una piramide).
+TEXTO_INSTR_17:
+    DB $93                    ; 71F4 (longitud: 147)
+    DB $1F,$05,$08,$0F,$00            ; 71F5
+    DB "When you have completed a pyramid," ; 71FA
+    DB $1F,$03,$09                    ; 721C
+    DB "your success will be rewarded either" ; 721F
+    DB $1F,$03,$0A                    ; 7243
+    DB "by bonus points or the arrival of an" ; 7246
+    DB $1F,$03,$0B                    ; 726A
+    DB "extra member for your team."  ; 726D
+
+; Bloque 18/23 de PANTALLA_INSTRUCCIONES (reglas: dificultad creciente entre piramides).
+TEXTO_INSTR_18:
+    DB $E5                    ; 7288 (longitud: 229)
+    DB $1F,$05,$0E                    ; 7289
+    DB "The Guardians in the next pyramid," ; 728C
+    DB $1F,$03,$0F                    ; 72AE
+    DB "having been warned by those you have" ; 72B1
+    DB $1F,$03,$10                    ; 72D5
+    DB "escaped from, will be more alert, so" ; 72D8
+    DB $1F,$03,$11                    ; 72FC
+    DB "although the Guardians cannot follow" ; 72FF
+    DB $1F,$03,$12                    ; 7323
+    DB "you from one pyramid to the next, it" ; 7326
+    DB $1F,$03,$13                    ; 734A
+    DB "will pay to be even more careful." ; 734D
+
+; Bloque 19/23 de PANTALLA_INSTRUCCIONES ("OH MUMMY - INSTRUCTIONS" (titulo de la pantalla de controles)).
+TEXTO_INSTR_19:
+    DB $1E                    ; 736E (longitud: 30)
+    DB $0E,$00,$0F,$03,$1F,$0A,$02    ; 736F
+    DB "OH MUMMY - INSTRUCTIONS"      ; 7376
+
+; Bloque 20/23 de PANTALLA_INSTRUCCIONES (controles: joystick o teclado).
+TEXTO_INSTR_20:
+    DB $4F                    ; 738D (longitud: 79)
+    DB $1F,$05,$08,$0E,$01,$0F,$00    ; 738E
+    DB "You can control your team by using" ; 7395
+    DB $1F,$03,$09                    ; 73B7
+    DB "either a Joystick, or the Keyboard." ; 73BA
+
+; Bloque 21/23 de PANTALLA_INSTRUCCIONES (controles: teclas A/Z///\\ (arriba/abajo/izquierda/derecha)).
+TEXTO_INSTR_21:
+    DB $46                    ; 73DD (longitud: 70)
+    DB $1F,$05,$0B                    ; 73DE
+    DB "The keyboard keys are :-"     ; 73E1
+    DB $1F,$02,$0D,$0F,$02            ; 73F9
+    DB "A - Up  Z - Down   / - Left  " ; 73FE
+    DB $5C                            ; 741B
+    DB " - Right"                     ; 741C
+
+; Bloque 22/23 de PANTALLA_INSTRUCCIONES (niveles de dificultad (velocidad de las momias)).
+TEXTO_INSTR_22:
+    DB $C2                    ; 7424 (longitud: 194)
+    DB $0F,$00,$1F,$05,$0F            ; 7425
+    DB "The game has 5 skill levels, these" ; 742A
+    DB $1F,$03,$10                    ; 744C
+    DB "determine how 'clever' the Guardians" ; 744F
+    DB $1F,$03,$11                    ; 7473
+    DB "are at the beginning of a game.  You" ; 7476
+    DB $1F,$03,$12                    ; 749A
+    DB "may choose between 5 different speed" ; 749D
+    DB $1F,$03,$13                    ; 74C1
+    DB "levels, from moderate to murderous." ; 74C4
+
+; Bloque 23/23 de PANTALLA_INSTRUCCIONES (despedida ("May Ankh-Sun-Ahmun guide your steps...")).
+TEXTO_INSTR_23:
+    DB $2B                    ; 74E7 (longitud: 43)
+    DB $1F,$02,$15,$0F,$03            ; 74E8
+    DB "May Ankh-Sun-Ahmun guide your steps .." ; 74ED
+; ---- ANIMAR_APARICION_MOMIA_GUARDIANA / COMPROBAR_SALIDA_NIVEL /
+; PROCESAR_ENCUENTROS_ENTIDADES / ACTUALIZAR_MARCO_TRAS_MOVIMIENTO /
+; CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO / MARCO_CONTENIDO_* /
+; PROCESAR_MOVIMIENTO_JUGADOR ($7513-$7862, 350 bytes) ----
+; Sesion 14: SEGUNDO Y ULTIMO tramo del ultimo hueco del motor. Contiene
+; los 5 puntos de entrada llamados desde BUCLE_PRINCIPAL_JUEGO/
+; INICIO_TURNO_JUGADOR1 que la Sesion 12/13 dejaron sin resolver ($7578,
+; $77D1, $7637, $7566, $7513 -- ver comentario de BUCLE_PRINCIPAL_JUEGO
+; mas arriba). CORRIGE la hipotesis de la Sesion 13 ("$68B2-$7862 es
+; sobre todo texto"): este segundo tramo es CODIGO REAL de principio a
+; fin (confirmado por decodificacion mecanica sin interrupciones y por
+; el encaje exacto de los 5 puntos de entrada con limites de instruccion).
+;
+; Juntas, estas rutinas implementan el NUCLEO del mecanismo de juego tipo
+; "Amidar" (pintar los lados de las casillas del tablero al recorrerlas):
+; ACTUALIZAR_MARCO_TRAS_MOVIMIENTO detecta que el jugador se ha movido a
+; una interseccion valida de la rejilla (CPIR contra TABLA_FILAS_VALIDAS_
+; CASILLAS/TABLA_COLUMNAS_VALIDAS_CASILLAS, ver mas arriba) y calcula, via
+; CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO, que contenido hay en el lado de
+; casilla recien recorrido -- un valor leido del marco que se despacha en
+; 5 rangos (MARCO_CONTENIDO_MOMIA_REAL/LLAVE/MOMIA_GUARDIANA/PERGAMINO/
+; TESORO) mas un caso por defecto que simplemente redibuja el patron
+; diagonal segun el nivel actual (RELLENAR_MARCO_DIAGONAL_1/3/4/5/6,
+; nombradas en la Sesion 7 y con un primer llamador ya encontrado por
+; la Sesion 13 en SELECCIONAR_DIAGONAL_MARCO_NIVEL -- este es un
+; SEGUNDO llamador independiente, mismo patron de 5 variantes,
+; _2 sin usar en ninguno de los dos).
+; Confianza alta en la estructura general; media-alta en que cada uno de
+; los 4 flags ($816E/$816F/$8170 + el contador $816D) corresponda
+; exactamente a Pergamino/Llave/Momia Real/Momia Guardiana en ese orden --
+; la correspondencia se apoya en: (a) COMPROBAR_SALIDA_NIVEL exige que
+; ($8170) Y ($816F) esten ambos activos antes de permitir la salida,
+; coherente con TEXTO_INSTR_15 ("When the boxes holding the Key and the
+; Royal Mummy have been uncovered, you will be able to leave the level");
+; (b) MARCO_CONTENIDO_MOMIA_GUARDIANA arranca el contador $816D=31 que
+; ANIMAR_APARICION_MOMIA_GUARDIANA usa para dibujar PROGRESIVAMENTE (4
+; bytes por turno) el sprite SPRITE_MOMIA_G1_F1 ($8CB9, ya declarado mas
+; abajo) en la casilla, coherente con TEXTO_INSTR_12 ("it will dig its way
+; out"); (c) unicamente MARCO_CONTENIDO_MOMIA_REAL y MARCO_CONTENIDO_
+; TESORO otorgan puntos (+50 y +5), coherente con TEXTO_INSTR_14 ("There
+; are two ways to gain points... Royal Mummy... Treasure"). Nunca
+; verificado en emulador.
+
+; ANIMAR_APARICION_MOMIA_GUARDIANA ($7513): llamada condicionalmente cada
+; turno desde BUCLE_PRINCIPAL_JUEGO ("CALL NZ,$7513" cuando ($816D)<>0).
+; Decrementa el contador ($816D) iniciado en 31 por MARCO_CONTENIDO_
+; MOMIA_GUARDIANA; en cada llamada con el contador PAR (RET C si el bit 0
+; tras SRA es 1, es decir solo actua 1 de cada 2 llamadas) copia 4 bytes
+; del sprite SPRITE_MOMIA_G1_F1 (indexados por el propio contador) a la
+; casilla de pantalla calculada desde VARIABLE_CASILLA_APARICION_MOMIA
+; ($8136) -- efecto visual de "la momia emergiendo poco a poco". Al llegar
+; el contador a 0, limpia con espacios la casilla del mapa en esa posicion
+; y genera una entidad de reemplazo (INICIALIZAR_UNA_ENTIDAD) colocada en
+; la misma posicion. Confianza media-alta en la estructura; media en el
+; papel exacto de "limpia y regenera" (podria ser el momento en que la
+; Momia Guardiana queda activa como entidad persiguiendo al jugador).
+ANIMAR_APARICION_MOMIA_GUARDIANA:
+    DEC A                             ; 7513: 3d
+    LD ($816D),A            ; 7514: 326d81
+    SRA A                             ; 7517: cb2f
+    RET C                             ; 7519: d8
+    LD H,$00                          ; 751A: 2600
+    LD L,A                            ; 751C: 6f
+    ADD HL,HL                         ; 751D: 29
+    ADD HL,HL                         ; 751E: 29
+    EX DE,HL                          ; 751F: eb
+    LD IY,$8CB9                       ; 7520: fd21b98c
+    ADD IY,DE                         ; 7524: fd19
+    LD HL,($8136)                     ; 7526: 2a3681
+    ADD A,H                           ; 7529: 84
+    LD H,A                            ; 752A: 67
+    CALL CASILLA_A_DIRECCION_PANTALLA ; 752B: cd927e
+    LD B,$04                          ; 752E: 0604
+    LD A,(IY+0)                       ; 7530: fd7e00
+    LD (HL),A                         ; 7533: 77
+    INC IY                            ; 7534: fd23
+    INC HL                            ; 7536: 23
+    DJNZ $7530                        ; 7537: 10f7
+    LD A,($816D)            ; 7539: 3a6d81
+    OR A                              ; 753C: b7
+    RET NZ                            ; 753D: c0
+    LD DE,($8136)                     ; 753E: ed5b3681
+    CALL CONSULTAR_CASILLA_MAPA       ; 7542: cd3e7d
+    LD A,$20                          ; 7545: 3e20
+    LD (HL),A                         ; 7547: 77
+    INC HL                            ; 7548: 23
+    LD (HL),A                         ; 7549: 77
+    LD DE,$0028                       ; 754A: 112800
+    ADD HL,DE                         ; 754D: 19
+    LD (HL),A                         ; 754E: 77
+    DEC HL                            ; 754F: 2b
+    LD (HL),A                         ; 7550: 77
+    LD A,($8169)                      ; 7551: 3a6981
+    INC A                             ; 7554: 3c
+    LD ($8169),A                      ; 7555: 326981
+    CALL INICIALIZAR_UNA_ENTIDAD      ; 7558: cd5b79
+    LD DE,($8136)                     ; 755B: ed5b3681
+    LD (IX+2),D                       ; 755F: dd7202
+    LD (IX+3),E                       ; 7562: dd7303
+    RET                               ; 7565: c9
+
+; COMPROBAR_SALIDA_NIVEL ($7566): llamada cada turno tras ACTUALIZAR_MARCO_
+; TRAS_MOVIMIENTO ($7637, ver mas abajo). Sale sin hacer nada si no estan
+; activos AMBOS flags ($8170)=Momia Real Y ($816F)=Llave (AND logico -- ver
+; hipotesis de correspondencia arriba), o si la columna del jugador
+; ($8156) no es exactamente $08 (posicion de la casilla de Salida,
+; hipotesis media). Si ambas condiciones se cumplen, DESCARTA la direccion
+; de retorno de su propio CALL (POP HL) y salta a $654C -- un punto MEDIO
+; de PREPARAR_NIVEL (justo antes de su "CALL BORRAR_BLOQUE_ESTADO", el
+; mismo destino de "JR Z,$654C" un poco mas arriba en esa rutina cuando la
+; puntuacion es 0) -- efectivamente aborta el turno en curso y reinicia el
+; estado del tablero saltandose el reset de nivel/vidas/puntuacion de
+; PREPARAR_NIVEL. Confianza media-alta en la estructura; media en que sea
+; literalmente "avanzar de nivel por la Salida" (no se ha verificado que
+; $815C, el nivel, se incremente en algun punto de este camino -- posible
+; pendiente).
+COMPROBAR_SALIDA_NIVEL:
+    LD A,($8170)                      ; 7566: 3a7081
+    LD HL,$816F                       ; 7569: 216f81
+    AND (HL)                          ; 756C: a6
+    RET Z                             ; 756D: c8
+    LD A,($8156)                      ; 756E: 3a5681
+    CP $08                            ; 7571: fe08
+    RET NZ                            ; 7573: c0
+    POP HL                            ; 7574: e1
+    JP $654C                          ; 7575: c34c65
+
+; PROCESAR_ENCUENTROS_ENTIDADES ($7578): llamada 2 veces por jugador y por
+; turno desde BUCLE_PRINCIPAL_JUEGO, con "JP C,PANTALLA_GAME_OVER"
+; inmediatamente despues de cada llamada. Recorre las entidades de
+; ARRAY_ENTIDADES (de la ultima a la primera, tantas como indique
+; ($816C)) comparando su posicion almacenada (IY+2/IY+3) contra la del
+; jugador (DE=($8155)) con un margen de tolerancia (+/-8 en fila, +/-2 en
+; columna). Si hay coincidencia, borra esa entidad (la pone a 0) y redibuja
+; las 4 casillas de mapa alrededor de esa posicion (llamando a mitad de
+; DIBUJAR_CASILLA_MAPA) ademas de redibujar al jugador ('A'). Segun el flag
+; ($816E): si esta activo, lo interpreta como "recogida de coleccionable"
+; (refresca la puntuacion con parpadeo de tinta) y continua con la
+; siguiente entidad; si no, lo interpreta como "atrapado por una Momia
+; Guardiana" -- resta una vida ($816A), y si llegan a 0 sale con acarreo
+; activado (SCF) para que el bucle de juego salte a PANTALLA_GAME_OVER.
+; Confianza alta en la estructura; media-alta en el papel de cada rama
+; (coleccionable vs. momia).
+PROCESAR_ENCUENTROS_ENTIDADES:
+    LD DE,($8155)                     ; 7578: ed5b5581
+    LD IY,ARRAY_ENTIDADES             ; 757C: fd216d81
+    LD A,($816C)                      ; 7580: 3a6c81
+    LD B,A                            ; 7583: 47
+PROCESAR_ENCUENTROS_ENTIDADES_BUCLE:
+    PUSH BC                           ; 7584: c5
+    LD BC,$0005                       ; 7585: 010500
+    ADD IY,BC                         ; 7588: fd09
+    LD A,(IY+0)                       ; 758A: fd7e00
+    OR (IY+1)                         ; 758D: fdb601
+    JP Z,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 7590: ca3076
+    LD A,(IY+2)                       ; 7593: fd7e02
+    SUB D                             ; 7596: 92
+    CP $F8                            ; 7597: fef8
+    JR Z,$75A3                        ; 7599: 2808
+    CP $08                            ; 759B: fe08
+    JR Z,$75A3                        ; 759D: 2804
+    OR A                              ; 759F: b7
+    JP NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75A0: c23076
+    LD A,(IY+3)                       ; 75A3: fd7e03
+    SUB E                             ; 75A6: 93
+    CP $FE                            ; 75A7: fefe
+    JR Z,$75B2                        ; 75A9: 2807
+    CP $02                            ; 75AB: fe02
+    JR Z,$75B2                        ; 75AD: 2803
+    OR A                              ; 75AF: b7
+    JR NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75B0: 207e
+    XOR A                             ; 75B2: af
+    LD (IY+0),A                       ; 75B3: fd7700
+    LD (IY+1),A                       ; 75B6: fd7701
+    LD D,(IY+2)                       ; 75B9: fd5602
+    LD E,(IY+3)                       ; 75BC: fd5e03
+    CALL CONSULTAR_CASILLA_MAPA       ; 75BF: cd3e7d
+    LD A,(HL)                         ; 75C2: 7e
+    CALL $7CE6                        ; 75C3: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    INC E                             ; 75C6: 1c
+    INC E                             ; 75C7: 1c
+    CALL CONSULTAR_CASILLA_MAPA       ; 75C8: cd3e7d
+    LD A,(HL)                         ; 75CB: 7e
+    CALL $7CE6                        ; 75CC: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    LD A,$08                          ; 75CF: 3e08
+    ADD A,D                           ; 75D1: 82
+    LD D,A                            ; 75D2: 57
+    CALL CONSULTAR_CASILLA_MAPA       ; 75D3: cd3e7d
+    LD A,(HL)                         ; 75D6: 7e
+    CALL $7CE6                        ; 75D7: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    DEC E                             ; 75DA: 1d
+    DEC E                             ; 75DB: 1d
+    CALL CONSULTAR_CASILLA_MAPA       ; 75DC: cd3e7d
+    LD A,(HL)                         ; 75DF: 7e
+    CALL $7CE6                        ; 75E0: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    LD HL,$8169                       ; 75E3: 216981
+    DEC (HL)                          ; 75E6: 35
+    LD DE,($8155)                     ; 75E7: ed5b5581
+    LD A,$41                          ; 75EB: 3e41
+    CALL DIBUJAR_ENTIDAD              ; 75ED: cd397b
+    LD A,($816E)                      ; 75F0: 3a6e81
+    OR A                              ; 75F3: b7
+    JR Z,PROCESAR_ENCUENTROS_ENTIDADES_PERDER_VIDA                        ; 75F4: 2815
+    XOR A                             ; 75F6: af
+    LD ($816E),A                      ; 75F7: 326e81
+    CALL FIRM_TXT_SET_PAPER           ; 75FA: cd96bb
+    LD A,$03                          ; 75FD: 3e03
+    CALL FIRM_TXT_SET_PEN             ; 75FF: cd90bb
+    PUSH IY                           ; 7602: fde5
+    CALL IMPRIMIR_PUNTUACION_HUD      ; 7604: cd6378
+    POP IY                            ; 7607: fde1
+    JR PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 7609: 1825
+PROCESAR_ENCUENTROS_ENTIDADES_PERDER_VIDA:
+    LD HL,$816A                       ; 760B: 216a81
+    DEC (HL)                          ; 760E: 35
+    LD A,(HL)                         ; 760F: 7e
+    ADD A,A                           ; 7610: 87
+    ADD A,A                           ; 7611: 87
+    ADD A,$34                         ; 7612: c634
+    LD D,$00                          ; 7614: 1600
+    LD E,A                            ; 7616: 5f
+    LD A,$20                          ; 7617: 3e20
+    CALL DIBUJAR_ENTIDAD              ; 7619: cd397b
+    LD HL,$8000                       ; 761C: 210080
+    LD A,($7FC5)                      ; 761F: 3ac57f
+    CP $59                            ; 7622: fe59
+    CALL Z,FIRM_SOUND_QUEUE           ; 7624: ccaabc
+    LD A,($816A)                      ; 7627: 3a6a81
+    OR A                              ; 762A: b7
+    JR NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 762B: 2003
+    POP BC                            ; 762D: c1
+    SCF                               ; 762E: 37
+    RET                               ; 762F: c9
+PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE:
+    POP BC                            ; 7630: c1
+    DEC B                             ; 7631: 05
+    JP NZ,PROCESAR_ENCUENTROS_ENTIDADES_BUCLE; 7632: c28475
+    XOR A                             ; 7635: af
+    RET                               ; 7636: c9
+
+; ACTUALIZAR_MARCO_TRAS_MOVIMIENTO ($7637): llamada 2 veces por jugador y
+; por turno. Compara la posicion actual del jugador ($8155) contra la
+; ultima posicion registrada ($8138) y sale sin hacer nada si coinciden.
+; Si son distintas, valida que la NUEVA posicion caiga en una interseccion
+; real de la rejilla de 20 casillas usando CPIR contra
+; TABLA_FILAS_VALIDAS_CASILLAS (5 valores) y TABLA_COLUMNAS_VALIDAS_
+; CASILLAS (6 valores, ver arriba, junto a TABLA_DESCONOCIDA_GAME_OVER) --
+; si no es una interseccion valida, sale sin actuar (RET NZ). Si lo es,
+; actualiza ($8138) a la nueva posicion y calcula en B/HL el lado de la
+; casilla recorrido segun la orientacion del jugador (($8157), 4 casos) y
+; llama a CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO. Confianza alta.
+ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
+    LD HL,($8155)                     ; 7637: 2a5581
+    LD BC,($8138)                     ; 763A: ed4b3881
+    XOR A                             ; 763E: af
+    LD A,H                            ; 763F: 7c
+    LD E,L                            ; 7640: 5d
+    SBC HL,BC                         ; 7641: ed42
+    RET Z                             ; 7643: c8
+    LD HL,$813A                       ; 7644: 213a81
+    LD BC,$0005                       ; 7647: 010500
+    CPIR                              ; 764A: edb1
+    RET NZ                            ; 764C: c0
+    LD D,C                            ; 764D: 51
+    LD A,E                            ; 764E: 7b
+    LD HL,$813F                       ; 764F: 213f81
+    LD BC,$0006                       ; 7652: 010600
+    CPIR                              ; 7655: edb1
+    RET NZ                            ; 7657: c0
+    LD HL,($8155)                     ; 7658: 2a5581
+    LD ($8138),HL                     ; 765B: 223881
+    LD A,$04                          ; 765E: 3e04
+    SUB D                             ; 7660: 92
+    LD D,A                            ; 7661: 57
+    ADD A,A                           ; 7662: 87
+    ADD A,A                           ; 7663: 87
+    ADD A,A                           ; 7664: 87
+    SUB D                             ; 7665: 92
+    LD D,A                            ; 7666: 57
+    LD A,$05                          ; 7667: 3e05
+    SUB C                             ; 7669: 91
+    ADD A,D                           ; 766A: 82
+    LD H,A                            ; 766B: 67
+    LD L,A                            ; 766C: 6f
+    LD A,($8157)                      ; 766D: 3a5781
+    CP $02                            ; 7670: fe02
+    JR C,$7689                        ; 7672: 3815
+    JR Z,$7684                        ; 7674: 280e
+    CP $03                            ; 7676: fe03
+    JR Z,$767F                        ; 7678: 2805
+    LD BC,$0108                       ; 767A: 010801
+    JR $768C                          ; 767D: 180d
+    LD BC,$0001                       ; 767F: 010100
+    JR $768C                          ; 7682: 1808
+    LD BC,$0007                       ; 7684: 010700
+    JR $768C                          ; 7687: 1803
+    LD BC,$0708                       ; 7689: 010807
+    ADD HL,BC                         ; 768C: 09
+    LD B,H                            ; 768D: 44
+    LD C,L                            ; 768E: 4d
+    LD IX,$81D6                       ; 768F: dd21d681
+    LD IY,$81D6                       ; 7693: fd21d681
+    LD E,C                            ; 7697: 59
+    LD D,$00                          ; 7698: 1600
+    LD C,B                            ; 769A: 48
+    LD B,D                            ; 769B: 42
+    ADD IX,BC                         ; 769C: dd09
+    ADD IY,DE                         ; 769E: fd19
+    BIT 0,A                           ; 76A0: cb47
+    JR Z,$76AE                        ; 76A2: 280a
+    SET 0,(IX+0)                      ; 76A4: ddcb00c6
+    SET 2,(IY+0)                      ; 76A8: fdcb00d6
+    JR $76B6                          ; 76AC: 1808
+    SET 1,(IX+0)                      ; 76AE: ddcb00ce
+    SET 3,(IY+0)                      ; 76B2: fdcb00de
+    LD A,(IX+0)                       ; 76B6: dd7e00
+    AND $0F                           ; 76B9: e60f
+    CP $0F                            ; 76BB: fe0f
+    JR NZ,$76D4                       ; 76BD: 2015
+    LD A,(IX+0)                       ; 76BF: dd7e00
+    LD B,C                            ; 76C2: 41
+    PUSH IX                           ; 76C3: dde5
+    PUSH IY                           ; 76C5: fde5
+    PUSH DE                           ; 76C7: d5
+    CALL CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO; 76C8: cdec76
+    POP DE                            ; 76CB: d1
+    POP IY                            ; 76CC: fde1
+    POP IX                            ; 76CE: dde1
+    XOR A                             ; 76D0: af
+    LD (IX+0),A                       ; 76D1: dd7700
+    LD A,(IY+0)                       ; 76D4: fd7e00
+    AND $0F                           ; 76D7: e60f
+    CP $0F                            ; 76D9: fe0f
+    RET NZ                            ; 76DB: c0
+    LD A,(IY+0)                       ; 76DC: fd7e00
+    LD B,E                            ; 76DF: 43
+    PUSH IY                           ; 76E0: fde5
+    CALL CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO; 76E2: cdec76
+    POP IY                            ; 76E5: fde1
+    XOR A                             ; 76E7: af
+    LD (IY+0),A                       ; 76E8: fd7700
+    RET                               ; 76EB: c9
+
+; CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO ($76EC): a partir de B (indice de
+; tramo de marco) calcula en HL la casilla de pantalla correspondiente
+; (aritmetica de escalado, sin resolver la formula exacta -- confianza
+; media) y, tras recuperar A (el codigo de "contenido" de ese tramo,
+; preservado en la pila), despacha segun su valor: <$1F ignora (RET C,
+; casilla ya vacia/procesada); ==$1F Momia Real; $20-$3E Llave; ==$3F
+; Momia Guardiana; $40-$5E Pergamino; ==$5F Tesoro/generico; >=$60 usa
+; ($815C) (nivel actual, 0-4) para elegir una de las 5 variantes de
+; RELLENAR_MARCO_DIAGONAL_1/3/4/5/6 (RELLENAR_MARCO_DIAGONAL_2 queda SIN
+; NINGUN llamador incluso tras esta reconstruccion completa -- hallazgo
+; confirmado, ver FINDINGS.md). Confianza alta en la estructura de
+; despacho; media en la formula de calculo de HL.
+CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO:
+    PUSH AF                           ; 76EC: f5
+    LD A,B                            ; 76ED: 78
+    DEC A                             ; 76EE: 3d
+    LD B,$00                          ; 76EF: 0600
+    SUB $07                           ; 76F1: d607
+    JR C,$76F8                        ; 76F3: 3803
+    INC B                             ; 76F5: 04
+    JR $76F1                          ; 76F6: 18f9
+    ADD A,$07                         ; 76F8: c607
+    ADD A,A                           ; 76FA: 87
+    LD C,A                            ; 76FB: 4f
+    ADD A,A                           ; 76FC: 87
+    ADD A,A                           ; 76FD: 87
+    ADD A,A                           ; 76FE: 87
+    SUB C                             ; 76FF: 91
+    ADD A,$08                         ; 7700: c608
+    LD L,A                            ; 7702: 6f
+    LD A,B                            ; 7703: 78
+    ADD A,A                           ; 7704: 87
+    ADD A,A                           ; 7705: 87
+    ADD A,A                           ; 7706: 87
+    LD B,A                            ; 7707: 47
+    ADD A,A                           ; 7708: 87
+    ADD A,A                           ; 7709: 87
+    ADD A,B                           ; 770A: 80
+    LD H,A                            ; 770B: 67
+    POP AF                            ; 770C: f1
+    CP $1F                            ; 770D: fe1f
+    RET C                             ; 770F: d8
+    JR Z,MARCO_CONTENIDO_MOMIA_REAL   ; 7710: 2852
+    CP $3F                            ; 7712: fe3f
+    JR C,MARCO_CONTENIDO_LLAVE        ; 7714: 383b
+    JR Z,MARCO_CONTENIDO_MOMIA_GUARDIANA; 7716: 286c
+    CP $5F                            ; 7718: fe5f
+    JR C,MARCO_CONTENIDO_PERGAMINO    ; 771A: 3821
+    JP Z,MARCO_CONTENIDO_TESORO       ; 771C: cab477
+    LD A,($815C)                      ; 771F: 3a5c81
+    CP $02                            ; 7722: fe02
+    JR C,$773A                        ; 7724: 3814
+    JR Z,$7737                        ; 7726: 280f
+    CP $04                            ; 7728: fe04
+    JR C,$7734                        ; 772A: 3808
+    JR Z,$7731                        ; 772C: 2803
+    JP RELLENAR_MARCO_DIAGONAL_1      ; 772E: c3fc7d
+    JP RELLENAR_MARCO_DIAGONAL_5      ; 7731: c3207e
+    JP RELLENAR_MARCO_DIAGONAL_4      ; 7734: c3177e
+    JP RELLENAR_MARCO_DIAGONAL_6      ; 7737: c3297e
+    JP RELLENAR_MARCO_DIAGONAL_3      ; 773A: c30e7e
+
+; MARCO_CONTENIDO_PERGAMINO ($773D): rango $40-$5E. Marca ($816E) y
+; parpadea la tinta del HUD (paper=3, pen=0) antes de refrescar la
+; puntuacion -- sin variacion de puntos. Redibuja DIBUJAR_ICONO_PERGAMINO.
+MARCO_CONTENIDO_PERGAMINO:
+    LD ($816E),A                      ; 773D: 326e81
+    PUSH HL                           ; 7740: e5
+    LD A,$03                          ; 7741: 3e03
+    CALL FIRM_TXT_SET_PAPER           ; 7743: cd96bb
+    XOR A                             ; 7746: af
+    CALL FIRM_TXT_SET_PEN             ; 7747: cd90bb
+    CALL IMPRIMIR_PUNTUACION_HUD      ; 774A: cd6378
+    POP HL                            ; 774D: e1
+    JP DIBUJAR_ICONO_PERGAMINO          ; 774E: c3b57d
+
+; MARCO_CONTENIDO_LLAVE ($7751): valores $20-$3E. Marca ($816F) y encola
+; un sonido -- sin variacion de puntos. Redibuja DIBUJAR_ICONO_LLAVE.
+MARCO_CONTENIDO_LLAVE:
+    LD ($816F),A                      ; 7751: 326f81
+    PUSH HL                           ; 7754: e5
+    LD HL,$8012                       ; 7755: 211280
+    LD A,($7FC5)                      ; 7758: 3ac57f
+    CP $59                            ; 775B: fe59
+    CALL Z,FIRM_SOUND_QUEUE           ; 775D: ccaabc
+    POP HL                            ; 7760: e1
+    JP DIBUJAR_ICONO_LLAVE          ; 7761: c39d7d
+
+; MARCO_CONTENIDO_MOMIA_REAL ($7764): valor exacto $1F. Marca ($8170),
+; suma 50 puntos ($0032) a la puntuacion y la refresca, encola un sonido.
+; Redibuja DIBUJAR_ICONO_SARCOFAGO.
+MARCO_CONTENIDO_MOMIA_REAL:
+    LD ($8170),A                      ; 7764: 327081
+    PUSH HL                           ; 7767: e5
+    LD HL,($815A)                     ; 7768: 2a5a81
+    LD BC,$0032                       ; 776B: 013200
+    ADD HL,BC                         ; 776E: 09
+    LD ($815A),HL                     ; 776F: 225a81
+    CALL IMPRIMIR_PUNTUACION_HUD      ; 7772: cd6378
+    LD HL,$8012                       ; 7775: 211280
+    LD A,($7FC5)                      ; 7778: 3ac57f
+    CP $59                            ; 777B: fe59
+    CALL Z,FIRM_SOUND_QUEUE           ; 777D: ccaabc
+    POP HL                            ; 7780: e1
+    JP DIBUJAR_ICONO_SARCOFAGO          ; 7781: c3857d
+
+; MARCO_CONTENIDO_MOMIA_GUARDIANA ($7784): valor exacto $3F. Arranca el
+; contador de animacion ($816D=31, ver ANIMAR_APARICION_MOMIA_GUARDIANA)
+; y calcula, a partir de la diferencia entre la posicion del jugador y la
+; casilla del tramo, un desplazamiento que guarda en
+; VARIABLE_CASILLA_APARICION_MOMIA ($8136) -- NO otorga puntos ni redibuja
+; marco (a diferencia de las otras 4 ramas): la Momia Guardiana emerge
+; poco a poco en vez de completar el tramo al instante.
+MARCO_CONTENIDO_MOMIA_GUARDIANA:
+    LD A,$1F                          ; 7784: 3e1f
+    LD ($816D),A            ; 7786: 326d81
+    LD DE,($8155)                     ; 7789: ed5b5581
+    LD A,D                            ; 778D: 7a
+    SUB H                             ; 778E: 94
+    ADD A,E                           ; 778F: 83
+    SUB L                             ; 7790: 95
+    CP $EC                            ; 7791: feec
+    JR Z,$77A2                        ; 7793: 280d
+    CP $14                            ; 7795: fe14
+    JR Z,$77AC                        ; 7797: 2813
+    CP $FA                            ; 7799: fefa
+    JR Z,$77A7                        ; 779B: 280a
+    LD DE,$0806                       ; 779D: 110608
+    JR $77AF                          ; 77A0: 180d
+    LD DE,$0000                       ; 77A2: 110000
+    JR $77AF                          ; 77A5: 1808
+    LD DE,$0006                       ; 77A7: 110600
+    JR $77AF                          ; 77AA: 1803
+    LD DE,$0800                       ; 77AC: 110008
+    ADD HL,DE                         ; 77AF: 19
+    LD ($8136),HL                     ; 77B0: 223681
+    RET                               ; 77B3: c9
+
+; MARCO_CONTENIDO_TESORO ($77B4): valor exacto $5F (caso "generico"/
+; tesoro). Suma 5 puntos ($0005), la refresca, encola un sonido. Redibuja
+; DIBUJAR_ICONO_TESORO.
+MARCO_CONTENIDO_TESORO:
+    PUSH HL                           ; 77B4: e5
+    LD HL,($815A)                     ; 77B5: 2a5a81
+    LD BC,$0005                       ; 77B8: 010500
+    ADD HL,BC                         ; 77BB: 09
+    LD ($815A),HL                     ; 77BC: 225a81
+    CALL IMPRIMIR_PUNTUACION_HUD      ; 77BF: cd6378
+    LD HL,$8009                       ; 77C2: 210980
+    LD A,($7FC5)                      ; 77C5: 3ac57f
+    CP $59                            ; 77C8: fe59
+    CALL Z,FIRM_SOUND_QUEUE           ; 77CA: ccaabc
+    POP HL                            ; 77CD: e1
+    JP DIBUJAR_ICONO_TESORO          ; 77CE: c3cd7d
+
+; PROCESAR_MOVIMIENTO_JUGADOR ($77D1): llamada una vez por jugador y por
+; turno, ANTES de las 2 llamadas a PROCESAR_ENCUENTROS_ENTIDADES/
+; ACTUALIZAR_MARCO_TRAS_MOVIMIENTO. Es la rutina de LECTURA DE CONTROLES:
+; comprueba 8 codigos de tecla de firmware (TABLA_TECLAS_DIRECCION, ver
+; arriba -- 2 por direccion, hipotesis alta: uno de teclado y otro de
+; joystick, coherente con TEXTO_INSTR_20 "either a Joystick, or the
+; Keyboard") y construye un registro de 4 prioridades; las REORDENA segun
+; la orientacion actual del jugador (($8157), 4 casos) para dar prioridad
+; a "seguir de frente" sobre "girar"; y para la primera direccion
+; disponible en ese orden de prioridad, comprueba colision (entrando a
+; mitad de CALCULAR_CASILLA_ADYACENTE y de HAY_COLISION) antes de mover
+; realmente al jugador saltando a mitad de MOVER_INDICADOR_MENU (que ya
+; hacia exactamente este trabajo para el cursor del menu -- confirma que
+; esa rutina, pese a su nombre historico, es la MISMA logica de "avanzar
+; 8 pixels en una direccion" reutilizada tanto en menus como en partida).
+; Confianza alta en la estructura; media en el mapeo exacto de cada uno de
+; los 8 codigos de tecla a una direccion fisica concreta.
+PROCESAR_MOVIMIENTO_JUGADOR:
+    LD HL,$0000                       ; 77D1: 210000
+    LD ($814D),HL                     ; 77D4: 224d81
+    LD ($814F),HL                     ; 77D7: 224f81
+    LD IX,$8150                       ; 77DA: dd215081
+    LD DE,$814C                       ; 77DE: 114c81
+    LD B,$04                          ; 77E1: 0604
+    LD A,(DE)                         ; 77E3: 1a
+    CALL FIRM_KM_TEST_KEY             ; 77E4: cd1ebb
+    DEC DE                            ; 77E7: 1b
+    JR NZ,$77F0                       ; 77E8: 2006
+    LD A,(DE)                         ; 77EA: 1a
+    CALL FIRM_KM_TEST_KEY             ; 77EB: cd1ebb
+    JR Z,$77F3                        ; 77EE: 2803
+    LD (IX+0),B                       ; 77F0: dd7000
+    DEC DE                            ; 77F3: 1b
+    DEC IX                            ; 77F4: dd2b
+    DJNZ $77E3                        ; 77F6: 10eb
+    LD A,($8157)                      ; 77F8: 3a5781
+    CP $02                            ; 77FB: fe02
+    JR C,$782F                        ; 77FD: 3830
+    JR Z,$7821                        ; 77FF: 2820
+    CP $04                            ; 7801: fe04
+    JR C,$7813                        ; 7803: 380e
+    LD L,(IX+1)                       ; 7805: dd6e01
+    LD H,(IX+3)                       ; 7808: dd6603
+    LD E,(IX+2)                       ; 780B: dd5e02
+    LD D,(IX+4)                       ; 780E: dd5604
+    JR $783B                          ; 7811: 1828
+    LD L,(IX+4)                       ; 7813: dd6e04
+    LD H,(IX+2)                       ; 7816: dd6602
+    LD E,(IX+1)                       ; 7819: dd5e01
+    LD D,(IX+3)                       ; 781C: dd5603
+    JR $783B                          ; 781F: 181a
+    LD L,(IX+3)                       ; 7821: dd6e03
+    LD H,(IX+1)                       ; 7824: dd6601
+    LD E,(IX+4)                       ; 7827: dd5e04
+    LD D,(IX+2)                       ; 782A: dd5602
+    JR $783B                          ; 782D: 180c
+    LD L,(IX+2)                       ; 782F: dd6e02
+    LD H,(IX+4)                       ; 7832: dd6604
+    LD E,(IX+3)                       ; 7835: dd5e03
+    LD D,(IX+1)                       ; 7838: dd5601
+    LD ($814D),HL                     ; 783B: 224d81
+    LD ($814F),DE                     ; 783E: ed534f81
+    LD B,$04                          ; 7842: 0604
+    PUSH BC                           ; 7844: c5
+    INC IX                            ; 7845: dd23
+    LD A,(IX+0)                       ; 7847: dd7e00
+    OR A                              ; 784A: b7
+    JR Z,$785F                        ; 784B: 2812
+    LD ($8157),A                      ; 784D: 325781
+    LD HL,($8155)                     ; 7850: 2a5581
+    CALL $7A98                        ; 7853: cd987a  ; entrada intermedia en CALCULAR_CASILLA_ADYACENTE (usa HL ya cargado en vez de ($8164))
+    CALL $7A64                        ; 7856: cd647a  ; entrada intermedia en HAY_COLISION (linea 'LD ($8166),DE')
+    JR Z,$785F                        ; 7859: 2804
+    POP BC                            ; 785B: c1
+    JP $790B                          ; 785C: c30b79  ; entra en mitad de MOVER_INDICADOR_MENU (linea 'LD A,$54'), reutiliza el movimiento de 8px
+    POP BC                            ; 785F: c1
+    DJNZ $7844                        ; 7860: 10e2
+    RET                               ; 7862: c9
 
 ; ---- $7863-$786B (9 bytes): tercer tramo promovido del INCBIN --
 ; Sesion 13. Cierra el ultimo hueco del INCBIN original: cae, sin
@@ -1322,7 +2321,7 @@ IMPRIMIR_PUNTUACION_HUD:
 ; MOVER_INDICADOR_MENU / INICIALIZAR_ENTIDADES / INICIALIZAR_UNA_ENTIDAD / COLOCAR_ENTIDAD /
 ; HAY_COLISION / CALCULAR_CASILLA_ADYACENTE / ELEGIR_DIRECCION_HACIA_OBJETIVO /
 ; PREPARAR_DIBUJAR_ENTIDAD+DIBUJAR_ENTIDAD / DIBUJAR_CASILLA_MAPA / CONSULTAR_CASILLA_MAPA /
-; GENERAR_ALEATORIO+MEZCLAR_ALEATORIO / DIBUJAR_TRAMO_MARCO_1-4 ----
+; GENERAR_ALEATORIO+MEZCLAR_ALEATORIO / DIBUJAR_ICONO_SARCOFAGO..TESORO ----
 ; Bloque grande (1401 bytes, 21 rutinas) -- Sesion 6: se confirmo que
 ; $78D1 (bombeo de sonido) esta pegado sin hueco a $78F7, $7996,
 ; $7A10, $7AB6 y $7AF2->$7B39 (que cae sin RET propio, es un solo
@@ -1996,52 +2995,52 @@ MEZCLAR_ALEATORIO:
     ADD HL,DE                        ; 7D81: 19
     DJNZ $7D7E                       ; 7D82: 10fa
     RET                              ; 7D84: c9
-DIBUJAR_TRAMO_MARCO_1:
+DIBUJAR_ICONO_SARCOFAGO:
     LD ($8645),HL                    ; 7D85: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7D88: cded7d
     LD HL,($8645)                    ; 7D8B: 2a4586
     LD BC,$0602                      ; 7D8E: 010206
     ADD HL,BC                        ; 7D91: 09
     LD ($8645),HL                    ; 7D92: 224586
-    LD IY,TABLA_MARCO_1               ; 7D95: fd217d87
+    LD IY,SPRITE_ICONO_SARCOFAGO               ; 7D95: fd217d87
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7D99: cd737e
     RET                              ; 7D9C: c9
-DIBUJAR_TRAMO_MARCO_2:
+DIBUJAR_ICONO_LLAVE:
     LD ($8645),HL                    ; 7D9D: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7DA0: cded7d
     LD HL,($8645)                    ; 7DA3: 2a4586
     LD BC,$0602                      ; 7DA6: 010206
     ADD HL,BC                        ; 7DA9: 09
     LD ($8645),HL                    ; 7DAA: 224586
-    LD IY,TABLA_MARCO_2               ; 7DAD: fd21c587
+    LD IY,SPRITE_ICONO_LLAVE               ; 7DAD: fd21c587
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DB1: cd737e
     RET                              ; 7DB4: c9
-DIBUJAR_TRAMO_MARCO_3:
+DIBUJAR_ICONO_PERGAMINO:
     LD ($8645),HL                    ; 7DB5: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7DB8: cded7d
     LD HL,($8645)                    ; 7DBB: 2a4586
     LD BC,$0602                      ; 7DBE: 010206
     ADD HL,BC                        ; 7DC1: 09
     LD ($8645),HL                    ; 7DC2: 224586
-    LD IY,TABLA_MARCO_3               ; 7DC5: fd210d88
+    LD IY,SPRITE_ICONO_PERGAMINO               ; 7DC5: fd210d88
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DC9: cd737e
     RET                              ; 7DCC: c9
-DIBUJAR_TRAMO_MARCO_4:
+DIBUJAR_ICONO_TESORO:
     LD ($8645),HL                    ; 7DCD: 224586
     CALL RELLENAR_MARCO_MEDIO        ; 7DD0: cde57d
     LD HL,($8645)                    ; 7DD3: 2a4586
     LD BC,$0602                      ; 7DD6: 010206
     ADD HL,BC                        ; 7DD9: 09
     LD ($8645),HL                    ; 7DDA: 224586
-    LD IY,TABLA_MARCO_4               ; 7DDD: fd215588
+    LD IY,SPRITE_ICONO_TESORO               ; 7DDD: fd215588
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DE1: cd737e
     RET                              ; 7DE4: c9
 ; ---- RELLENAR_MARCO_MEDIO / RELLENAR_MARCO_SOLIDO / RELLENAR_MARCO_VACIO /
 ; RELLENAR_MARCO_DIAGONAL_1..6 / RELLENAR_MARCO_DIAGONAL_BUCLE /
 ; PREPARAR_RELLENO_MASCARA_UNICA / RELLENAR_FILAS_MASCARA ----
 ; Cierra el hueco $7DE5-$7E72 (Sesion 7): son los destinos de las
-; CALL $7DED/CALL $7DE5 de DIBUJAR_TRAMO_MARCO_1..4 (arriba), ahora
-; ya nombrados. CORRIGE la hipotesis previa de FINDINGS.md/
+; CALL $7DED/CALL $7DE5 de DIBUJAR_ICONO_SARCOFAGO..TESORO (arriba),
+; ahora ya nombrados. CORRIGE la hipotesis previa de FINDINGS.md/
 ; flujo_programa.html ("variantes de mascara AND/OR"): no hay
 ; ninguna instruccion AND ni OR en todo el bloque -- son escrituras
 ; directas (LD (HL),A) de un byte de mascara repetido 10 veces por
@@ -2052,13 +3051,21 @@ DIBUJAR_TRAMO_MARCO_4:
 ; inmediato del "XOR $0F" en $7E47 antes de ejecutarlo, y llama a
 ; RELLENAR_FILAS_MASCARA con B=1 para dibujar una sola fila cada vez).
 ; Confianza ALTA en la estructura (compilada, 0 diferencias byte a
-; byte). Confianza MEDIA en el papel visual exacto: hipotesis de que
-; rellenan una casilla/tramo del marco decorativo con un patron
-; solido/vacio/a medias (las 3 primeras) o con una veta a rayas
-; alternas de 24x10 bytes (las 6 diagonales) -- sin confirmar en
-; emulador. RELLENAR_MARCO_MEDIO y RELLENAR_MARCO_SOLIDO son las
-; unicas llamadas desde codigo ya conocido (DIBUJAR_TRAMO_MARCO_4 y
-; DIBUJAR_TRAMO_MARCO_1/2/3); RELLENAR_MARCO_VACIO y las 6 variantes
+; byte). Sesion 17 PRECISA su papel: no rellenan "el marco decorativo
+; del nivel" (hipotesis de la Sesion 3, ya corregida en otros puntos),
+; sino el fondo/backdrop de 24x10 bytes sobre el que
+; DIBUJAR_ICONO_SARCOFAGO..TESORO dibuja despues (via
+; COPIAR_BLOQUE_A_LIENZO) el icono de 12x6 del contenido de la casilla
+; (sarcofago/llave/pergamino/tesoro) que el jugador acaba de
+; descubrir -- solido/vacio/a medias (las 3 primeras) o con una veta a
+; rayas alternas (las 6 diagonales, probablemente el fondo usado segun
+; el nivel actual, ver SELECCIONAR_DIAGONAL_MARCO_NIVEL). Identidad del
+; icono en si confirmada visualmente por el usuario con el explorador
+; de recursos/sprites.html; el patron de fondo (solido/vacio/diagonal)
+; sigue sin confirmar en emulador. RELLENAR_MARCO_MEDIO y
+; RELLENAR_MARCO_SOLIDO son las unicas llamadas desde codigo ya
+; conocido (DIBUJAR_ICONO_TESORO y DIBUJAR_ICONO_SARCOFAGO/LLAVE/
+; PERGAMINO); RELLENAR_MARCO_VACIO y las 6 variantes
 ; RELLENAR_MARCO_DIAGONAL_1..6 no tienen todavia un llamador conocido
 ; dentro de lo ya reconstruido -- pendiente localizarlo en uno de los
 ; huecos INCBIN restantes. Ver FINDINGS.md Sesion 7.
@@ -2236,7 +3243,7 @@ REPETIR_CARACTER:
 ; ESTADO_PARTIDA / TABLA_OFFSETS_DIAMANTE / VARIABLES_DIBUJO_MARCO /
 ; TABLA_PARAMETROS_TRANSICION_PUNTUACIONES / TEXTO_TABLA_PUNTUACIONES /
 ; TEXTO_MENU_PRINCIPAL / TABLA_POSICIONES_DECIMALES / TEXTO_COPYRIGHT_Y_HUD /
-; TABLA_MARCO_1..4 / DATOS_MARCO_Y_TEXTO_CONTINUAR / TABLAS_SPRITE_CASILLA /
+; SPRITE_ICONO_SARCOFAGO..TESORO / DATOS_MARCO_Y_TEXTO_CONTINUAR / TABLAS_SPRITE_CASILLA /
 ; TABLA_DIRECCIONES_PANTALLA / PUNTERO_GUION_SONIDO / GUION_SONIDO_CIRCULAR ----
 ; Cierra el ultimo hueco INCBIN (Sesion 8): $7EFD-$9385, el resto del
 ; motor tras el bloque de codigo de la Sesion 7. Es DATO, no codigo --
@@ -2249,8 +3256,10 @@ REPETIR_CARACTER:
 ; mas varias tablas cuyos limites SI estan confirmados por las
 ; instrucciones que ya las referencian por direccion en el codigo ya
 ; reconstruido (envolventes de sonido, tabla de posiciones decimales,
-; las 4 tablas del marco decorativo -- offsets exactos de 72 bytes
-; confirmados por las 4 LD IY,$87xx de DIBUJAR_TRAMO_MARCO_1..4 --,
+; las 4 tablas de icono de contenido de casilla (sarcofago/llave/
+; pergamino/tesoro, Sesion 17 -- antes mal identificadas como "marco
+; decorativo") -- offsets exactos de 72 bytes confirmados por las 4
+; LD IY,$87xx de DIBUJAR_ICONO_SARCOFAGO..TESORO --,
 ; el bloque de estado que borra BORRAR_BLOQUE_ESTADO, el array de
 ; entidades de $816D, y el guion de sonido circular de $905C).
 ; Algunas tablas menores (offsets tipo "diamante" en $8611, parametros
@@ -2333,14 +3342,37 @@ TEXTO_HISTORIA_ATRACCION:
     DB " or Fire Button to Continue"    ; 810A
     DB $07,$0E,$01,$0F,$02,$1F,$0C,$0D ; 8125
     DB "GAME OVER"                      ; 812D
+; VARIABLE_CASILLA_APARICION_MOMIA ($8136, 4 bytes): posicion (fila,
+; columna del "marco") donde ACTUALIZAR_MARCO_TRAS_MOVIMIENTO deja
+; anotada la casilla de la Momia Guardiana recien descubierta --
+; ANIMAR_APARICION_MOMIA_GUARDIANA la lee cada turno para dibujar el
+; sprite progresivamente en esa casilla. Confianza alta (Sesion 14,
+; ver mas abajo $7513-$7862).
+VARIABLE_CASILLA_APARICION_MOMIA:
     DB $00,$00,$00,$00                 ; 8136
-; Hipotesis baja: tabla de valores pequenos tras el texto GAME OVER,
-; con progresiones aritmeticas visibles en varios tramos (+/-6, +/-14,
-; +/-40 segun el tramo) -- posibles umbrales de puntuacion/bonus, sin
-; ningun CALL/LD conocido que la referencie todavia.
-TABLA_DESCONOCIDA_GAME_OVER:
-    DB $18,$40,$68,$90,$B8,$04,$12,$20,$2E,$3C,$4A,$45,$48,$16,$4B,$47 ; 813A
-    DB $49,$1E,$4A,$00,$00,$00,$00,$00,$00,$00,$04,$00,$00,$00,$00,$00 ; 814A
+; CORRECCION Sesion 14 a la hipotesis anterior ("tabla desconocida
+; tras GAME OVER, posibles umbrales de puntuacion"): localizados sus
+; 3 llamadores reales dentro del hueco $7637-$77D0 (ver
+; ACTUALIZAR_MARCO_TRAS_MOVIMIENTO y PROCESAR_MOVIMIENTO_JUGADOR mas
+; abajo). Los bytes NO son umbrales de puntuacion: son 2 tablas de
+; validacion de rejilla (CPIR contra la fila/columna del movimiento
+; del jugador) + 8 codigos de tecla de firmware. Confianza alta en la
+; estructura (verificada por los CPIR que las consultan); media-alta
+; en el papel exacto de la tabla de teclas (dos codigos por direccion,
+; hipotesis: uno de teclado y uno de joystick, coherente con el texto
+; "you can control your team using either a Joystick, or the
+; Keyboard" de TEXTO_INSTR_20).
+TABLA_FILAS_VALIDAS_CASILLAS:
+    DB $18,$40,$68,$90,$B8             ; 813A -- 5 valores validos de fila (paso $28), CPIR en ACTUALIZAR_MARCO_TRAS_MOVIMIENTO
+TABLA_COLUMNAS_VALIDAS_CASILLAS:
+    DB $04,$12,$20,$2E,$3C,$4A         ; 813F -- 6 valores validos de columna (paso $0E) -- (5-1)x(6-1) = 20 casillas, coincide con "twenty boxes" de TEXTO_INSTR_08
+TABLA_TECLAS_DIRECCION:
+    DB $45,$48,$16,$4B,$47,$49,$1E,$4A ; 8145 -- 8 codigos de tecla de firmware (leidos por pares en PROCESAR_MOVIMIENTO_JUGADOR, direcciones $814C..$8145 decreciendo)
+; Continuacion: $814D/$814F (4 bytes) son el buffer de prioridad de
+; direccion que rellena y relee PROCESAR_MOVIMIENTO_JUGADOR; $8151
+; es la semilla de GENERAR_ALEATORIO (ya usada mas arriba via "LD
+; DE,($8151)"). Resto sin desglosar variable a variable.
+    DB $00,$00,$00,$00,$00,$00,$00,$04,$00,$00,$00,$00,$00     ; 814D
     DB $00,$00,$00,$00,$00,$00,$00,$1F,$00,$00,$00,$00,$00,$00 ; 815A
 ; Confirmado por el arranque ($6054-$605D): LD A,$06:LD ($8169),A
 ; (CONTADOR_ENTIDADES=6, confianza media-alta -- encaja con "6
@@ -2391,7 +3423,7 @@ TABLA_OFFSETS_DIAMANTE:
     DB $1C,$B8,$32,$B8,$22,$B8,$2C,$B8,$0A,$90,$44,$90,$10,$90,$3E,$90 ; 8621
     DB $16,$90,$38,$90,$1C,$90,$32,$90,$16,$A8,$38,$A8,$1C,$A8,$32,$A8 ; 8631
     DB $22,$A8,$2C,$A8                               ; 8641
-; $8645 y $8647: variables HL usadas por DIBUJAR_TRAMO_MARCO_1..4
+; $8645 y $8647: variables HL usadas por DIBUJAR_ICONO_SARCOFAGO..TESORO
 ; ("LD ($8645),HL") y por COPIAR_BLOQUE_A_LIENZO/RELLENAR_FILAS_MASCARA
 ; ("LD ($8647),HL"). $8649/$864A: variables de 1 byte usadas por
 ; RELLENAR_FILAS_MASCARA (fila/mascara). Reserva de variable, el
@@ -2459,37 +3491,41 @@ TEXTO_COPYRIGHT_Y_HUD:
     DB $1F,$17,$01                     ; 8775
     DB "MEN"                            ; 8778
     DB $0F,$03                         ; 877B
-; Confirmado por DIBUJAR_TRAMO_MARCO_1: LD IY,$877D. 72 bytes exactos
+; Confirmado por DIBUJAR_ICONO_SARCOFAGO: LD IY,$877D. 72 bytes exactos
 ; = lo que consume COPIAR_BLOQUE_A_LIENZO (12 filas x 6 bytes).
-; Mascara/bitmap de un tramo del marco decorativo, sin decodificar
-; a nivel de pixel.
-TABLA_MARCO_1:
-    DB $33,$FF,$FF,$FF,$CC,$77,$00,$FF,$FF,$00,$00,$33,$00,$00,$00,$01 ; 877D
-    DB $08,$01,$00,$00,$00,$00,$07,$0E,$00,$00,$00,$00,$00,$00,$00,$00 ; 878D
-    DB $00,$00,$00,$00,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F ; 879D
-    DB $88,$00,$00,$00,$00,$11,$EE,$77,$FF,$FF,$EE,$77,$CC,$00,$00,$00 ; 87AD
-    DB $00,$33,$EE,$77,$FF,$FF,$EE,$77               ; 87BD
-; Confirmado por DIBUJAR_TRAMO_MARCO_2: LD IY,$87C5. 72 bytes exactos.
-TABLA_MARCO_2:
-    DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$CC,$77,$FF,$FF,$FF,$FF ; 87C5
-    DB $88,$33,$FF,$FF,$FF,$FF,$11,$11,$00,$00,$00,$00,$33,$88,$00,$00 ; 87D5
-    DB $00,$00,$33,$88,$CC,$11,$FF,$FF,$11,$11,$88,$00,$FF,$FF,$88,$33 ; 87E5
-    DB $88,$88,$FF,$FF,$CC,$77,$AA,$AA,$FF,$FF,$FF,$FF,$BB,$EE,$FF,$FF ; 87F5
-    DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF               ; 8805
-; Confirmado por DIBUJAR_TRAMO_MARCO_3: LD IY,$880D. 72 bytes exactos.
-TABLA_MARCO_3:
-    DB $FF,$F8,$FF,$FF,$F1,$FF,$FF,$FA,$F7,$FE,$F5,$FF,$FF,$FA,$F7,$FE ; 880D
-    DB $F5,$FF,$F9,$FA,$F8,$F1,$F5,$F9,$F6,$F2,$00,$00,$F4,$F6,$F7,$FA ; 881D
-    DB $00,$00,$F5,$FE,$F7,$FA,$00,$00,$F5,$FE,$F6,$F2,$00,$00,$F4,$F6 ; 882D
-    DB $F9,$FA,$F8,$F1,$F5,$F9,$FF,$FA,$F7,$FE,$F5,$FF,$FF,$FA,$F7,$FE ; 883D
-    DB $F5,$FF,$FF,$F8,$FF,$FF,$F1,$FF               ; 884D
-; Confirmado por DIBUJAR_TRAMO_MARCO_4: LD IY,$8855. 72 bytes exactos.
-TABLA_MARCO_4:
-    DB $0F,$00,$00,$00,$00,$0F,$0E,$03,$0F,$0F,$0C,$07,$0C,$0C,$C3,$CF ; 8855
-    DB $03,$03,$09,$0F,$0F,$0F,$0F,$09,$00,$00,$00,$00,$00,$00,$30,$F0 ; 8865
-    DB $F0,$F0,$F0,$C0,$08,$00,$00,$00,$00,$01,$09,$0F,$0F,$0F,$0F,$09 ; 8875
-    DB $0C,$0C,$CC,$33,$03,$03,$0C,$0C,$CC,$33,$03,$03,$0E,$07,$0F,$0F ; 8885
-    DB $0E,$07,$0E,$00,$00,$00,$00,$07               ; 8895
+; Sesion 17: identidad visual "sarcofago" confirmada por el usuario
+; probando el explorador parametrizable de recursos/sprites.html
+; (Sesion 16), y corroborada de forma independiente por el codigo --
+; DIBUJAR_ICONO_SARCOFAGO solo se llama desde MARCO_CONTENIDO_MOMIA_REAL
+; ($7764), el contenido de casilla que suma puntos y marca ($8170) al
+; encontrar la Momia Real. CORRIGE la hipotesis de la Sesion 3
+; ("mascara/bitmap de un tramo del marco decorativo"): no es parte del
+; marco del nivel, es el icono que se dibuja al descubrir el contenido
+; de una de las 20 casillas del tablero. Confianza alta.
+SPRITE_ICONO_SARCOFAGO:
+    INCBIN "data/img/sprites/sprite_icono_sarcofago.spr"  ; 877D, 72 bytes
+; Confirmado por DIBUJAR_ICONO_LLAVE: LD IY,$87C5. 72 bytes exactos.
+; Sesion 17: identidad visual "llave" confirmada por el usuario
+; (recursos/sprites.html) y corroborada por el codigo -- solo se llama
+; desde MARCO_CONTENIDO_LLAVE ($7751). Ver nota de Sesion 17 en
+; SPRITE_ICONO_SARCOFAGO (misma correccion sobre la hipotesis de
+; Sesion 3). Confianza alta.
+SPRITE_ICONO_LLAVE:
+    INCBIN "data/img/sprites/sprite_icono_llave.spr"  ; 87C5, 72 bytes
+; Confirmado por DIBUJAR_ICONO_PERGAMINO: LD IY,$880D. 72 bytes exactos.
+; Sesion 17: identidad visual "pergamino" confirmada por el usuario
+; (recursos/sprites.html) y corroborada por el codigo -- solo se llama
+; desde MARCO_CONTENIDO_PERGAMINO ($773D). Ver nota de Sesion 17 en
+; SPRITE_ICONO_SARCOFAGO. Confianza alta.
+SPRITE_ICONO_PERGAMINO:
+    INCBIN "data/img/sprites/sprite_icono_pergamino.spr"  ; 880D, 72 bytes
+; Confirmado por DIBUJAR_ICONO_TESORO: LD IY,$8855. 72 bytes exactos.
+; Sesion 17: identidad visual "tesoro" confirmada por el usuario
+; (recursos/sprites.html) y corroborada por el codigo -- solo se llama
+; desde MARCO_CONTENIDO_TESORO ($77B4). Ver nota de Sesion 17 en
+; SPRITE_ICONO_SARCOFAGO. Confianza alta.
+SPRITE_ICONO_TESORO:
+    INCBIN "data/img/sprites/sprite_icono_tesoro.spr"  ; 8855, 72 bytes
 ; Hipotesis baja-media: mezcla sin separar con precision -- mas bytes
 ; de mascara/grafico de estilo similar a las 4 tablas de marco de
 ; arriba, seguidos del texto literal confirmado '"C" TO CONTINUE'.
@@ -2534,11 +3570,9 @@ TABLAS_SPRITE_CASILLA:
 ; la hipotesis de rastro de excavacion del jugador). Ver FINDINGS.md
 ; Sesion 8.
 LOSETA_PISADAS_VERTICAL_1:
-    DB $F0,$87,$F0,$F0,$F0,$87,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 8999
-    DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0 ; 89A9
+    INCBIN "data/img/tiles/loseta_pisadas_vertical_1.spr"  ; 8999, 32 bytes
 LOSETA_PISADAS_VERTICAL_2:
-    DB $F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0 ; 89B9
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 89C9
+    INCBIN "data/img/tiles/loseta_pisadas_vertical_2.spr"  ; 89B9, 32 bytes
 ; ---- LOSETA_MAPA_PISADA_1..8 ---- 8 sprites de 16 bytes (2x8, 8x8 px
 ; en Modo 1), CONFIRMADOS como los 8 destinos (de los 9 totales) de
 ; DIBUJAR_CASILLA_MAPA (ver mas abajo) para los valores de casilla
@@ -2558,11 +3592,11 @@ LOSETA_PISADAS_VERTICAL_2:
 ; fotogramas cada una. Confianza alta en estructura, media-alta en
 ; identidad. Ver FINDINGS.md Sesion 8.
 LOSETA_MAPA_PISADA_1:
-    DB $F0,$87,$F0,$87,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0 ; 89D9
+    INCBIN "data/img/tiles/loseta_mapa_pisada_1.spr"  ; 89D9, 16 bytes
 LOSETA_MAPA_PISADA_2:
-    DB $1E,$F0,$1E,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0 ; 89E9
+    INCBIN "data/img/tiles/loseta_mapa_pisada_2.spr"  ; 89E9, 16 bytes
 LOSETA_MAPA_PISADA_3:
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$96,$0F,$96,$0F,$F0,$C3 ; 89F9
+    INCBIN "data/img/tiles/loseta_mapa_pisada_3.spr"  ; 89F9, 16 bytes
 ; ---- LOSETA_PISADA_ESCRITURA_VALOR4 ---- Sesion 11: fotograma de
 ; escritura de 'T' para el valor de casilla 4 (rama ($8157)==2,
 ; segundo fotograma, alternado con LOSETA_MAPA_PISADA_3 via el flag
@@ -2576,9 +3610,9 @@ LOSETA_MAPA_PISADA_3:
 ; geometria, media-alta en identidad visual (sin confirmar en
 ; emulador). Ver FINDINGS.md Sesion 11.
 LOSETA_PISADA_ESCRITURA_VALOR4:
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A09
+    INCBIN "data/img/tiles/loseta_pisada_escritura_valor4.spr"  ; 8A09, 16 bytes
 LOSETA_MAPA_PISADA_4:
-    DB $F0,$C3,$96,$0F,$96,$0F,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A19
+    INCBIN "data/img/tiles/loseta_mapa_pisada_4.spr"  ; 8A19, 16 bytes
 ; ---- LOSETA_PISADA_ESCRITURA_VALOR6 ---- Sesion 11: fotograma de
 ; escritura de 'T' para el valor de casilla 6 (rama ($8157)==3, primer
 ; fotograma, ver $7BA5). CONFIRMADO por el codigo que DIBUJAR_ENTIDAD
@@ -2587,8 +3621,7 @@ LOSETA_MAPA_PISADA_4:
 ; Confianza alta en estructura y geometria, sin confirmar identidad
 ; visual/orientacion. Ver FINDINGS.md Sesion 11.
 LOSETA_PISADA_ESCRITURA_VALOR6:
-    DB $F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A29
-    DB $F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$87,$F0,$F0,$F0,$87,$F0,$F0 ; 8A39
+    INCBIN "data/img/tiles/loseta_pisada_escritura_valor6.spr"  ; 8A29, 32 bytes
 ; ---- LOSETA_PISADA_ESCRITURA_VALOR5 ---- Sesion 11: fotograma de
 ; escritura de 'T' para el valor de casilla 5 (rama ($8157)==3,
 ; segundo fotograma, alternado con LOSETA_PISADA_ESCRITURA_VALOR6 via
@@ -2596,14 +3629,13 @@ LOSETA_PISADA_ESCRITURA_VALOR6:
 ; $8A49-$8A68), sin solape. Confianza alta en estructura y geometria,
 ; sin confirmar identidad visual/orientacion. Ver FINDINGS.md Sesion 11.
 LOSETA_PISADA_ESCRITURA_VALOR5:
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$F0,$F0 ; 8A49
-    DB $F0,$F0,$96,$F0,$F0,$F0,$96,$F0,$F0,$F0,$1E,$F0,$F0,$F0,$1E,$F0 ; 8A59
+    INCBIN "data/img/tiles/loseta_pisada_escritura_valor5.spr"  ; 8A49, 32 bytes
 LOSETA_MAPA_PISADA_5:
-    DB $F0,$F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$87,$F0,$87 ; 8A69
+    INCBIN "data/img/tiles/loseta_mapa_pisada_5.spr"  ; 8A69, 16 bytes
 LOSETA_MAPA_PISADA_6:
-    DB $F0,$F0,$96,$F0,$96,$F0,$F0,$F0,$96,$F0,$96,$F0,$1E,$F0,$1E,$F0 ; 8A79
+    INCBIN "data/img/tiles/loseta_mapa_pisada_6.spr"  ; 8A79, 16 bytes
 LOSETA_MAPA_PISADA_7:
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$0F,$96,$0F,$96,$3C,$F0 ; 8A89
+    INCBIN "data/img/tiles/loseta_mapa_pisada_7.spr"  ; 8A89, 16 bytes
 ; ---- LOSETA_PISADA_ESCRITURA_VALOR7 ---- Sesion 11: fotograma de
 ; escritura de 'T' para el valor de casilla 7 (rama ($8157)>=4, segundo
 ; fotograma, alternado con LOSETA_MAPA_PISADA_7 via el flag $8158, ver
@@ -2617,9 +3649,9 @@ LOSETA_MAPA_PISADA_7:
 ; media-alta en identidad visual (sin confirmar en emulador). Ver
 ; FINDINGS.md Sesion 11.
 LOSETA_PISADA_ESCRITURA_VALOR7:
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8A99
+    INCBIN "data/img/tiles/loseta_pisada_escritura_valor7.spr"  ; 8A99, 16 bytes
 LOSETA_MAPA_PISADA_8:
-    DB $3C,$F0,$0F,$96,$0F,$96,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8AA9
+    INCBIN "data/img/tiles/loseta_mapa_pisada_8.spr"  ; 8AA9, 16 bytes
 ; ---- SPRITE_JUGADOR_G1_F1..SPRITE_JUGADOR_G4_F2 / SPRITE_MOMIA_G1_F1..
 ; SPRITE_MOMIA_G4_F2 ---- 16 sprites de 64 bytes (4x16, 16x16 px en
 ; Modo 1), CONFIRMADOS por DIBUJAR_ENTIDAD: las ramas de tipo 'A'

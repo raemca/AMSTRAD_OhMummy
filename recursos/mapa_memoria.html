@@ -195,9 +195,19 @@
   bucle principal de juego y las pantallas de fin de partida) y
   <code>$7863</code>-<code>$786B</code> (9 bytes --
   <code>IMPRIMIR_PUNTUACION_HUD</code>, cierra el ultimo tramo del
-  <code>INCBIN</code> original). Queda un hueco <code>INCBIN</code> mas
-  pequeno: <code>$68B2</code>-<code>$7862</code> (4017 bytes, la
-  pantalla de instrucciones). La barra cubre
+  <code>INCBIN</code> original). <strong>Sesion 14</strong> cierra el
+  hueco <code>INCBIN</code> que quedaba, el ultimo de todo el motor:
+  <code>$68B2</code>-<code>$7862</code> (4017 bytes) --
+  <code>PANTALLA_INSTRUCCIONES</code> (pantalla de instrucciones real,
+  23 parrafos de texto) y las 5 rutinas del bucle de juego
+  (<code>PROCESAR_ENCUENTROS_ENTIDADES</code>,
+  <code>PROCESAR_MOVIMIENTO_JUGADOR</code>,
+  <code>ACTUALIZAR_MARCO_TRAS_MOVIMIENTO</code>,
+  <code>COMPROBAR_SALIDA_NIVEL</code>,
+  <code>ANIMAR_APARICION_MOMIA_GUARDIANA</code>).
+  <strong>El motor completo (<code>$6000</code>-<code>$9385</code>)
+  queda sin ningun hueco <code>INCBIN</code> de codigo sin
+  analizar.</strong> La barra cubre
   <strong>las 65536 direcciones completas</strong> (0000-FFFF),
   incluida la RAM/ROM del sistema y de BASIC fuera de los dos ficheros
   del juego, para que cada segmento quede colocado en su posicion real.
@@ -217,7 +227,6 @@
   <span><span class="swatch" style="background:var(--accent-graficos)"></span>datos: graficos</span>
   <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
   <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
-  <span><span class="swatch" style="background:var(--accent-unknown)"></span>sin analizar todavia (dentro de MUMMY1.BIN)</span>
   <span><span class="swatch" style="background:var(--accent-sistema)"></span>fuera de alcance (sistema/BASIC/pantalla CPC)</span>
 </div>
 
@@ -272,7 +281,7 @@ const REGIONS = [
   { start: 0x6000, end: 0x6401, label: "MUMMY1.BIN: cabecera del motor -- desensamblada y verificada byte a byte", kind: "codigo", fuente: "FINDINGS.md Sesion 2-3 (confirmado)" },
   { start: 0x6401, end: 0x6529, label: "MUMMY1.BIN: FIN_INTRODUCIR_NOMBRE / DESPACHAR_MENU_PRINCIPAL / PANTALLA_OPCIONES (296 bytes) -- primer tramo promovido del INCBIN", kind: "reconstruida", fuente: "FINDINGS.md Sesion 12 (compilado, 0 diferencias)" },
   { start: 0x6529, end: 0x68B2, label: "MUMMY1.BIN: INICIAR_PARTIDA / PREPARAR_NIVEL / PREPARAR_TESOROS_NIVEL / ACTUALIZAR_HUD_VIDAS / LIMPIAR_PANELES_NIVEL / SELECCIONAR_DIAGONAL_MARCO_NIVEL / COLOCAR_JUGADOR_INICIAL / BUCLE_PRINCIPAL_JUEGO / PANTALLA_STOP_PRESS / PANTALLA_GAME_OVER / ACTUALIZAR_TABLA_PUNTUACIONES (905 bytes) -- segundo tramo promovido del INCBIN", kind: "reconstruida", fuente: "FINDINGS.md Sesion 13 (compilado, 0 diferencias)" },
-  { start: 0x68B2, end: 0x7863, label: "MUMMY1.BIN: sin analizar todavia (INCBIN, pantalla de instrucciones, 4017 bytes)", kind: "unknown", fuente: "FINDINGS.md Sesion 2/13 (pendiente)" },
+  { start: 0x68B2, end: 0x7863, label: "MUMMY1.BIN: PANTALLA_INSTRUCCIONES + 23 parrafos de texto (TEXTO_INSTR_01..23) + PROCESAR_ENCUENTROS_ENTIDADES / PROCESAR_MOVIMIENTO_JUGADOR / ACTUALIZAR_MARCO_TRAS_MOVIMIENTO / COMPROBAR_SALIDA_NIVEL / ANIMAR_APARICION_MOMIA_GUARDIANA (4017 bytes) -- CIERRA el ultimo hueco INCBIN del motor", kind: "reconstruida", fuente: "FINDINGS.md Sesion 14 (compilado, 0 diferencias)" },
   { start: 0x7863, end: 0x786C, label: "MUMMY1.BIN: IMPRIMIR_PUNTUACION_HUD (9 bytes) -- tercer tramo promovido, cierra el INCBIN original", kind: "reconstruida", fuente: "FINDINGS.md Sesion 13 (compilado, 0 diferencias)" },
   { start: 0x786C, end: 0x7EFD, label: "MUMMY1.BIN: 38 rutinas reconstruidas con nombre funcional (1681 bytes, bloque unico) -- IMPRIMIR_NUMERO_HL, ACTUALIZAR_SECUENCIA_SONIDO, HAY_COLISION, DIBUJAR_ENTIDAD, RELLENAR_MARCO_DIAGONAL_1-6, COPIAR_BLOQUE_A_LIENZO... hipotesis sin verificar en emulador", kind: "reconstruida", fuente: "FINDINGS.md Sesiones 3-7 (compilado, 0 diferencias)" },
   { start: 0x7EFD, end: 0x8999, label: "MUMMY1.BIN: dato confirmado -- texto real del juego (menu, STOP PRESS, HI-SCORE, copyright), tablas de sonido/marco decorativo, bloques de estado, y los 2 rellenos por defecto de TABLAS_SPRITE_CASILLA. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },

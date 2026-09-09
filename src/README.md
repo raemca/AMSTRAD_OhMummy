@@ -47,10 +47,15 @@ dirección de carga y ejecución real del motor.
   (`BUCLE_PRINCIPAL_JUEGO`), y las pantallas de fin de partida
   (`PANTALLA_STOP_PRESS`/`PANTALLA_GAME_OVER`/
   `ACTUALIZAR_TABLA_PUNTUACIONES`).
-- **`$68B2`-`$7862`** (4017 bytes): el único tramo del motor que
-  sigue sin analizar (pantalla de instrucciones, entrada `'I'` del
-  menú), incluido tal cual con
-  `INCBIN "data/mummy1_resto_sin_analizar.bin", 1201, 4017`.
+- **`$68B2`-`$7862`** (4017 bytes, Sesión 14): **último hueco del
+  motor, cerrado por completo** — `PANTALLA_INSTRUCCIONES` (pantalla
+  de instrucciones real, entrada `'I'` del menú, con sus 23 párrafos de
+  texto literal `TEXTO_INSTR_01..23`) y las 5 llamadas del bucle de
+  juego que quedaban sin resolver desde la Sesión 12:
+  `PROCESAR_ENCUENTROS_ENTIDADES`, `PROCESAR_MOVIMIENTO_JUGADOR`,
+  `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO` (+ `CALCULAR_TRAMO_MARCO_DESDE_
+  CONTENIDO`/`MARCO_CONTENIDO_*`), `COMPROBAR_SALIDA_NIVEL` y
+  `ANIMAR_APARICION_MOMIA_GUARDIANA`.
 - **`$7863`-`$786B`** (9 bytes, Sesión 13): reconstruido como código —
   `IMPRIMIR_PUNTUACION_HUD`, cierra el último tramo del `INCBIN`
   original, cae directamente en `IMPRIMIR_NUMERO_HL` (`$786C`).
@@ -76,10 +81,10 @@ dirección de carga y ejecución real del motor.
 nivel de confianza en un comentario junto a la etiqueta — ninguno
 verificado ejecutando el juego en un emulador (ver
 `prompts/_base_reconstruccion.md`, reglas globales desde la Sesión 6).
-El offset/longitud del único `INCBIN` que queda se calcula
-automáticamente (no a mano) para que la compilación siga reproduciendo
-el binario completo byte a byte mientras se va desensamblando de
-verdad, sesión a sesión.
+**Desde la Sesión 14, `mummy1_body.asm` no contiene ningún `INCBIN` de
+código sin analizar**: el motor completo (`$6000`-`$9385`) está
+reconstruido como fuente ensamblador que compila byte a byte idéntico
+al original.
 
 ### Rutinas reconstruidas (nombres provisionales, Sesiones 3-6)
 
@@ -127,10 +132,34 @@ verdad, sesión a sesión.
 | `LIMPIAR_PANELES_NIVEL` | Pantalla/HUD — despeja 9 paneles antes de dibujar el nivel | Alta |
 | `SELECCIONAR_DIAGONAL_MARCO_NIVEL` | Marco decorativo — **resuelve** el llamador de `RELLENAR_MARCO_DIAGONAL_1..6` (pendiente desde Sesión 7): elige variante según nivel y parchea el operando de un `CALL` automodificado | Alta en estructura, media en el efecto visual |
 | `COLOCAR_JUGADOR_INICIAL` | Entidades — coloca enemigos/coleccionables del nivel y dibuja al jugador en su posición de salida | Alta en estructura, media en el detalle de `($8157)` |
-| `BUCLE_PRINCIPAL_JUEGO` / `INICIO_TURNO_JUGADOR1` / `TRAMPOLIN_TECLA_B` | Juego — bucle de turnos por jugador; 5 llamadas internas (`$7578`/`$77D1`/`$7637`/`$7566`/`$7513`) siguen sin resolver | Alta en estructura, media en el papel de cada llamada sin resolver |
+| `BUCLE_PRINCIPAL_JUEGO` / `INICIO_TURNO_JUGADOR1` / `TRAMPOLIN_TECLA_B` | Juego — bucle de turnos por jugador; las 5 llamadas internas (`$7578`/`$77D1`/`$7637`/`$7566`/`$7513`) se resuelven en la Sesión 14, ver tabla siguiente | Alta |
 | `PANTALLA_STOP_PRESS` | Fin de partida — pantalla de "ganar" (completar los 6 niveles): bonus de 200 puntos o vida extra (tope 7); NO consulta la tabla HI-SCORE | Alta |
 | `PANTALLA_GAME_OVER` / `ACTUALIZAR_TABLA_PUNTUACIONES` | Fin de partida — pantalla de "morir": título animado + inserción/consulta de la tabla HI-SCORE de 5 entradas | Alta |
 | `IMPRIMIR_PUNTUACION_HUD` | HUD — posiciona el cursor y cae en `IMPRIMIR_NUMERO_HL` con la puntuación | Alta |
+
+### Rutinas reconstruidas — Sesión 14 (`$68B2`-`$7862`, último hueco del motor)
+
+| Etiqueta | Subsistema | Confianza |
+|---|---|---|
+| `PANTALLA_INSTRUCCIONES` | Menú — despachador de la pantalla de instrucciones (entrada `'I'`): dibuja 2 tramos de marco e imprime los 23 párrafos de texto | Alta |
+| `IMPRIMIR_PARRAFO_INSTRUCCIONES` | Texto — imprime un bloque `[longitud][texto]` vía firmware TXT OUTPUT | Alta |
+| `LIMPIAR_VENTANA_INSTRUCCIONES` / `RESTAURAR_VENTANA_TEXTO_COMPLETA` | Texto — define/borra y restaura la ventana de texto entre páginas | Media en la geometría exacta |
+| `ESPERAR_CONTINUAR_INSTRUCCIONES` | Entrada — espera 'C' o botón de fuego, reutilizando el texto de GAME OVER (`$80FB`) | Alta |
+| `TEXTO_INSTR_01..23` | Texto — los 23 párrafos literales de la pantalla de instrucciones (2856 bytes), contiguos y sin relleno | Alta (texto legible, límites verificados byte a byte) |
+| `ANIMAR_APARICION_MOMIA_GUARDIANA` | Entidades — anima la Momia Guardiana emergiendo de su casilla, copiando el sprite `SPRITE_MOMIA_G1_F1` 4 bytes por turno | Media-alta |
+| `COMPROBAR_SALIDA_NIVEL` | Nivel — si Llave y Momia Real están descubiertas y el jugador está en la columna de Salida, reinicia el tablero saltando a `$654C` | Media-alta |
+| `PROCESAR_ENCUENTROS_ENTIDADES` | Juego — colisión jugador/entidades: recogida de coleccionable o captura por Momia Guardiana (resta vida, acarreo → GAME OVER) | Alta en estructura, media-alta en el papel de cada rama |
+| `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO` | Juego — valida el movimiento contra la rejilla de 20 casillas y despacha el contenido del lado recorrido | Alta |
+| `CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO` / `MARCO_CONTENIDO_PERGAMINO` / `_LLAVE` / `_MOMIA_REAL` / `_MOMIA_GUARDIANA` / `_TESORO` | Juego — despacho por contenido de casilla (Pergamino/Llave/Momia Real/Momia Guardiana/Tesoro) + relleno diagonal por nivel por defecto | Alta en estructura, media-alta en la correspondencia flag↔objeto |
+| `PROCESAR_MOVIMIENTO_JUGADOR` | Entrada/Juego — lee 8 códigos de tecla (teclado+joystick), prioriza dirección según orientación y mueve al jugador reutilizando `MOVER_INDICADOR_MENU` | Alta en estructura, media en el mapeo exacto de teclas |
+| `TABLA_FILAS_VALIDAS_CASILLAS` / `TABLA_COLUMNAS_VALIDAS_CASILLAS` / `TABLA_TECLAS_DIRECCION` | Datos — corrige la hipótesis previa "tabla desconocida/umbrales de puntuación" (`$813A`-`$814C`): son las tablas de validación de rejilla y los códigos de tecla | Alta |
+| `VARIABLE_CASILLA_APARICION_MOMIA` (`$8136`) | Datos — posición donde se anima la Momia Guardiana emergiendo | Alta |
+
+Hallazgo confirmado (no un pendiente): `RELLENAR_MARCO_DIAGONAL_2`
+sigue sin ningún llamador conocido incluso tras cerrar el motor
+completo — las otras 5 variantes tienen ahora DOS llamadores
+independientes (`SELECCIONAR_DIAGONAL_MARCO_NIVEL` de la Sesión 13 y
+`CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO` de esta sesión).
 
 Ver `recursos/flujo_programa.html` para el inventario completo por
 dirección, `recursos/flujo_detallado.html` (Sesión 9) para el **grafo
@@ -163,17 +192,24 @@ en los tres** (los dos ficheros por separado y el disco completo).
 
 - `main.asm` — punto de entrada único de compilación (`ORG $6000`,
   `INCLUDE mummy1_body.asm`, `SAVEBIN`).
-- `mummy1_body.asm` — el motor: cabecera desensamblada a mano
+- `mummy1_body.asm` — el motor, **completamente reconstruido, sin
+  ningún `INCBIN` de código pendiente**: cabecera desensamblada a mano
   (`$6000`-`$6400`) + `FIN_INTRODUCIR_NOMBRE`/`DESPACHAR_MENU_PRINCIPAL`/
   `PANTALLA_OPCIONES` (296 bytes, Sesión 12) + `INICIAR_PARTIDA` y el
   resto del arranque/bucle/fin de partida (914 bytes, Sesión 13) +
-  rutinas reconstruidas con nombre (Sesiones 3-8) + `INCBIN` (con
-  offset/longitud) del resto sin analizar (`$68B2`-`$7862`, 4017
-  bytes).
+  `PANTALLA_INSTRUCCIONES` y el núcleo del bucle de juego (4017 bytes,
+  Sesión 14, cierra el último hueco) + rutinas reconstruidas con nombre
+  (Sesiones 3-8).
 - `load_disk/mummy_bas.bas` — el cargador BASIC, detokenizado.
-- `data/` — recursos ya identificados y extraídos a fichero individual
-  (`img/`, `niveles/`, `sound/`, todos vacíos por ahora) y
-  `mummy1_resto_sin_analizar.bin` (el tramo del motor pendiente).
+- `data/` — recursos ya identificados y extraídos a fichero individual:
+  `img/sprites/` (20 ficheros: 16 `SPRITE_JUGADOR_*`/`SPRITE_MOMIA_*`
+  de la Sesión 8, más 4 `SPRITE_ICONO_SARCOFAGO`/`_LLAVE`/`_PERGAMINO`/
+  `_TESORO` de la Sesión 18 — los iconos de contenido de casilla,
+  identidad confirmada en la Sesión 17) e `img/tiles/` (14 ficheros, la
+  familia completa de losetas de pisadas, Sesión 15); `niveles/` y
+  `sound/` siguen vacíos por ahora. `mummy1_resto_sin_analizar.bin` ya no tiene ningún
+  `INCBIN` que lo referencie desde la Sesión 14 — se deja en el árbol
+  como referencia histórica del binario en bruto.
 - `build/` — binarios compilados (gitignored).
 
 ## Convenciones

@@ -2400,3 +2400,443 @@ hueco: las 5 llamadas sin resolver del bucle principal (`$7578`,
 de sesiones anteriores (orientación de las 4 direcciones de `'T'`,
 confirmación en emulador, numeración de teclas del firmware, consumo
 real de `$816A` como vidas).
+
+## Sesión 14 — 2026-09-10: cierre del último hueco del motor (`$68B2`-`$7862`, 4017 bytes) — pantalla de instrucciones, mecánica de "pintar casillas" y núcleo de movimiento del jugador
+
+Ataca el último hueco `INCBIN` que quedaba en todo el motor
+(`$68B2`-`$7862`, 4017 bytes), siguiendo la metodología obligatoria:
+arranca desde los 6 puntos de entrada reales ya confirmados por código
+reconstruido (`$68B2` desde `DESPACHAR_MENU_PRINCIPAL`, y las 5
+llamadas de `BUCLE_PRINCIPAL_JUEGO`/`INICIO_TURNO_JUGADOR1`: `$7578`,
+`$77D1`, `$7637`, `$7566`, `$7513` condicional), priorizando estas 5
+últimas como pedía el prompt de la sesión. **Resultado: el hueco
+completo se cierra en esta sesión** — no queda ningún `INCBIN` de
+código sin analizar en `mummy1_body.asm`.
+
+### Metodología de esta sesión
+
+Se generó un desensamblado mecánico auxiliar (script Python propio
+sobre `tools/z80_disasm.py` como librería, sin comprometerlo al
+repositorio) para leer instrucción a instrucción desde `$7513` y desde
+`$68B2` de forma continua. La decodificación fue limpia y sin
+interrupciones en TODO el tramo `$7513`-`$7862` (350 bytes) — ninguna
+secuencia de bytes decodificada como "basura"/dato disfrazado de
+código, y los 5 puntos de entrada conocidos coinciden EXACTAMENTE con
+límites de instrucción — confirmación fuerte de que es código real de
+principio a fin. Cada hipótesis semántica se contrastó contra código y
+datos ya reconstruidos (`ARRAY_ENTIDADES`, `CASILLA_A_DIRECCION_PANTALLA`,
+`CONSULTAR_CASILLA_MAPA`, `RELLENAR_MARCO_DIAGONAL_1..6`,
+`DIBUJAR_TRAMO_MARCO_1..4`, `MOVER_INDICADOR_MENU`, `HAY_COLISION`,
+`CALCULAR_CASILLA_ADYACENTE`, los sprites `SPRITE_MOMIA_G1_F1..`) antes
+de darla por buena.
+
+### Primer tramo: `PANTALLA_INSTRUCCIONES` (`$68B2`-`$69EA`, 313 bytes) — CONFIRMA la hipótesis mecánica de la Sesión 13
+
+La Sesión 13 había explorado este despachador mecánicamente sin
+promoverlo. Esta sesión lo verifica instrucción a instrucción y lo
+promueve completo: `PANTALLA_INSTRUCCIONES` dibuja dos tramos del
+marco decorativo (`DIBUJAR_TRAMO_MARCO_1`/`_2`) y llama en cadena a
+`IMPRIMIR_PARRAFO_INSTRUCCIONES` (antes `$69D2`) para los 23 párrafos
+de texto (`TEXTO_INSTR_01..23`, ver más abajo), con
+`LIMPIAR_VENTANA_INSTRUCCIONES` (antes `$698A`) y
+`ESPERAR_CONTINUAR_INSTRUCCIONES` (antes `$69AC`, espera `'C'`/botón de
+fuego, reutilizando el mismo texto "Press C or Fire Button to
+Continue" de la pantalla de GAME OVER en `$80FB`) entre grupos de
+párrafos. `RESTAURAR_VENTANA_TEXTO_COMPLETA` (antes `$699C`) devuelve
+la ventana de texto a pantalla completa. Confianza alta en toda la
+estructura.
+
+### Segundo tramo: 23 bloques de texto literal (`TEXTO_INSTR_01..23`, `$69EB`-`$7512`, 2856 bytes) — ACOTA CON EXACTITUD la hipótesis de la Sesión 13
+
+La Sesión 13 dijo "a partir de `$69EA`, mayormente texto literal" sin
+verificarlo byte a byte. Esta sesión lo confirma con precisión total:
+son **23 bloques contiguos** (sin huecos ni relleno entre ellos —
+verificado programáticamente leyendo el byte de longitud de cada
+bloque y comprobando que el siguiente empieza exactamente donde acaba
+el anterior) con formato `[1 byte de longitud][texto]`, el mismo
+formato que consume `IMPRIMIR_PARRAFO_INSTRUCCIONES`. El bloque 23
+(`TEXTO_INSTR_23`) termina **exactamente** en `$7512`, el byte justo
+antes de `$7513` — el primer punto de entrada real del bucle de juego.
+Es decir, el límite entre "despachador de instrucciones" y "bucle de
+juego" cae exactamente en la frontera entre datos y código, sin solape
+ni relleno: confirmación muy fuerte de que ambas reconstrucciones
+(Sesión 13 corregida + esta sesión) son correctas. El texto es el
+manual real de "OH MUMMY" en inglés (escenario, reglas del tablero de
+20 casillas, controles, niveles de dificultad, despedida).
+
+### Tercer tramo: `$7513`-`$7862` (350 bytes) — el núcleo del bucle de juego, las 5 llamadas prioritarias
+
+**Corrección a la hipótesis "todo texto" de la Sesión 13**: este tramo
+final (350 bytes) es código real de principio a fin, no texto. Las 5
+llamadas pendientes desde `BUCLE_PRINCIPAL_JUEGO` quedan resueltas:
+
+- **`ANIMAR_APARICION_MOMIA_GUARDIANA`** (`$7513`, llamada condicional
+  `CALL NZ,$7513` cuando `($816D)<>0`): decrementa un contador iniciado
+  en 31 y, en llamadas alternas, copia 4 bytes del sprite
+  `SPRITE_MOMIA_G1_F1` (`$8CB9`) a la casilla de pantalla apuntada por
+  la nueva variable `VARIABLE_CASILLA_APARICION_MOMIA` (`$8136`) —
+  efecto de "la Momia Guardiana emergiendo poco a poco", coherente con
+  `TEXTO_INSTR_12` ("it will dig its way out"). Al llegar a 0, limpia
+  la casilla del mapa y genera una entidad de reemplazo. Confianza
+  media-alta.
+- **`COMPROBAR_SALIDA_NIVEL`** (`$7566`): si `($8170)` (Momia Real) Y
+  `($816F)` (Llave) están ambos activos y la columna del jugador es
+  `$08`, aborta el turno saltando a `$654C` (un punto medio de
+  `PREPARAR_NIVEL`, justo antes de su `CALL BORRAR_BLOQUE_ESTADO`) —
+  coherente con `TEXTO_INSTR_15` ("When the boxes holding the Key and
+  the Royal Mummy have been uncovered, you will be able to leave the
+  level"). Confianza media-alta.
+- **`PROCESAR_ENCUENTROS_ENTIDADES`** (`$7578`, la que arma el acarreo
+  de "`JP C,PANTALLA_GAME_OVER`"): recorre `ARRAY_ENTIDADES` comparando
+  posiciones con tolerancia; según el flag `($816E)` distingue
+  "recogida de coleccionable" (refresca puntuación) de "atrapado por
+  Momia Guardiana" (resta una vida, y si llegan a 0 devuelve acarreo).
+  Confianza alta en estructura, media-alta en el papel de cada rama.
+- **`ACTUALIZAR_MARCO_TRAS_MOVIMIENTO`** (`$7637`): valida que la nueva
+  posición del jugador caiga en una intersección real de la rejilla
+  (`CPIR` contra `TABLA_FILAS_VALIDAS_CASILLAS`/`TABLA_COLUMNAS_VALIDAS_
+  CASILLAS`, ver corrección de datos más abajo) y llama a
+  `CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO` (`$76EC`) para despachar según
+  el contenido del lado de casilla recorrido: `MARCO_CONTENIDO_
+  MOMIA_REAL`/`_LLAVE`/`_MOMIA_GUARDIANA`/`_PERGAMINO`/`_TESORO`, o por
+  defecto (nivel actual) una de `RELLENAR_MARCO_DIAGONAL_1/3/4/5/6` —
+  **`RELLENAR_MARCO_DIAGONAL_2` queda SIN NINGÚN llamador incluso tras
+  cerrar el motor entero: hallazgo confirmado, no un pendiente**.
+  Confianza alta en la estructura; media-alta en la correspondencia
+  exacta de cada flag con Llave/Pergamino/Momia Real/Momia Guardiana
+  (apoyada por 3 coincidencias cruzadas con el texto de instrucciones,
+  ver comentario en el fuente).
+- **`PROCESAR_MOVIMIENTO_JUGADOR`** (`$77D1`): lee 8 códigos de tecla
+  de firmware (`TABLA_TECLAS_DIRECCION`, 2 por dirección — hipótesis
+  alta: uno de teclado y uno de joystick, coherente con
+  `TEXTO_INSTR_20` "either a Joystick, or the Keyboard"), reordena la
+  prioridad de direcciones según la orientación actual del jugador, y
+  mueve al jugador saltando a mitad de `MOVER_INDICADOR_MENU` — **se
+  confirma que esa rutina (nombrada en la Sesión 6 pensando solo en el
+  cursor del menú) es la MISMA lógica de "avanzar 8 píxeles" reutilizada
+  también durante la partida real**. Confianza alta en estructura.
+
+Juntas, estas rutinas implementan el núcleo del mecanismo de juego
+tipo "Amidar" (pintar los lados de las casillas del tablero de 20
+casillas al recorrerlas) que faltaba por descubrir en todo el motor.
+
+### Corrección de datos ya declarados: `TABLA_DESCONOCIDA_GAME_OVER` (`$813A`-`$8159`) no son umbrales de puntuación
+
+Localizados sus 3 llamadores reales dentro de `ACTUALIZAR_MARCO_TRAS_
+MOVIMIENTO`/`PROCESAR_MOVIMIENTO_JUGADOR`. Se corrige la hipótesis de
+sesiones anteriores ("progresiones aritméticas, posibles umbrales de
+puntuación"): son en realidad **`TABLA_FILAS_VALIDAS_CASILLAS`** (5
+bytes, paso `$28`), **`TABLA_COLUMNAS_VALIDAS_CASILLAS`** (6 bytes,
+paso `$0E` — `(5-1)×(6-1) = 20`, coincide exactamente con "twenty
+boxes" de `TEXTO_INSTR_08`) y **`TABLA_TECLAS_DIRECCION`** (8 bytes,
+códigos de tecla de firmware). El resto de la zona (`$814D`-`$8159`)
+ya se correspondía con variables conocidas (`$814D`/`$814F` buffer de
+`PROCESAR_MOVIMIENTO_JUGADOR`, `$8151` semilla de `GENERAR_ALEATORIO`).
+Ningún byte del binario cambia — solo comentarios y 3 etiquetas nuevas
+sobre datos ya declarados.
+
+### Cambios en `mummy1_body.asm`
+
+`INCBIN "data/mummy1_resto_sin_analizar.bin", 1201, 4017` (`$68B2`-`$7862`)
+sustituido por 4017 bytes de código fuente real:
+`PANTALLA_INSTRUCCIONES`, `IMPRIMIR_PARRAFO_INSTRUCCIONES`,
+`LIMPIAR_VENTANA_INSTRUCCIONES`, `RESTAURAR_VENTANA_TEXTO_COMPLETA`,
+`ESPERAR_CONTINUAR_INSTRUCCIONES` (313 bytes), 23 bloques
+`TEXTO_INSTR_01..23` (2856 bytes de datos), y
+`ANIMAR_APARICION_MOMIA_GUARDIANA`, `COMPROBAR_SALIDA_NIVEL`,
+`PROCESAR_ENCUENTROS_ENTIDADES`, `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO`,
+`CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO`, `MARCO_CONTENIDO_PERGAMINO`,
+`MARCO_CONTENIDO_LLAVE`, `MARCO_CONTENIDO_MOMIA_REAL`,
+`MARCO_CONTENIDO_MOMIA_GUARDIANA`, `MARCO_CONTENIDO_TESORO`,
+`PROCESAR_MOVIMIENTO_JUGADOR` (350 bytes de código). Se añade
+`FIRM_TXT_SET_PEN EQU $BB90` a la tabla de firmware. Se actualizan los
+comentarios de `BUCLE_PRINCIPAL_JUEGO` y de las cabeceras de sección
+que referenciaban el hueco como "sin analizar". El fichero
+`src/data/mummy1_resto_sin_analizar.bin` queda sin ningún `INCBIN` que
+lo referencie (se deja en el árbol por si resulta útil como referencia
+histórica; no se borra en esta sesión). Ningún byte del binario
+generado cambia.
+
+### Verificación
+
+`python tools/build_all.py`: **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) — verificado repetidamente tras cada cambio,
+incluida la corrección de un error propio (`JP $654C` se había resuelto
+incorrectamente como `JP BORRAR_BLOQUE_ESTADO`, una dirección
+distinta — `$654C` es un punto intermedio de `PREPARAR_NIVEL`, no la
+propia rutina, que vive en `$7EAB`).
+
+### Documentación actualizada
+
+`README.md`, `README.en.md`, `src/README.md` (el motor queda descrito
+como **completamente reconstruido**, sin huecos `INCBIN` pendientes;
+tabla de rutinas de la Sesión 14 añadida en `src/README.md`),
+`recursos/flujo_programa.html`, `recursos/flujo_detallado.html` (nodos
+y aristas nuevos de esta sesión, según la regla de mantenimiento de
+`prompts/_base_reconstruccion.md`) y `recursos/mapa_memoria.html`
+(elimina el último segmento "sin analizar todavía": todo el motor
+`$6000`-`$9385` queda marcado como reconstruido).
+
+### Pendiente para la siguiente sesión
+
+**No queda ningún hueco `INCBIN` de código en el motor.** Lo que queda
+es refinar hipótesis ya con estructura confirmada pero confianza media
+en el detalle exacto, todo con dirección concreta para no perder
+tiempo:
+
+- Confirmar en emulador la correspondencia exacta flag↔objeto
+  (`$816E`=Pergamino, `$816F`=Llave, `$8170`=Momia Real — apoyada por
+  cruces con el texto pero no observada visualmente).
+- La fórmula de escalado B→HL en `CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO`
+  (`$76EC`-`$770B`) no se ha resuelto algebraicamente, solo transcrito.
+- El mapeo exacto de los 8 bytes de `TABLA_TECLAS_DIRECCION`
+  (`$8145`-`$814C`) a teclas/joystick físicos concretos.
+- Si `COMPROBAR_SALIDA_NIVEL` incrementa realmente `$815C` (nivel) en
+  algún punto del camino hacia `$654C`/`PREPARAR_NIVEL`, o si el avance
+  de nivel ocurre por otro mecanismo no visto en este tramo.
+- Todo lo pendiente de sesiones anteriores que sigue sin tocar
+  (orientación de las 4 direcciones de `'T'`, confirmación general en
+  emulador, numeración de teclas del firmware).
+
+## Sesión 15 — 2026-09-10: las 14 losetas de pisadas, extraídas a `src/data/img/tiles/*.spr`
+
+A petición del usuario, se extraen a ficheros individuales las 14
+losetas de la familia de pisadas que hasta ahora vivían como `DB`
+inline en `mummy1_body.asm` (Sesiones 8/11): `LOSETA_PISADAS_
+VERTICAL_1`/`_2`, `LOSETA_MAPA_PISADA_1`..`_8` y `LOSETA_PISADA_
+ESCRITURA_VALOR4`/`_5`/`_6`/`_7`. Mismo tratamiento que ya recibieron
+`SPRITE_JUGADOR_*`/`SPRITE_MOMIA_*` en la Sesión 8 (continuación 3) —
+cierra de hecho un pendiente explícito que había quedado abierto desde
+esa sesión ("extraer a fichero también las casillas de
+`DIBUJAR_CASILLA_MAPA` en cuanto se decida su formato definitivo").
+
+### Método
+
+Para no arriesgar un error de transcripción, los 14 bloques no se
+copiaron a mano desde el `DB` del ASM: se extrajeron programáticamente
+de `FISICO/extraido/MUMMY1.BIN` (saltando los 128 bytes de cabecera
+AMSDOS) usando las direcciones y longitudes ya confirmadas por el
+código (`DIBUJAR_ENTIDAD`/`DIBUJAR_CASILLA_MAPA`, Sesiones 8 y 11), y
+el resultado se contrastó byte a byte contra los `DB` que sustituían
+antes de tocar el ASM. Los 14 bloques son exactamente contiguos y sin
+solapes en el binario: `$8999`-`$8AB8` (288 bytes), aunque en tiempo de
+ejecución algunos se leen con geometrías que sí se solapan entre sí
+(ver Sesión 11: `LOSETA_PISADA_ESCRITURA_VALOR4`/`_7` comparten sus
+últimos 16 bytes con `LOSETA_MAPA_PISADA_4`/`_8` cuando `DIBUJAR_
+ENTIDAD` los lee como 2x16) — eso no afecta a la extracción en sí,
+cada etiqueta sigue siendo dueña de bytes físicos propios y no
+solapados en el fichero fuente.
+
+Ficheros nuevos en `src/data/img/tiles/` (nombre en minúsculas, mismo
+patrón que `src/data/img/sprites/`):
+
+```
+loseta_pisadas_vertical_1.spr (32B)   loseta_pisadas_vertical_2.spr (32B)
+loseta_mapa_pisada_1.spr (16B)        loseta_mapa_pisada_2.spr (16B)
+loseta_mapa_pisada_3.spr (16B)        loseta_mapa_pisada_4.spr (16B)
+loseta_mapa_pisada_5.spr (16B)        loseta_mapa_pisada_6.spr (16B)
+loseta_mapa_pisada_7.spr (16B)        loseta_mapa_pisada_8.spr (16B)
+loseta_pisada_escritura_valor4.spr (16B)
+loseta_pisada_escritura_valor5.spr (32B)
+loseta_pisada_escritura_valor6.spr (32B)
+loseta_pisada_escritura_valor7.spr (16B)
+```
+
+Cada bloque `DB` correspondiente en `mummy1_body.asm` se sustituyó por
+`INCBIN "data/img/tiles/<nombre>.spr"` bajo la misma etiqueta,
+conservando exactamente la dirección y el contenido originales.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes). `python tools/dsk_build.py` → **0 diferencias**
+en el `.dsk` completo reconstruido (194816 bytes). Ningún byte del
+binario cambia; solo cambia dónde vive el dato fuente.
+
+### Pendiente
+
+Sin cambios respecto a la Sesión 14 — esta sesión es una extracción de
+recursos, no desensamblado nuevo. Sigue pendiente decidir si
+`recursos/sprites.html` pasa a leer estos ficheros en vez de mantener
+los bytes copiados inline en su JS (por ahora sigue con su copia
+propia, ya verificada pixel a pixel contra el usuario en sesiones
+anteriores; no se ha tocado para no arriesgar esa verificación ya
+hecha).
+
+## Sesión 16 — 2026-09-10: explorador parametrizable para `TABLA_MARCO_1..4` / `DATOS_MARCO_Y_TEXTO_CONTINUAR`
+
+A petición del usuario (revisando `src/mummy1_body.asm` desde
+`TABLA_MARCO_1`, línea ~3486): estas 4 tablas de 72 bytes
+(`$877D`-`$8895`) y el bloque mixto `DATOS_MARCO_Y_TEXTO_CONTINUAR`
+(`$889D`-`$8918`) están confirmadas como el origen de datos de
+`DIBUJAR_TRAMO_MARCO_1..4` (Sesión 6: cada una la vuelca
+`COPIAR_BLOQUE_A_LIENZO` como 12 filas x 6 bytes), pero **nunca se
+había decodificado su contenido a nivel de píxel** — la hipótesis
+"marco decorativo" viene de quién las llama, no de haber visto la
+imagen resultante. El usuario planteó la hipótesis de que podrían ser
+en realidad tablas de sprite.
+
+Se añade un tercer explorador interactivo a `recursos/sprites.html`
+(mismo motor `makeExplorer` ya usado por los otros dos, ahora
+parametrizado para aceptar un banco de bytes y una dirección base
+propios en vez de depender siempre de `TABLAS_SPRITE_CASILLA`), con
+control total de modo gráfico, ancho, alto, offset, desplazamiento
+vertical, salto, cantidad y paleta — para que el usuario pueda probar
+en vivo distintas interpretaciones hasta encontrar (o descartar) una
+lectura como sprite. Los 412 bytes del panel (`$877D`-`$8918`) se
+extrajeron directamente de `FISICO/extraido/MUMMY1.BIN` (no
+transcritos a mano desde el `DB` del ASM) para evitar errores de
+transcripción; se contrastaron contra los `DB` ya presentes en
+`mummy1_body.asm` antes de darlos por buenos. El valor por defecto del
+panel (ancho 6, alto 12) reproduce la única geometría ya confirmada
+por el código; los presets saltan a cada tabla individual, a las 4
+juntas, al bloque mixto de texto+gráfico, y a un barrido en tiras de
+72 bytes — pero ningún ancho/alto salvo el 6x12 está confirmado, todo
+lo demás queda como exploración abierta para el usuario.
+
+Este panel no toca ni añade hipótesis de identidad: no se ha decidido
+todavía si el contenido es sprite, máscara pura, o ninguna de las dos.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (no se tocó ningún
+byte del ASM ni del binario, solo `recursos/sprites.html`). Página
+comprobada con Microsoft Edge en modo headless (`--dump-dom`): los
+tres exploradores renderizan sin errores de JavaScript (86 `<canvas>`
+en total: 24+26+4+16+16, coincide con los valores por defecto de cada
+panel más las galerías fijas).
+
+### Pendiente
+
+Que el usuario use el nuevo panel para decidir si `TABLA_MARCO_1..4`/
+`DATOS_MARCO_Y_TEXTO_CONTINUAR` tienen una lectura visual con sentido
+bajo alguna combinación de parámetros distinta de 6x12 — si la
+encuentra, habrá que reconciliarla con la geometría 6x12 ya confirmada
+por el código (podrían coexistir: el código puede volcar los bytes con
+una geometría de pantalla distinta de como se organizó el dato en
+origen).
+
+## Sesión 17 — 2026-09-10: `TABLA_MARCO_1..4`/`DIBUJAR_TRAMO_MARCO_1..4` eran los iconos de contenido de casilla, no el marco decorativo del nivel
+
+Usando el panel parametrizable añadido en la Sesión 16, el usuario
+identifica visualmente las 4 tablas de 72 bytes (geometría 6x12
+confirmada por el código): `TABLA_MARCO_1` = un sarcófago,
+`TABLA_MARCO_2` = una llave, `TABLA_MARCO_3` = un pergamino,
+`TABLA_MARCO_4` = un tesoro.
+
+### Corroboración independiente por código
+
+Contrastando contra `mummy1_body.asm`, cada una de las 4 rutinas
+`DIBUJAR_TRAMO_MARCO_1..4` tiene **un único llamador**, y ese llamador
+ya tenía nombre desde la Sesión 14:
+
+| Rutina (antes) | Único llamador | Contenido de casilla (Sesión 14) | Identidad visual (usuario) |
+|---|---|---|---|
+| `DIBUJAR_TRAMO_MARCO_1` | `MARCO_CONTENIDO_MOMIA_REAL` | Momia Real (+50 puntos) | **Sarcófago** |
+| `DIBUJAR_TRAMO_MARCO_2` | `MARCO_CONTENIDO_LLAVE` | Llave | **Llave** |
+| `DIBUJAR_TRAMO_MARCO_3` | `MARCO_CONTENIDO_PERGAMINO` | Pergamino | **Pergamino** |
+| `DIBUJAR_TRAMO_MARCO_4` | `MARCO_CONTENIDO_TESORO` | Tesoro (+5 puntos) | **Tesoro** |
+
+Las 4 correspondencias encajan exactas y sin ambigüedad (incluida la
+temáticamente obvia "Momia Real → sarcófago"): dos fuentes
+independientes (inspección visual del usuario e ingeniería inversa del
+código) coinciden dígito a dígito. Esto **cierra** la pregunta que el
+usuario había hecho días atrás sobre las 20 casillas del tablero: el
+contenido de cada casilla al descubrirla se representa con uno de
+estos 4 iconos (más la Momia Guardiana, que no dibuja icono — emerge
+con su propio sprite, `ANIMAR_APARICION_MOMIA_GUARDIANA`).
+
+### Corrección de la hipótesis de la Sesión 3
+
+Desde la Sesión 3, `DIBUJAR_TRAMO_MARCO_1..4`/`TABLA_MARCO_1..4`
+llevaban la hipótesis "dibujan tramos del marco decorativo del
+nivel" — nunca verificada a nivel de píxel, solo asumida por el
+nombre `MARCO` en el código. Era **incorrecta**: no tiene relación
+con el marco/borde decorativo del tablero. Renombradas:
+
+- `TABLA_MARCO_1..4` → `TABLA_ICONO_SARCOFAGO`/`_LLAVE`/`_PERGAMINO`/`_TESORO`.
+- `DIBUJAR_TRAMO_MARCO_1..4` → `DIBUJAR_ICONO_SARCOFAGO`/`_LLAVE`/`_PERGAMINO`/`_TESORO`.
+
+`RELLENAR_MARCO_MEDIO`/`_SOLIDO`/`_VACIO`/`_DIAGONAL_1..6` **no** se
+renombran: siguen siendo una rutina distinta y genuinamente separada
+(rellenan el fondo/backdrop de 24x10 bytes sobre el que se dibuja
+después el icono de 12x6, vía `COPIAR_BLOQUE_A_LIENZO`) — su nombre
+actual ("marco" como "fondo/backdrop", no como "borde decorativo") no
+queda contradicho por este hallazgo, solo se precisa su papel real en
+los comentarios.
+
+### Cambios
+
+- `src/mummy1_body.asm`: 8 etiquetas renombradas (4 `TABLA_MARCO_*` +
+  4 `DIBUJAR_TRAMO_MARCO_*`), comentarios actualizados junto a cada
+  tabla y en la cabecera del bloque de datos, comentario de
+  `RELLENAR_MARCO_*` precisado (ya no dice "marco decorativo del
+  nivel").
+- `recursos/flujo_programa.html`: las 4 filas correspondientes pasan a
+  `subsistema: "contenido de casilla (confirmado)"`; las filas de
+  `RELLENAR_MARCO_*` pasan a `"fondo de icono de casilla (hipotesis)"`.
+- `recursos/flujo_detallado.html`: los 4 nodos pasan a
+  `estado: "confirmado"`, `confianza: "alta"`; nota de alcance y pie
+  actualizados con la fecha de esta sesión.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (solo se renombraron
+etiquetas y comentarios, ningún byte del binario cambia). Las 3
+páginas HTML tocadas se comprobaron con Microsoft Edge en modo
+headless (`--dump-dom`): renderizan sin errores de JavaScript.
+
+### Pendiente
+
+Nada nuevo que desensamblar — esta sesión es una corrección de
+identidad sobre código ya reconstruido. Sigue pendiente confirmar en
+emulador el patrón exacto de fondo (sólido/vacío/diagonal) que
+acompaña a cada icono, y la orientación jugable de las 4 direcciones
+de `'T'` (pendiente desde sesiones anteriores, sin relación con este
+hallazgo).
+
+## Sesión 18 — 2026-09-10: `TABLA_ICONO_*` → `SPRITE_ICONO_*`, extraídos a `src/data/img/sprites/*.spr`
+
+A petición del usuario: ya que la Sesión 17 confirmó que
+`TABLA_ICONO_SARCOFAGO`/`_LLAVE`/`_PERGAMINO`/`_TESORO` son sprites
+(los iconos de contenido de casilla), no tablas genéricas, se
+renombran con el prefijo `SPRITE_` (coherente con
+`SPRITE_JUGADOR_*`/`SPRITE_MOMIA_*`) y se extraen a ficheros
+individuales en `src/data/img/sprites/` — mismo tratamiento que
+recibieron esos 16 sprites en la Sesión 8 y las 14 losetas de pisadas
+en la Sesión 15.
+
+Los 4 bloques de 72 bytes se extrajeron programáticamente de
+`FISICO/extraido/MUMMY1.BIN` (no transcritos a mano) y se
+contrastaron contra los `DB` que sustituían antes de tocar el ASM:
+
+```
+sprite_icono_sarcofago.spr (72B, $877D)   sprite_icono_llave.spr (72B, $87C5)
+sprite_icono_pergamino.spr (72B, $880D)   sprite_icono_tesoro.spr (72B, $8855)
+```
+
+En `mummy1_body.asm`: `TABLA_ICONO_SARCOFAGO`→`SPRITE_ICONO_SARCOFAGO`
+(e igual para `_LLAVE`/`_PERGAMINO`/`_TESORO`), cada bloque `DB`
+sustituido por `INCBIN "data/img/sprites/<nombre>.spr"` bajo la misma
+etiqueta y dirección. `DIBUJAR_ICONO_*` (renombradas en la Sesión 17)
+no cambian de nombre, solo las referencias `LD IY,` a las tablas.
+Sincronizados `recursos/flujo_programa.html`, `recursos/
+flujo_detallado.html` y el panel dedicado de `recursos/sprites.html`
+(título, texto explicativo y presets actualizados para reflejar la
+identidad ya confirmada, en vez de presentarlo como exploración
+abierta).
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes). `python tools/dsk_build.py` → **0 diferencias**
+en el `.dsk` completo reconstruido. Ningún byte del binario cambia.
+Las 3 páginas HTML tocadas se comprobaron con Microsoft Edge en modo
+headless (`--dump-dom`): renderizan sin errores de JavaScript.
+
+### Pendiente
+
+Igual que la Sesión 17: confirmar en emulador el patrón de fondo
+exacto tras cada icono, y decidir si `DATOS_MARCO_Y_TEXTO_CONTINUAR`
+(el bloque mixto texto+gráfico que sigue a `SPRITE_ICONO_TESORO`)
+también extrae a fichero en cuanto se entienda su formato.

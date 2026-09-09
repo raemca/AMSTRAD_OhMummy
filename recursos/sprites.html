@@ -418,6 +418,89 @@ entre ellas.</p>
 <p class="subtitle">Cada vista se renderiza con el ancho y alto que usa el codigo al dibujarla. Algunas vistas se solapan porque el mismo bloque de bytes se interpreta con dos geometrias distintas.</p>
 <div class="mixed-sheet" id="mixed-sheet"></div>
 
+<h2>CONFIRMADO: SPRITE_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO ($877D-$8918)</h2>
+<p class="subtitle"><strong>Sesion 17:</strong> usando este mismo panel, el usuario
+identifico visualmente las 4 tablas de 72 bytes (6x12 bytes, volcadas
+por <code>COPIAR_BLOQUE_A_LIENZO</code>) como los iconos de contenido
+de casilla: <strong>sarcofago</strong> (<code>SPRITE_ICONO_SARCOFAGO</code>,
+$877D), <strong>llave</strong> (<code>SPRITE_ICONO_LLAVE</code>, $87C5),
+<strong>pergamino</strong> (<code>SPRITE_ICONO_PERGAMINO</code>, $880D) y
+<strong>tesoro</strong> (<code>SPRITE_ICONO_TESORO</code>, $8855) --
+corroborado de forma independiente por el codigo: cada una tiene un
+unico llamador (<code>MARCO_CONTENIDO_MOMIA_REAL/_LLAVE/_PERGAMINO/_TESORO</code>)
+que coincide exacto. CORRIGE la hipotesis de la Sesion 3 ("marco
+decorativo del nivel"): son los iconos que se dibujan al descubrir el
+contenido de una de las 20 casillas del tablero, ya extraidos a
+<code>src/data/img/sprites/sprite_icono_*.spr</code>. El bloque mixto
+<code>DATOS_MARCO_Y_TEXTO_CONTINUAR</code> que sigue (texto + grafico,
+$889D-$8918) sigue sin identidad confirmada -- usa los campos para
+seguir explorandolo.</p>
+<div class="panel">
+  <div class="row">
+    <div class="field">
+      <label for="h-modo">Modo grafico CPC</label>
+      <select id="h-modo">
+        <option value="1" selected>Modo 1 (4 px/byte, 4 colores)</option>
+        <option value="0">Modo 0 (2 px/byte, 16 colores)</option>
+        <option value="2">Modo 2 (8 px/byte, 2 colores)</option>
+      </select>
+      <span class="hint">como se reparten los bits de cada byte en pixeles</span>
+    </div>
+    <div class="field">
+      <label for="h-ancho">Ancho (bytes/fila)</label>
+      <input type="number" id="h-ancho" min="1" max="32" value="6">
+      <span class="hint" id="h-hint-ancho-px">= 24 px en Modo 1</span>
+    </div>
+    <div class="field">
+      <label for="h-alto">Alto (filas)</label>
+      <input type="number" id="h-alto" min="1" max="64" value="12">
+      <span class="hint">scanlines por sprite</span>
+    </div>
+    <div class="field">
+      <label for="h-offset">Offset inicial (bytes)</label>
+      <input type="number" id="h-offset" min="0" max="411" value="0">
+      <span class="hint" id="h-hint-offset-addr">= $877D</span>
+    </div>
+    <div class="field">
+      <label for="h-vdesp">Desplazamiento vertical (bytes, +/-)</label>
+      <input type="number" id="h-vdesp" min="-256" max="256" value="0">
+      <span class="hint" id="h-hint-vdesp-filas">= 0 filas</span>
+    </div>
+    <div class="field">
+      <label for="h-stride">Salto entre sprites (bytes)</label>
+      <input type="number" id="h-stride" min="1" max="4096" value="72">
+      <span class="hint">por defecto ancho x alto (sin huecos)</span>
+    </div>
+    <div class="field">
+      <label for="h-frames">Cantidad a mostrar</label>
+      <input type="number" id="h-frames" min="1" max="200" value="4">
+    </div>
+    <div class="field">
+      <label for="h-zoom">Zoom (px por pixel)</label>
+      <input type="number" id="h-zoom" min="1" max="16" value="6">
+    </div>
+    <div class="field">
+      <label for="h-paleta">Paleta (inventada)</label>
+      <select id="h-paleta">
+        <option value="gris" selected>Escala de grises</option>
+        <option value="color">Colores distintivos</option>
+        <option value="bn">Blanco / negro (solo bit mas significativo)</option>
+      </select>
+    </div>
+  </div>
+  <div class="presets">
+    <button class="preset" id="preset-h-marcos-todas">CONFIRMADO: las 4 juntas -- sarcofago/llave/pergamino/tesoro (6x12, salto 72)</button>
+    <button class="preset" id="preset-h-marco1">SPRITE_ICONO_SARCOFAGO ($877D)</button>
+    <button class="preset" id="preset-h-marco2">SPRITE_ICONO_LLAVE ($87C5)</button>
+    <button class="preset" id="preset-h-marco3">SPRITE_ICONO_PERGAMINO ($880D)</button>
+    <button class="preset" id="preset-h-marco4">SPRITE_ICONO_TESORO ($8855)</button>
+    <button class="preset" id="preset-h-continuar">DATOS_MARCO_Y_TEXTO_CONTINUAR ($889D, 124 bytes -- mezcla grafico+texto, prueba anchos)</button>
+    <button class="preset" id="preset-h-reset">Ver todo el bloque $877D-$8918 en tiras de 72 bytes</button>
+  </div>
+  <p class="status" id="status-line-h"></p>
+</div>
+<div id="grid-sprites-h"></div>
+
 <footer>
   Datos de <code>TABLAS_SPRITE_CASILLA</code> (<code>$8919</code>-<code>$8EC9</code>,
   1457 bytes), extraidos de <code>src/mummy1_body.asm</code> (Sesion 8).
@@ -436,12 +519,30 @@ const SPRITE_DATA_START_ADDR = 0x8919;
 const SPRITE_DATA_HEX =
 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f087f0f0f087f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f096f0f0f0f01ef0f0f01ef0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f087f087f096f096f0f0f096f096f0f01ef01ef096f096f0f0f096f096f0f0f0f0f0f0f0f0f0f0f0f0f0960f960ff0c3f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0c3960f960ff0f0f0f0f0f0f0f0f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f087f0f0f087f0f0f0f0f0f0f0f096f0f0f096f0f0f0f0f0f0f096f0f0f096f0f0f01ef0f0f01ef0f0f0f096f096f0f0f096f096f087f087f0f096f096f0f0f096f096f01ef01ef0f0f0f0f0f0f0f0f0f0f00f960f963cf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f03cf00f960f96f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0f0861678e077cc70c077cc70c077ee70c077fff0c3fefff0f1fefff0e11efff0f01eeff0f0f00ff0f0f01ef0f0f0f0f0f0f7fef0f0fffff0f07feff0f00c03f0e18616f0e033ee70e033ee30e077ee30f0ffee30f0fff73cf0fff7f8f0ff8778f07f87f0f00ff0f0f087f0f0f0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0f000fef0f088003cf0cc003cf1fffbf0f3fff7f8d3fefff887fcf7fcc378c33ce13cc31ef0f0f0f0f0f7fef0f0fffffcf0ee25f0f0800f3cf0e62df0f0119ef0e033fef0e0006ff0f0892ff0f0ff7ef0f0f7fcf0f0f3fcf0f0f3fcf0f0c33cf0f0c31ef0f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0f0032e70e0676e30e077ee33e1ffef30f0ffe778f0fff7f8f0ff8778f0efc378f00ff0f0f01ef0f0f0f0f0f0f0f7fef0f0fffff0f07feff0f07feff0f0979ef0e0470cf0c0676e70c077ee70c07fff78e17efff0f1fefff0e11efff0e13c7ff0f0f00ff0f0f087f0f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f700f0c30011f0c30033f0f0fdfff8f1fefffcf1fff7bcf3fef31ec33ce13c873cc378f0f0f0f0f0f7fef0f3fffff0f04a77f0c30f10f0f04b76f0f09788f0f0f7cc70f06f0070f04f19f0f0e7fff0f0f3fef0f0f3fcf0f0f3fcf0f0c33cf0f0873cf0f0f0f0f0e0204070e0402070e0402070e0204070e00000f0f00000f0f00010f0f08030f0f08030f0f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0f0f0f0f0e0204070e0402070e0402070e0204070f0000070f00000f0f08000f0f0c010f0f0c010f0f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f0800070f0a00030f080b030f08030f0f08030f0f00030f0f01010f0e03010f0e03080f0e0108070f0f0f0f0f0c070f0f08030f0f08030f0f0c030f0f08070f0f08000f0f0a00030f080b030f08030f0f08030f0f08030f0f08030f0f08030f0f08030f0f08010f0f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f00010f0e00000f0e00000f0c0404070c0802070f00030f0f01010f0e01010f0e03010f0f0f000f0f0f000f0f0f0f0f0f0e070f0f0c030f0f0c030f0f0c030f0f08000f0f0000070f0000070e0202030e0401030f0c000f0f08080f0f0808070f080c070f000f0f0f000f0f0f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c000f0f08080f0f080c070f010c070e0108070f0f0f0f0f0e030f0f0c010f0f0c010f0f0c030f0f0e010f0e00010f0c00050f0c0d010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f0c010f0f08010f0101d01011c0001011c0118180e000f010c";
 
-const SPRITE_BYTES = (function () {
-  const clean = SPRITE_DATA_HEX.trim();
+function hexToBytes(hex) {
+  const clean = hex.trim();
   const out = new Uint8Array(clean.length / 2);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
   return out;
-})();
+}
+const SPRITE_BYTES = hexToBytes(SPRITE_DATA_HEX);
+
+// ============================================================
+// DATOS CRUDOS -- SPRITE_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO +
+// DATOS_MARCO_Y_TEXTO_CONTINUAR ($877D-$8918, 412 bytes), extraidos
+// directamente de FISICO/extraido/MUMMY1.BIN (no transcritos a mano)
+// para el explorador parametrizable de mas abajo. Las 4 tablas de
+// icono (72 bytes = 12 filas x 6 bytes, lo que consume
+// COPIAR_BLOQUE_A_LIENZO) ya tienen identidad CONFIRMADA (sarcofago/
+// llave/pergamino/tesoro) y fichero propio en
+// src/data/img/sprites/sprite_icono_*.spr -- ver FINDINGS.md
+// Sesiones 16 y 17. Solo DATOS_MARCO_Y_TEXTO_CONTINUAR sigue sin
+// decodificar a nivel de pixel.
+// ============================================================
+const MARCO_DATA_START_ADDR = 0x877D;
+const MARCO_DATA_HEX =
+"33ffffffcc7700ffff00003300000001080100000000070e0000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f880000000011ee77ffffee77cc0000000033ee77ffffee77ffffffffffffffffffffcc77ffffffff8833ffffffff1111000000003388000000003388cc11ffff11118800ffff88338888ffffcc77aaaaffffffffbbeefffffffffffffffffffffff8fffff1fffffaf7fef5fffffaf7fef5fff9faf8f1f5f9f6f20000f4f6f7fa0000f5fef7fa0000f5fef6f20000f4f6f9faf8f1f5f9fffaf7fef5fffffaf7fef5fffff8fffff1ff0f000000000f0e030f0f0c070c0cc3cf0303090f0f0f0f0900000000000030f0f0f0f0c0080000000001090f0f0f0f090c0ccc3303030c0ccc3303030e070f0f0e070e0000000007681f0c0b0e000f02888c888820208c8c8484848c8c848c8c848484080808080808080808080808080808080808080a8a8a8a8f20208787858d858787858787858f85080808080808080808080808080808080808080a82838282202081208183818120818120812081121f0e1122432220544f20434f4e54494e5545";
+const MARCO_BYTES = hexToBytes(MARCO_DATA_HEX);
 
 // ============================================================
 // SPRITES CONFIRMADOS -- los 16 sprites de DIBUJAR_ENTIDAD (tipos 'A'
@@ -517,7 +618,8 @@ function paletteColor(paletteName, mode, index) {
   return "rgb(" + v + "," + v + "," + v + ")";
 }
 
-function decodeSprite(offset, widthBytes, heightRows, mode) {
+function decodeSprite(offset, widthBytes, heightRows, mode, bytesArr) {
+  bytesArr = bytesArr || SPRITE_BYTES;
   const decoder = MODE_DECODERS[mode];
   const pxPerByte = MODE_PX_PER_BYTE[mode];
   const widthPx = widthBytes * pxPerByte;
@@ -527,8 +629,8 @@ function decodeSprite(offset, widthBytes, heightRows, mode) {
     const row = [];
     for (let xb = 0; xb < widthBytes; xb++) {
       const byteOff = offset + y * widthBytes + xb;
-      const b = (byteOff >= 0 && byteOff < SPRITE_BYTES.length) ? SPRITE_BYTES[byteOff] : 0;
-      if (byteOff < SPRITE_BYTES.length) anyInRange = true;
+      const b = (byteOff >= 0 && byteOff < bytesArr.length) ? bytesArr[byteOff] : 0;
+      if (byteOff >= 0 && byteOff < bytesArr.length) anyInRange = true;
       row.push(...decoder(b));
     }
     rows.push(row);
@@ -560,7 +662,9 @@ function hexAddr(n) { return "$" + n.toString(16).toUpperCase().padStart(4, "0")
 // id ("f" o "g"). Permite tener varios exploradores en la misma
 // pagina sin que compartan estado. Devuelve {render, setPreset}.
 // ============================================================
-function makeExplorer(pfx, gridId, statusId) {
+function makeExplorer(pfx, gridId, statusId, bytesArr, startAddr) {
+  bytesArr = bytesArr || SPRITE_BYTES;
+  startAddr = startAddr === undefined ? SPRITE_DATA_START_ADDR : startAddr;
   const el = (name) => document.getElementById(pfx + "-" + name);
 
   function readParams() {
@@ -581,7 +685,7 @@ function makeExplorer(pfx, gridId, statusId) {
     const p = readParams();
     const pxPerByte = MODE_PX_PER_BYTE[p.modo];
     el("hint-ancho-px") && (el("hint-ancho-px").textContent = "= " + (p.ancho * pxPerByte) + " px en este modo");
-    el("hint-offset-addr") && (el("hint-offset-addr").textContent = "= " + hexAddr(SPRITE_DATA_START_ADDR + p.offset));
+    el("hint-offset-addr") && (el("hint-offset-addr").textContent = "= " + hexAddr(startAddr + p.offset));
     const hintV = el("hint-vdesp-filas");
     if (hintV) {
       const vdespFilas = p.vdesp / p.ancho;
@@ -597,7 +701,7 @@ function makeExplorer(pfx, gridId, statusId) {
     let outCount = 0;
     for (let i = 0; i < p.frames; i++) {
       const off = p.offset + p.vdesp + i * p.stride;
-      const decoded = decodeSprite(off, p.ancho, p.alto, p.modo);
+      const decoded = decodeSprite(off, p.ancho, p.alto, p.modo, bytesArr);
 
       const card = document.createElement("div");
       card.className = "tile" + (decoded.anyInRange ? "" : " out-of-range");
@@ -614,7 +718,7 @@ function makeExplorer(pfx, gridId, statusId) {
 
       const addr = document.createElement("div");
       addr.className = "addr";
-      addr.textContent = hexAddr(SPRITE_DATA_START_ADDR + off) + " (+" + off + ")";
+      addr.textContent = hexAddr(startAddr + off) + " (+" + off + ")";
       card.appendChild(addr);
 
       grid.appendChild(card);
@@ -622,8 +726,8 @@ function makeExplorer(pfx, gridId, statusId) {
 
     document.getElementById(statusId).textContent =
       "Cada sprite ocupa " + spriteBytes + " bytes (" + (p.ancho * pxPerByte) + "x" + p.alto + " px). " +
-      "Mostrando " + p.frames + " sprites desde " + hexAddr(SPRITE_DATA_START_ADDR + p.offset) +
-      " (offset +" + p.offset + " de " + SPRITE_BYTES.length + " bytes totales)" +
+      "Mostrando " + p.frames + " sprites desde " + hexAddr(startAddr + p.offset) +
+      " (offset +" + p.offset + " de " + bytesArr.length + " bytes totales)" +
       (outCount > 0 ? " -- " + outCount + " se salen del rango de datos disponible (atenuados)." : ".");
   }
 
@@ -711,6 +815,28 @@ document.getElementById("preset-g-pisadas").addEventListener("click", () =>
   explorerCasillas.setPreset(4, 16, 0x8999 - SPRITE_DATA_START_ADDR - 4, 64, 1));
 
 explorerCasillas.render();
+
+// --- explorador dedicado a SPRITE_ICONO_SARCOFAGO/LLAVE/PERGAMINO/
+// TESORO / DATOS_MARCO_Y_TEXTO_CONTINUAR ($877D-$8918) -- banco de
+// bytes propio (MARCO_BYTES), no se mezcla con TABLAS_SPRITE_CASILLA.
+// Ver FINDINGS.md Sesiones 16 y 17. ---
+const explorerMarco = makeExplorer("h", "grid-sprites-h", "status-line-h", MARCO_BYTES, MARCO_DATA_START_ADDR);
+
+const MARCO_ADDR_1 = 0x877D - MARCO_DATA_START_ADDR; // 0
+const MARCO_ADDR_2 = 0x87C5 - MARCO_DATA_START_ADDR; // 72
+const MARCO_ADDR_3 = 0x880D - MARCO_DATA_START_ADDR; // 144
+const MARCO_ADDR_4 = 0x8855 - MARCO_DATA_START_ADDR; // 216
+const MARCO_ADDR_CONTINUAR = 0x889D - MARCO_DATA_START_ADDR; // 288
+
+document.getElementById("preset-h-marcos-todas").addEventListener("click", () => explorerMarco.setPreset(6, 12, 0, 72, 4));
+document.getElementById("preset-h-marco1").addEventListener("click", () => explorerMarco.setPreset(6, 12, MARCO_ADDR_1, 72, 1));
+document.getElementById("preset-h-marco2").addEventListener("click", () => explorerMarco.setPreset(6, 12, MARCO_ADDR_2, 72, 1));
+document.getElementById("preset-h-marco3").addEventListener("click", () => explorerMarco.setPreset(6, 12, MARCO_ADDR_3, 72, 1));
+document.getElementById("preset-h-marco4").addEventListener("click", () => explorerMarco.setPreset(6, 12, MARCO_ADDR_4, 72, 1));
+document.getElementById("preset-h-continuar").addEventListener("click", () => explorerMarco.setPreset(4, 31, MARCO_ADDR_CONTINUAR, 124, 1));
+document.getElementById("preset-h-reset").addEventListener("click", () => explorerMarco.setPreset(6, 12, 0, 72, 6));
+
+explorerMarco.render();
 
 // Hoja interpretada: cada vista conserva la geometria que usa el
 // codigo al volcarla; algunas vistas se solapan sobre los mismos bytes.

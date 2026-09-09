@@ -25,9 +25,9 @@ notice.
 
 Current status
 ---------------
-**Session 13 — only ONE stretch of the engine is left unanalyzed
-(`$68B2`-`$7862`, 4017 bytes). Everything else is reconstructed**:
-firmware identified, full `.dsk` regenerated from scratch. The disk's
+**Session 14 — the engine is COMPLETELY reconstructed, with no
+remaining unanalyzed `INCBIN` code stretch**: firmware identified,
+full `.dsk` regenerated from scratch. The disk's
 AMSDOS catalogue (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes,
 standard CPCEMU format, 40 tracks x 1 side, 9x512 data format, sector
 IDs `C1`-`C9`) only has **2 files**:
@@ -35,7 +35,7 @@ IDs `C1`-`C9`) only has **2 files**:
 | File | Allocated blocks | Status |
 |---|---|---|
 | `MUMMY.BAS` | 3 (3072 bytes) | **detokenized and byte-verified** — `src/load_disk/mummy_bas.bas` |
-| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$6401`-`$6528` (296 bytes) reconstructed as code (Session 12)**, **`$6529`-`$68B1` (905 bytes) reconstructed as code (Session 13)**, **`$7863`-`$786B` (9 bytes) reconstructed as code (Session 13)**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data**, only `$68B2`-`$7862` (4017 bytes, the instructions screen) pending |
+| `MUMMY1.BIN` | 14 (14336 bytes) | engine, loads at `$6000`; **`$6000`-`$6400` (1025 bytes) disassembled**, **`$6401`-`$6528` (296 bytes) reconstructed as code (Session 12)**, **`$6529`-`$68B1` (905 bytes) reconstructed as code (Session 13)**, **`$68B2`-`$7862` (4017 bytes, instructions screen + game-loop core) reconstructed as code/data (Session 14)**, **`$7863`-`$786B` (9 bytes) reconstructed as code (Session 13)**, **`$786C`-`$7EFC` (1681 bytes) reconstructed as code**, **`$7EFD`-`$9385` (5257 bytes) reconstructed as data** — **no stretches left pending** |
 
 `MUMMY.BAS` is the loader: it hand-draws (with relative `PLOT`/`DRAW`)
 the "AMSOFT" logo (191 strokes, now rendered in
@@ -102,19 +102,34 @@ entry point `$6529` (key P/p): `INICIAR_PARTIDA`/`PREPARAR_NIVEL`
 `PREPARAR_TESOROS_NIVEL` (randomly places 14 treasures with 4
 increasing values plus a repeated common value), `ACTUALIZAR_HUD_VIDAS`
 (draws as many player icons in the HUD as lives remain),
-`SELECCIONAR_DIAGONAL_MARCO_NIVEL` (**resolves** the caller of
+`SELECCIONAR_DIAGONAL_MARCO_NIVEL` (finds a first caller of
 `RELLENAR_MARCO_DIAGONAL_1..6` left pending since Session 7),
 `COLOCAR_JUGADOR_INICIAL`, `BUCLE_PRINCIPAL_JUEGO` (the turn-based game
-loop, with 5 internal calls still unresolved), and the end-of-game
+loop, with 5 internal calls resolved by Session 14), and the end-of-game
 screens `PANTALLA_STOP_PRESS` (on completing all 6 levels) and
 `PANTALLA_GAME_OVER`/`ACTUALIZAR_TABLA_PUNTUACIONES` (on dying —
 confirms only this second path inserts the score into the HI-SCORE
 table). It also separately closes the last stretch of the original
-`INCBIN` (`$7863`-`$786B`, `IMPRIMIR_PUNTUACION_HUD`). Only **one**
-stretch of the engine is still unanalyzed (`$68B2`-`$7862`, 4017 bytes
-— the instructions screen, menu entry `'I'`), included as-is via
-`INCBIN` — see `FINDINGS.md` for the full call map, the per-routine/data
-confidence table, and the methodology used.
+`INCBIN` (`$7863`-`$786B`, `IMPRIMIR_PUNTUACION_HUD`).
+
+**Session 14** closes the **last `INCBIN` stretch left in the whole
+engine** (`$68B2`-`$7862`, 4017 bytes): `PANTALLA_INSTRUCCIONES` (the
+game's real instructions screen, menu entry `'I'`, with its 23
+paragraphs of literal English text — story, the rules of the 20-box
+grid, controls, and skill levels) and, above all, the **5 game-loop
+calls** left unresolved since Session 12: `PROCESAR_ENCUENTROS_
+ENTIDADES` (collision with treasure/Guardian Mummies),
+`PROCESAR_MOVIMIENTO_JUGADOR` (keyboard/joystick input and the
+player's actual movement — reuses the same logic as
+`MOVER_INDICADOR_MENU`), `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO` (detects
+crossing a grid intersection and paints the box side just walked),
+`COMPROBAR_SALIDA_NIVEL` (Key + Royal Mummy uncovered → level exit),
+and `ANIMAR_APARICION_MOMIA_GUARDIANA` (animates the Guardian Mummy
+"digging" its way out of its box). With this, **the whole engine
+(`$6000`-`$9385`) is reconstructed as assembler source, with no
+unanalyzed `INCBIN` code stretch left** — see `FINDINGS.md` for the
+full call map, the per-routine/data confidence table, and the
+methodology used.
 
 Building
 --------
@@ -162,10 +177,10 @@ Repository structure
   `img/sprites/` (Session 8: the 16 `DIBUJAR_ENTIDAD` sprites —
   `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each), `img/tiles/`,
   `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/`,
-  `sound/` (these still empty for now) and
-  `mummy1_resto_sin_analizar.bin` (the 4017 still-undisassembled
-  engine bytes, `$68B2`-`$7862`) — promoted to real source as analysis
-  progresses.
+  `sound/` (these still empty for now). `mummy1_resto_sin_analizar.bin`
+  is no longer referenced by any `INCBIN` as of Session 14 (the whole
+  engine is now reconstructed as source) — left in the tree as a
+  historical reference to the raw binary.
 - `src/load_disk/` — disk loader (Amstrad equivalent of the sibling
   tape projects' `load_cas/`): `mummy_bas.bas`, the loader's BASIC
   detokenized into editable text.
