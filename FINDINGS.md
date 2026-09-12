@@ -3200,3 +3200,320 @@ que recibía flechas hacia "`$7CC4`" ahora las recibe hacia
   deliberadamente afirmar semánticas de dirección (arriba/abajo/
   izquierda/derecha) no verificadas, describiendo en su lugar la
   operación de código real (columna/fila, tabla `IY` cargada).
+
+## Sesión 21 — 2026-09-12: repaso de `TABLAS_SPRITE_CASILLA` y `DATOS_MARCO_Y_TEXTO_CONTINUAR` en `recursos/sprites.html` -- solo quedan 17 bytes genuinamente sin identificar
+
+El usuario preguntó qué contienen estas dos etiquetas y si parecen
+sprites. Repaso de lo ya confirmado en sesiones anteriores (sin
+desensamblar nada nuevo):
+
+- **`TABLAS_SPRITE_CASILLA`** ($8919-$8EC9, 1457 bytes) no es "un
+  sprite": es la región donde viven, contiguos entre sí, los 2 rellenos
+  por defecto de `DIBUJAR_ENTIDAD` (Sesión 8, 64 bytes cada uno, todo
+  `$00`/todo `$F0`), las 12 losetas de pisadas (Sesión 8/11/15,
+  extraídas a `src/data/img/tiles/`) y los 16 sprites de jugador/momia
+  (Sesión 8, extraídos a `src/data/img/sprites/`). De los 1457 bytes,
+  **solo quedan 17 sin identificar**: el tramo final, offset 1440
+  (`$8EB9`-`$8EC9`), justo entre `SPRITE_MOMIA_G4_F2` y
+  `TABLA_DIRECCIONES_PANTALLA`. Nunca referenciado por ningún
+  `LD IY`/`HL`/`DE` conocido en el código ya reconstruido.
+- **`DATOS_MARCO_Y_TEXTO_CONTINUAR`** ($889D-$8918, 124 bytes) **no es
+  gráfico** -- esto ya se había resuelto en la Sesión 19 con
+  aritmética exacta de direcciones: son 2 llamadas a
+  `IMPRIMIR_BYTES_CON_LONGITUD` (texto + códigos de control VDU,
+  terminando en el literal `"C" TO CONTINUE"`), no un mapa de bits.
+
+### Cambios en `recursos/sprites.html`
+
+- El panel dedicado (`g`) se actualiza: título y texto explicativo ya
+  no dicen "todavía no tiene composición clara" para todo el rango
+  0-415 (obsoleto desde hace varias sesiones) -- ahora explican qué
+  está confirmado y señalan que el offset máximo útil es 1456. Nuevo
+  botón **"SIN IDENTIFICAR: cola de 17 bytes ($8EB9...)"** que salta
+  directo a esos 17 bytes (los datos ya estaban cargados en
+  `SPRITE_DATA_HEX` desde la Sesión 8, solo faltaba un acceso directo).
+- El panel de `SPRITE_ICONO_*`/`DATOS_MARCO_Y_TEXTO_CONTINUAR` (`h`,
+  Sesión 16) actualiza su texto y el botón de
+  `DATOS_MARCO_Y_TEXTO_CONTINUAR` para dejar claro que NO es sprite,
+  citando la Sesión 19, en vez de presentarlo como pendiente de
+  explorar.
+
+### Verificación
+
+No se tocó `src/mummy1_body.asm` (solo HTML), así que
+`python tools/build_all.py` no aplica un cambio nuevo pero se
+comprobó que sigue en 0 diferencias. Página verificada con Microsoft
+Edge en modo headless: renderiza sin errores, 86 `<canvas>` (sin
+cambios respecto a antes, el nuevo botón no altera la vista por
+defecto).
+
+### Pendiente
+
+- Que el usuario use el nuevo botón para decidir si los 17 bytes de
+  `$8EB9` tienen sentido visual como sprite bajo alguna combinación de
+  parámetros, o si son basura/relleno sin usar.
+- Todo lo demás pendiente de sesiones anteriores sigue igual.
+
+## Sesión 21 (continuación) — 2026-09-12: reescritura de los bloques de texto con códigos de control como los habría escrito el programador original
+
+Tras localizar la tabla oficial completa de códigos de control del
+Text VDU (`AMSTRAD CPC464/664/6128 FIRMWARE`, **Appendix VII**,
+`cpctech.cpcwiki.de/docs/manual/s968ap07.pdf` — hasta ahora no
+localizada en sesiones anteriores, que sólo tenían el jumpblock de la
+sección 14.1), el usuario pidió reescribir los bloques de texto mixto
+(control+ASCII) tal y como los habría escrito el programador original:
+constantes con nombre para los códigos de control (0-31) en vez de
+hexadecimal en bruto, y cadenas entre comillas para el texto.
+
+### Constantes `CTRL_TXT_*` añadidas
+
+32 `EQU` nuevas justo después del bloque `FIRM_*` existente (antes de
+`ORG $6000`), una por cada código 0-31 de la tabla oficial, con su
+número de parámetros documentado en el comentario (los parámetros son
+bytes de **datos**, no más códigos, aunque su valor sea <$20 -- error
+fácil de cometer al decodificar a mano). Ejemplos:
+`CTRL_TXT_FIJAR_PAPEL`=14 (1 param), `CTRL_TXT_FIJAR_TINTA`=15 (1
+param), `CTRL_TXT_POSICIONAR_CURSOR`=31 (2 param, columna+fila),
+`CTRL_TXT_BORRAR_VENTANA`=12 (0 param).
+
+### Mapeo de puntos de entrada reales (previo a tocar ningún byte)
+
+Antes de reescribir nada se localizaron con `Grep` TODOS los `CALL
+IMPRIMIR_BYTES_CON_LONGITUD` reales del fichero y su `LD HL` previo,
+para no asumir estructura no verificada. Esto reveló dos correcciones
+importantes a hipótesis previas:
+
+- **`TEXTO_TABLA_PUNTUACIONES`/`TEXTO_MENU_PRINCIPAL`** SÍ tienen
+  llamadores reales (9 puntos de entrada, `$866D`-`$8710`, dentro de
+  `BUCLE_SELECCIONAR_JUGADORES`) -- la nota de sesiones anteriores
+  ("sin CALL que los consuma localizado todavía") quedaba obsoleta.
+  Los últimos 2 bytes de lo que se documentaba como
+  `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (`$866D`/`$866C` en
+  adelante) resultaron ser en realidad el arranque de esta secuencia
+  de impresión, no parte de esa tabla de hipótesis -- se recorta su
+  límite y se crea `COLA_TEXTO_PRE_PUNTUACIONES` para la cola real.
+- **Límite de `ENVOLVENTE_TONO_3`/inicio de `TEXTO_HISTORIA_ATRACCION`
+  corregido 2 bytes antes**: el CALL real de `PANTALLA_STOP_PRESS`
+  ($673C) usa `LD HL,$801B`, no `$801D` como sugería la etiqueta
+  existente -- los bytes `$24,$0E` que se agrupaban como cola de la
+  envolvente de sonido pertenecen en realidad al inicio del bloque de
+  texto (longitud=$24=36 + primer código de control=$0E). Sólo cambia
+  dónde se traza el límite entre los dos bloques; ningún byte del
+  fichero cambia.
+- Cada bloque de texto (`TEXTO_MENU_OPCIONES`, `TEXTO_HISTORIA_
+  ATRACCION`, `TEXTO_TABLA_PUNTUACIONES`, `TEXTO_MENU_PRINCIPAL`,
+  `TEXTO_COPYRIGHT_Y_HUD`, `DATOS_MARCO_Y_TEXTO_CONTINUAR`) resultó ser
+  varias tiradas `longitud+datos` INDEPENDIENTES concatenadas, no una
+  única tirada continua -- confirmado por los puntos de entrada reales
+  encontrados (6, 10, 9, 2 y 2 respectivamente). En `TEXTO_TABLA_
+  PUNTUACIONES` los pares de 2 bytes intercalados entre tiradas
+  (`$C4,$09`, `$D0,$07`...) son valores de 16 bits leídos por
+  `IMPRIMIR_NUMERO_HL` (umbrales de puntuación), ajenos a la secuencia
+  de impresión de texto -- se documentan aparte, no como códigos de
+  control.
+- En `TEXTO_HISTORIA_ATRACCION`, el byte `$29` (ASCII `)`) en `$80FB`
+  no se imprime nunca como carácter: es la longitud de la tirada
+  siguiente ("Press... Continue"). El texto realmente mostrado en
+  pantalla es `"...for next dig."` sin paréntesis de cierre -- se
+  verificó leyendo los bytes en crudo del binario (sin paréntesis de
+  apertura tampoco en ningún punto de la secuencia), corrigiendo la
+  paráfrasis con paréntesis del comentario de sesiones anteriores.
+
+### Herramienta usada
+
+Para evitar transcribir/contar bytes a mano (fuente de errores, ver
+más abajo), se escribió un decodificador Python de un solo uso
+(`decode_text.py`/`decode_chain.py`/`decode_entries.py`, en el
+directorio de scratch de la sesión, no forman parte del repositorio)
+que lee los bytes reales de `FISICO/extraido/MUMMY1.BIN` en cada
+punto de entrada confirmado, aplica la tabla `CTRL_TXT_*` con su
+número de parámetros exacto, y separa automáticamente ASCII imprimible
+(entre comillas) de gráficos de bloque $80-$FF (en hexadecimal). Su
+salida se verificó primero letra a letra contra los `DB` ya existentes
+antes de pegarla en el fuente.
+
+### Errores cometidos y corregidos en el proceso (autocríticos)
+
+- Al reescribir `TEXTO_HISTORIA_ATRACCION` mantuve la etiqueta en su
+  posición original (2 bytes tarde, ver arriba) mientras escribía
+  contenido nuevo asumiendo que empezaba 2 bytes antes -- esto duplicó
+  2 bytes (`$24,$0E`) y desplazó todas las direcciones siguientes.
+  Detectado inmediato por `tools/build_all.py` (diferencias en
+  cascada, delta constante +2 en offsets muy anteriores al bloque
+  editado -- síntoma característico de un bloque con longitud
+  incorrecta en vez de un typo de contenido). Diagnosticado comparando
+  bytes reales vs generados directamente con Python en la dirección
+  exacta, no adivinando.
+- Al "corregir" el primer síntoma añadí de vuelta el paréntesis de
+  cierre en "for next dig." pensando que faltaba -- error en sentido
+  contrario (empeoró el delta de +2 a +3). Revertido tras releer los
+  bytes crudos del binario, que demuestran que el paréntesis nunca se
+  imprime.
+- Al compactar 19 `CTRL_TXT_CURSOR_IZQUIERDA` consecutivos (dos veces,
+  en `DATOS_MARCO_Y_TEXTO_CONTINUAR`) en listas separadas por comas,
+  cometí un error de conteo manual (15 y 17 en vez de 19) -- corregido
+  generando la lista con Python (`','.join([...]*19)`) en vez de
+  contar a mano.
+
+### Verificación
+
+- `python tools/build_all.py`: **0 diferencias** tras cada uno de los
+  6 bloques reescritos (verificado incremental, uno a uno, no al
+  final).
+- `python tools/dsk_build.py`: **0 diferencias**, `.dsk` reconstruido
+  idéntico byte a byte.
+
+### Pendiente
+
+- Repasar si `recursos/flujo_programa.html`/`flujo_detallado.html`
+  necesitan actualización (no debería, es relabeling puro de datos, no
+  cambia el grafo de llamadas ni rutinas).
+- El resto de bytes de baja confianza sin decodificar en estos bloques
+  (gráficos de bloque $80-$FF del "marco", offsets tipo diamante, etc.)
+  sigue igual -- fuera del alcance de esta sesión (sólo texto+códigos
+  de control).
+
+## Sesión 21 (continuación 3) — 2026-09-12: `recursos/sprites.html` -- hoja completa de `TABLAS_SPRITE_CASILLA` y `TABLA_BASE`/`TABLA_ESPACIO` como etiquetas reales
+
+El usuario preguntó si `TABLAS_SPRITE_CASILLA` son sprites (se le
+explicó que es solo la etiqueta que marca el inicio de la región, no
+un sprite en sí) y pidió una sección al final de `recursos/sprites.html`
+que la renderizase de un tirón. Al revisarla, el usuario notó que los
+dos primeros bloques (64 bytes todo `$00`, 64 bytes todo `$F0`) son
+simples rellenos y preguntó si el programador original los habría
+escrito como una lista de 64 `DB` sueltos.
+
+### Cambio en `src/mummy1_body.asm`
+
+Los dos bloques de relleno de `TABLAS_SPRITE_CASILLA` (antes 8 líneas
+de `DB` con 16 bytes idénticos cada una) se reescriben como `DEFS`
+con byte de relleno -- la misma convención ya usada en este fichero
+para `ARRAY_ENTIDADES`/`ESTADO_PARTIDA`/`VENTANA_TEXTO_HUD`/
+`MAPA_CASILLAS`/`RELLENO_TRAS_ESTADO`/`TABLA_DIRECCIONES_PANTALLA`
+(todas ellas bloques de un único byte repetido, aunque hasta ahora
+solo se había usado para rellenos de `$00`; `DEFS` de SjASMPlus admite
+un segundo parámetro para el byte de relleno, `DEFS 64,$F0`). Se les da
+además nombre propio, `TABLA_BASE` y `TABLA_ESPACIO`, que ya se usaban
+como descripción en los HTML pero no existían como etiqueta real en el
+`.asm`:
+
+```
+TABLA_BASE:
+    DEFS 64, $00 ; 8919 -- relleno de "entidad no reconocida" en DIBUJAR_ENTIDAD
+TABLA_ESPACIO:
+    DEFS 64, $F0 ; 8959 -- relleno de ' ' en DIBUJAR_ENTIDAD / valor fuera de 1-8 en DIBUJAR_CASILLA_MAPA
+```
+
+### Cambios en `recursos/sprites.html`
+
+Nueva sección **"TABLAS_SPRITE_CASILLA completa, de un tirón
+($8919-$8EC9)"** al final de la página, antes del `<footer>`: renderiza
+los 33 tramos del bloque en orden (2 rellenos + 14 losetas + 16
+sprites de jugador/momia + los 17 bytes finales sin identificar),
+reutilizando `BLOQUE_MIXTO`/`SPRITES_CONFIRMADOS` ya existentes en el
+script. Incluye una nota explicando qué es y qué no es
+`TABLAS_SPRITE_CASILLA`.
+
+### Verificación
+
+- `python tools/build_all.py`: **0 diferencias** tras el cambio a
+  `DEFS`.
+- `recursos/sprites.html` verificada con Microsoft Edge en modo
+  headless usando una URL `file://` absoluta (una ruta relativa sin
+  esquema hizo que Edge la interpretase como un nombre de host y
+  fallase con `DNS_PROBE_POSSIBLE`, sin ejecutar el `<script>` --
+  detectado porque el recuento de `<canvas>` generados por JS daba 0).
+  Con `file://` y `--virtual-time-budget`, los 33 tiles nuevos
+  renderizan con su etiqueta correcta y sin errores de JS.
+
+### Pendiente
+
+- Los 17 bytes finales sin identificar siguen igual -- fuera del
+  alcance de esta sesión.
+
+## Sesión 22 — 2026-09-12: `TABLA_OFFSETS_DIAMANTE` y `VARIABLES_DIBUJO_MARCO` -- localizados sus llamadores reales y descompuestos en variables individuales
+
+El usuario notó que estas dos etiquetas no tenían ningún `CALL`/`LD`
+conocido que las referenciara ("lo que no tiene sentido") y pidió
+analizar los datos para descomponerlos en variables reales y
+organizarlos con las etiquetas que de verdad se usan en sus
+invocaciones.
+
+### Investigación
+
+Un `Grep` de las direcciones internas de `TABLA_OFFSETS_DIAMANTE`
+($8611-$8644) localizó `LD HL,$8637` en `$632E`, dentro de la
+secuencia de arranque de partida real (tras `BUCLE_SELECCIONAR_
+JUGADORES`). Esa instrucción va seguida de `LD ($8645),HL` y `CALL
+INICIALIZAR_ENTIDADES` -- la misma pareja de instrucciones aparece
+también en `$61E5` (demo de fondo del menú, con `HL=$860F`) y en
+`COLOCAR_JUGADOR_INICIAL` ($66CF, también con `HL=$860F`). Leyendo
+`INICIALIZAR_UNA_ENTIDAD` ($7987, `LD DE,($8645)` + índice de entidad
+x2 + `ADD HL,DE` + lectura de una palabra de 16 bits) queda demostrado
+que `($8645)` es un puntero BASE a una tabla de posiciones, y que
+`TABLA_OFFSETS_DIAMANTE` es exactamente esa tabla: 26 palabras de 16
+bits que son direcciones de pantalla CPC válidas (byte alto `$B8`/
+`$90`/`$A8`), leídas para colocar la posición inicial de cada entidad
+(enemigo/coleccionable). El puntero base `$860F` = `TABLA_..-2` expone
+las palabras 0-5 (demo y cada nivel real); `$8637` = `TABLA_..+38`
+expone las palabras 20-25 (una sola vez, al empezar partida real).
+
+Un `Grep` completo de `$8645`/`$8647`/`$8649`/`$864A` (las 4 variables
+de `VARIABLES_DIBUJO_MARCO`) reveló que se usan en **muchos más sitios**
+de los que documentaba el comentario existente (que solo mencionaba
+`DIBUJAR_ICONO_*`): `$8645` se usa TAMBIÉN como el puntero de
+`INICIALIZAR_UNA_ENTIDAD` de arriba; `$8647` se usa en
+`VOLCAR_SPRITE_A_PANTALLA`/`RELLENAR_FILAS_MASCARA`/
+`COPIAR_BLOQUE_A_LIENZO` (puntero de fila de pantalla, mismo papel
+coherente en las 3); `$8649` se usa TAMBIÉN como contador de caracteres
+del nombre del jugador en `BUCLE_LEER_NOMBRE` (sin relación con su uso
+en `RELLENAR_MARCO_*`); `$864A` se usa solo en la familia
+`RELLENAR_MARCO_*` (byte de relleno actual). Es decir: 6 bytes de RAM
+escasa, reciclados deliberadamente por varias rutinas sin relación
+entre sí (nunca coinciden en tiempo de ejecución) -- patrón habitual en
+juegos de 8 bits de la época.
+
+### Cambios en `src/mummy1_body.asm`
+
+- `TABLA_OFFSETS_DIAMANTE` → **`TABLA_POSICIONES_INICIALES_ENTIDADES`**
+  (mismos 52 bytes, comentario reescrito con la evidencia).
+- Las dos referencias literales `LD HL,$860F`/`LD HL,$8637` pasan a
+  `LD HL,TABLA_POSICIONES_INICIALES_ENTIDADES-2` / `+38` (aritmética de
+  etiqueta, mismo patrón ya usado en el fichero para
+  `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8`).
+- `VARIABLES_DIBUJO_MARCO` se descompone en 4 etiquetas propias:
+  `VARIABLE_TEMPORAL_HL_1` ($8645, dos papeles sin relación --
+  documentados ambos), `PUNTERO_FILA_PANTALLA_BLIT` ($8647, un único
+  papel coherente en 3 rutinas), `VARIABLE_TEMPORAL_A_1` ($8649, dos
+  papeles sin relación) y `MASCARA_RELLENO_ACTUAL` ($864A, un único
+  papel). Los nombres "temporal" son deliberados: forzar un nombre
+  específico habría sido incorrecto en, como mínimo, uno de sus usos.
+- Las 39 instrucciones `LD (dir),reg`/`LD reg,(dir)` que usaban estas 4
+  direcciones en crudo se sustituyen por las etiquetas nuevas
+  (reemplazo mecánico con un script Python, para evitar errores de
+  transcripción manual en un volumen tan alto de sustituciones).
+
+### Verificación
+
+- `python tools/build_all.py`: **0 diferencias**.
+- `python tools/dsk_build.py`: **0 diferencias**.
+- Barrido final confirmando que no queda ninguna dirección literal
+  ($8645/$8647/$8649/$864A/$860F/$8637) fuera de los comentarios
+  explicativos.
+
+### Cambios en `recursos/*.html`
+
+`recursos/mapa_memoria.html` y `recursos/flujo_detallado.html`
+actualizados: entradas renombradas, estado pasado de "pendiente"/"sin
+CALL conocido" a "confirmado", y el `pendiente` genérico de
+`flujo_detallado.html` que mencionaba `TABLA_OFFSETS_DIAMANTE` corregido
+para reflejar que ya está resuelta. Ambos verificados con Microsoft
+Edge en modo headless (URL `file://`), sin errores de JS.
+
+### Pendiente
+
+- `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (justo antes de
+  `TABLA_POSICIONES_INICIALES_ENTIDADES`) sigue sin llamador conocido.
+- El reparto exacto demo/nivel/partida real entre los dos punteros base
+  de `TABLA_POSICIONES_INICIALES_ENTIDADES` es confianza media-alta,
+  no verificado en emulador.

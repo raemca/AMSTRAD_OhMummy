@@ -318,15 +318,20 @@ probando este mismo explorador -- ver <code>FINDINGS.md</code> Sesion 8).</p>
 <h2>Sprites decodificados con los parametros de arriba</h2>
 <div id="grid-sprites"></div>
 
-<h2>TABLAS_SPRITE_CASILLA sin identificar (offset 0-415, antes de $8AB9)</h2>
-<p class="subtitle">Zona dedicada al tramo que <strong>todavia no tiene composicion clara</strong>:
-lo que usa <code>DIBUJAR_ENTIDAD</code> para los tipos <code>' '</code> (espacio),
-<code>'T'</code> y por defecto, mas 8 de las 9 casillas de <code>DIBUJAR_CASILLA_MAPA</code>
-(la novena, en <code>$8959</code>, cae aqui tambien). Los 9 botones saltan
-directo a cada direccion de casilla YA CONOCIDA por el codigo (pero no
-contiguas entre si -- por eso son botones sueltos, no un preset con
-salto fijo). Ajusta ancho/alto/offset libremente para lo que quede
-entre ellas.</p>
+<h2>TABLAS_SPRITE_CASILLA -- explorador dedicado (offset 0-1456, $8919-$8EC9)</h2>
+<p class="subtitle"><strong>Actualizado tras las Sesiones 11/15/17/18: casi todo este
+bloque de 1457 bytes ya esta identificado.</strong> Los 2 rellenos por
+defecto ($8919/$8959, 64 bytes cada uno, todo <code>$00</code>/todo
+<code>$F0</code>) son las entidades <code>' '</code>/por-defecto de
+<code>DIBUJAR_ENTIDAD</code>; las 12 losetas de pisadas ($8999-$8AB8) y
+los 16 sprites de jugador/momia ($8AB9-$8EB8) ya tienen nombre y fichero
+propio en <code>src/data/img/{tiles,sprites}/</code>. Los botones de
+abajo saltan directo a cada direccion ya conocida. <strong>Lo unico que
+sigue sin identificar</strong> son los ultimos <strong>17 bytes</strong>
+del bloque, offset 1440 (<code>$8EB9</code>-<code>$8EC9</code>, justo
+antes de <code>TABLA_DIRECCIONES_PANTALLA</code>) -- usa el boton
+dedicado o ajusta ancho/alto/offset libremente para probar si tiene
+sentido como sprite.</p>
 <div class="panel">
   <div class="row">
     <div class="field">
@@ -350,7 +355,7 @@ entre ellas.</p>
     </div>
     <div class="field">
       <label for="g-offset">Offset inicial (bytes)</label>
-      <input type="number" id="g-offset" min="0" max="415" value="0">
+      <input type="number" id="g-offset" min="0" max="1456" value="0">
       <span class="hint" id="g-hint-offset-addr">= $8919</span>
     </div>
     <div class="field">
@@ -399,6 +404,7 @@ entre ellas.</p>
     <button class="preset" id="preset-g-8a99">LOSETA_PISADA_ESCRITURA_VALOR7 -- valor 7, 2x16 ($8A99)</button>
     <button class="preset" id="preset-g-pisadas">CONFIRMADO: LOSETA_PISADAS_VERTICAL ($8999+$89B9, 4x16 juntas)</button>
     <button class="preset" id="preset-g-reset">Ver todo el bloque fisico $8919-$8AB8 (26 celdas 2x8)</button>
+    <button class="preset" id="preset-g-cola">SIN IDENTIFICAR: cola de 17 bytes ($8EB9, tras los sprites de momia)</button>
   </div>
   <p class="status" id="status-line-g"></p>
 </div>
@@ -431,10 +437,15 @@ unico llamador (<code>MARCO_CONTENIDO_MOMIA_REAL/_LLAVE/_PERGAMINO/_TESORO</code
 que coincide exacto. CORRIGE la hipotesis de la Sesion 3 ("marco
 decorativo del nivel"): son los iconos que se dibujan al descubrir el
 contenido de una de las 20 casillas del tablero, ya extraidos a
-<code>src/data/img/sprites/sprite_icono_*.spr</code>. El bloque mixto
-<code>DATOS_MARCO_Y_TEXTO_CONTINUAR</code> que sigue (texto + grafico,
-$889D-$8918) sigue sin identidad confirmada -- usa los campos para
-seguir explorandolo.</p>
+<code>src/data/img/sprites/sprite_icono_*.spr</code>. <strong>El bloque
+<code>DATOS_MARCO_Y_TEXTO_CONTINUAR</code> que sigue ($889D-$8918)
+NO es grafico</strong> -- la Sesion 19 confirmo con aritmetica exacta
+de direcciones que son dos llamadas a <code>IMPRIMIR_BYTES_CON_LONGITUD</code>
+(longitud+bytes que se imprimen letra a letra, mezclando codigos de
+control VDU con el texto literal <code>"C" TO CONTINUE</code> al
+final). El preset de abajo lo carga igualmente por si quieres verlo
+como imagen, pero no esperes que tenga sentido visual como sprite: es
+una secuencia de impresion, no un mapa de bits.</p>
 <div class="panel">
   <div class="row">
     <div class="field">
@@ -494,12 +505,36 @@ seguir explorandolo.</p>
     <button class="preset" id="preset-h-marco2">SPRITE_ICONO_LLAVE ($87C5)</button>
     <button class="preset" id="preset-h-marco3">SPRITE_ICONO_PERGAMINO ($880D)</button>
     <button class="preset" id="preset-h-marco4">SPRITE_ICONO_TESORO ($8855)</button>
-    <button class="preset" id="preset-h-continuar">DATOS_MARCO_Y_TEXTO_CONTINUAR ($889D, 124 bytes -- mezcla grafico+texto, prueba anchos)</button>
+    <button class="preset" id="preset-h-continuar">NO ES SPRITE: DATOS_MARCO_Y_TEXTO_CONTINUAR ($889D, 124 bytes -- confirmado texto+VDU, Sesion 19)</button>
     <button class="preset" id="preset-h-reset">Ver todo el bloque $877D-$8918 en tiras de 72 bytes</button>
   </div>
   <p class="status" id="status-line-h"></p>
 </div>
 <div id="grid-sprites-h"></div>
+
+<h2>TABLAS_SPRITE_CASILLA completa, de un tiron ($8919-$8EC9)</h2>
+<div class="note">
+  <strong>&iquest;<code>TABLAS_SPRITE_CASILLA</code> son sprites?</strong> La
+  etiqueta en si no es "un sprite": es el rotulo que marca el
+  <strong>inicio</strong> de toda esta region de 1457 bytes, confirmado
+  por <code>DIBUJAR_ENTIDAD</code> (<code>LD IY,$8919</code>). Dentro
+  conviven, contiguos entre si y en este orden, <strong>2 rellenos por
+  defecto</strong> (todo <code>$00</code> / todo <code>$F0</code>, 64
+  bytes cada uno), <strong>12 losetas de pisadas</strong> (con dos
+  solapes deliberados de 16 bytes entre la loseta de "escritura en
+  directo" y la loseta de "redibujado del suelo" del mismo valor de
+  casilla) y <strong>16 sprites de jugador/momia</strong> (4x16, 64
+  bytes cada uno) -- todos ya extraidos a ficheros individuales en
+  <code>src/data/img/{tiles,sprites}/</code> e incluidos en
+  <code>src/mummy1_body.asm</code> via <code>INCBIN</code>. Solo quedan
+  <strong>17 bytes sin identificar</strong> al final (<code>$8EB9</code>,
+  justo antes de <code>TABLA_DIRECCIONES_PANTALLA</code>), sin ningun
+  <code>LD IY/HL/DE</code> conocido que los lea todavia. La hoja de
+  abajo renderiza el bloque entero de un tiron, cada tramo con la
+  geometria real que usa el codigo al volcarlo (o, para el tramo sin
+  identificar, una geometria de prueba).
+</div>
+<div class="mixed-sheet" id="full-sheet"></div>
 
 <footer>
   Datos de <code>TABLAS_SPRITE_CASILLA</code> (<code>$8919</code>-<code>$8EC9</code>,
@@ -536,8 +571,10 @@ const SPRITE_BYTES = hexToBytes(SPRITE_DATA_HEX);
 // COPIAR_BLOQUE_A_LIENZO) ya tienen identidad CONFIRMADA (sarcofago/
 // llave/pergamino/tesoro) y fichero propio en
 // src/data/img/sprites/sprite_icono_*.spr -- ver FINDINGS.md
-// Sesiones 16 y 17. Solo DATOS_MARCO_Y_TEXTO_CONTINUAR sigue sin
-// decodificar a nivel de pixel.
+// Sesiones 16 y 17. DATOS_MARCO_Y_TEXTO_CONTINUAR (Sesion 19) NO es
+// grafico -- son 2 llamadas a IMPRIMIR_BYTES_CON_LONGITUD (texto +
+// codigos VDU, confirmado con aritmetica exacta de direcciones), se
+// mantiene aqui solo por si se quiere visualizar igualmente.
 // ============================================================
 const MARCO_DATA_START_ADDR = 0x877D;
 const MARCO_DATA_HEX =
@@ -796,6 +833,15 @@ Object.keys(CASILLA_ADDRS).forEach((id) => {
 });
 document.getElementById("preset-g-reset").addEventListener("click", () => explorerCasillas.setPreset(2, 8, 0, 16, 26));
 
+// Cola sin identificar de TABLAS_SPRITE_CASILLA: 17 bytes en $8EB9,
+// justo tras SPRITE_MOMIA_G4_F2 ($8E79-$8EB8) y justo antes de
+// TABLA_DIRECCIONES_PANTALLA ($8ECA). Nunca referenciada por ningun
+// LD IY/HL/DE conocido -- es el unico tramo de TABLAS_SPRITE_CASILLA
+// que sigue sin identidad. Preset con ancho 1 (4px) para poder ver
+// los 17 bytes como una tira vertical estrecha; ajusta libremente.
+document.getElementById("preset-g-cola").addEventListener("click", () =>
+  explorerCasillas.setPreset(1, 17, 0x8EB9 - SPRITE_DATA_START_ADDR, 17, 1));
+
 // LOSETA_MAPA_PISADA_1..8 ($89D9-$8AB8, ver FINDINGS.md Sesion 8):
 // identificadas por el usuario como los 8 "pasos" de las pisadas del
 // jugador -- patron V-V-H-H-V-V-H-H confirmado pixel a pixel.
@@ -882,6 +928,53 @@ function renderBloqueMixto() {
 }
 
 renderBloqueMixto();
+
+// ============================================================
+// HOJA COMPLETA -- TABLAS_SPRITE_CASILLA de un tiron ($8919-$8EC9,
+// 1457 bytes): los 2 rellenos por defecto + las 14 losetas de
+// BLOQUE_MIXTO + los 16 sprites de jugador/momia (reutilizando las
+// direcciones de SPRITES_CONFIRMADOS) + el tramo final sin identificar
+// (17 bytes, geometria de prueba 1x17). Cada tramo se decodifica con
+// la geometria real que usa el codigo al volcarlo. Ver FINDINGS.md
+// Sesion 21.
+// ============================================================
+const BLOQUE_COMPLETO = [
+  [0x8919, 4, 16, "TABLA_BASE (relleno por defecto)", "4x16"],
+  [0x8959, 4, 16, "TABLA_ESPACIO (relleno por defecto)", "4x16"],
+  ...BLOQUE_MIXTO.slice(2),
+  ...SPRITES_CONFIRMADOS.map((s) => [
+    s.addr,
+    4,
+    16,
+    (s.kind === "jugador" ? "JUGADOR" : "MOMIA") + "_G" + s.grupo + "_F" + s.fotograma,
+    "4x16",
+  ]),
+  [0x8EB9, 1, 17, "SIN IDENTIFICAR (17 bytes)", "1x17 (geometria de prueba)"],
+];
+
+function renderBloqueCompleto() {
+  const sheet = document.getElementById("full-sheet");
+  sheet.innerHTML = "";
+  for (const [addr, widthBytes, heightRows, label, geometry] of BLOQUE_COMPLETO) {
+    const decoded = decodeSprite(addr - SPRITE_DATA_START_ADDR, widthBytes, heightRows, 1);
+    const card = document.createElement("div");
+    card.className = "mixed-tile";
+    const canvas = document.createElement("canvas");
+    drawSprite(canvas, decoded, 6, "gris", 1);
+    card.appendChild(canvas);
+    const title = document.createElement("div");
+    title.className = "mixed-label";
+    title.textContent = label;
+    card.appendChild(title);
+    const meta = document.createElement("div");
+    meta.className = "mixed-meta";
+    meta.textContent = hexAddr(addr) + " - " + geometry;
+    card.appendChild(meta);
+    sheet.appendChild(card);
+  }
+}
+
+renderBloqueCompleto();
 
 // --- galeria de sprites confirmados (arriba del todo, siempre Modo 1
 // 4x16 -- son datos fijos, no dependen del panel de parametros) ---

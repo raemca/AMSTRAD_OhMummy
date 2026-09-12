@@ -41,6 +41,48 @@ FIRM_KL_TIME_PLEASE     EQU $BD0D   ; Leer el contador de tiempo transcurrido
 FIRM_KM_CHAR_RETURN     EQU $BB0C   ; Devolver un caracter al buffer de teclado
 FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 
+; Codigos de control del Text VDU (valores 0-31 enviados a FIRM_TXT_OUTPUT):
+; NO se imprimen como caracter, se interpretan como ordenes (con 0 o mas
+; parametros, que SI son bytes de datos literales, no mas codigos).
+; Tabla oficial completa: AMSTRAD CPC464/664/6128 FIRMWARE, Appendix VII
+; "Text VDU Control Codes" -- cpctech.cpcwiki.de/docs/manual/s968ap07.pdf.
+; Usada para reescribir en Sesion 21 los bloques de texto con codigos de
+; control mezclados (antes en hexadecimal en bruto) como los habria
+; escrito el programador original: texto entre comillas + estas
+; constantes con nombre. Ver FINDINGS.md Sesion 21.
+CTRL_TXT_CURSOR_LEGAL           EQU 0   ; NUL, 0 param: fuerza el cursor a posicion legal (firmware v1.1)
+CTRL_TXT_IMPRIMIR_CHAR          EQU 1   ; SOH, 1 param: imprime literalmente el caracter dado (permite imprimir 0-31)
+CTRL_TXT_CURSOR_OFF             EQU 2   ; STX, 0 param: desactiva el cursor parpadeante
+CTRL_TXT_CURSOR_ON              EQU 3   ; ETX, 0 param: activa el cursor parpadeante
+CTRL_TXT_MODO_PANTALLA          EQU 4   ; EOT, 1 param: fija el modo de pantalla (parametro MOD 4)
+CTRL_TXT_IMPRIMIR_GRAFICO       EQU 5   ; ENQ, 1 param: imprime el caracter via Graphics VDU
+CTRL_TXT_VDU_ON                 EQU 6   ; ACK, 0 param: activa el VDU
+CTRL_TXT_BEEP                   EQU 7   ; BEL, 0 param: pitido corto, vacia las colas de sonido
+CTRL_TXT_CURSOR_IZQUIERDA       EQU 8   ; BS,  0 param: cursor legal, mueve una posicion a la izquierda
+CTRL_TXT_CURSOR_DERECHA         EQU 9   ; TAB, 0 param: cursor legal, mueve una posicion a la derecha
+CTRL_TXT_CURSOR_ABAJO           EQU 10  ; LF,  0 param: cursor legal, mueve una linea abajo
+CTRL_TXT_CURSOR_ARRIBA          EQU 11  ; VT,  0 param: cursor legal, mueve una linea arriba
+CTRL_TXT_BORRAR_VENTANA         EQU 12  ; FF,  0 param: borra la ventana actual y cursor a esquina superior izq.
+CTRL_TXT_RETORNO_CARRO          EQU 13  ; CR,  0 param: cursor legal, mueve al borde izquierdo de la linea actual
+CTRL_TXT_FIJAR_PAPEL            EQU 14  ; SO,  1 param: tinta de papel (fondo), parametro MOD 16
+CTRL_TXT_FIJAR_TINTA            EQU 15  ; SI,  1 param: tinta de trazo (pen), parametro MOD 16
+CTRL_TXT_BORRAR_CASILLA         EQU 16  ; DLE, 0 param: cursor legal, borra la casilla actual (tinta de papel)
+CTRL_TXT_BORRAR_INICIO_LINEA    EQU 17  ; DC1, 0 param: borra desde el borde izq. de la ventana hasta el cursor
+CTRL_TXT_BORRAR_FIN_LINEA       EQU 18  ; DC2, 0 param: borra desde el cursor hasta el borde derecho de la ventana
+CTRL_TXT_BORRAR_INICIO_VENTANA  EQU 19  ; DC3, 0 param: borra desde el inicio de la ventana hasta el cursor
+CTRL_TXT_BORRAR_FIN_VENTANA     EQU 20  ; DC4, 0 param: borra desde el cursor hasta el final de la ventana
+CTRL_TXT_VDU_OFF                EQU 21  ; NAK, 0 param: desactiva el VDU
+CTRL_TXT_MODO_ESCRITURA         EQU 22  ; SYN, 1 param: modo de escritura de caracter (0 opaco, 1 transparente)
+CTRL_TXT_MODO_GRAFICO           EQU 23  ; ETB, 1 param: modo de escritura de la Graphics VDU (MOD 4)
+CTRL_TXT_INTERCAMBIAR_TINTAS    EQU 24  ; CAN, 0 param: intercambia la tinta de trazo y la de papel
+CTRL_TXT_DEFINIR_MATRIZ_CARACTER EQU 25 ; EM,  9 param: define la matriz de un caracter definible por el usuario
+CTRL_TXT_FIJAR_VENTANA          EQU 26  ; SUB, 4 param: fija los limites de la ventana de texto (izq,der,arriba,abajo)
+CTRL_TXT_ESC_SIN_EFECTO         EQU 27  ; ESC, 0 param: sin efecto, disponible para el usuario
+CTRL_TXT_FIJAR_COLOR_TINTA      EQU 28  ; FS,  3 param: fija los colores de una tinta (indice, color1, color2)
+CTRL_TXT_FIJAR_COLOR_BORDE      EQU 29  ; GS,  2 param: fija los colores del borde (color1, color2)
+CTRL_TXT_CURSOR_HOME            EQU 30  ; RS,  0 param: cursor a la esquina superior izq. de la ventana
+CTRL_TXT_POSICIONAR_CURSOR      EQU 31  ; US,  2 param: posiciona el cursor (columna, fila) dentro de la ventana
+
     ORG $6000
 
 ; ---- Inicializacion de sonido: 3 envolventes (amplitud+tono), cada
@@ -264,8 +306,8 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     LD HL,$A040                  ; 61DC: 2140a0
     CALL DIBUJAR_ICONO_TESORO                   ; 61DF: cdcd7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61E2: cdd178
-    LD HL,$860F                  ; 61E5: 210f86
-    LD ($8645),HL                ; 61E8: 224586
+    LD HL,TABLA_POSICIONES_INICIALES_ENTIDADES-2                  ; 61E5: 210f86
+    LD (VARIABLE_TEMPORAL_HL_1),HL                ; 61E8: 224586
     CALL INICIALIZAR_ENTIDADES                   ; 61EB: cd4f79
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61EE: cdd178
     LD HL,$6828                  ; 61F1: 212868
@@ -395,8 +437,8 @@ PREPARAR_ENTRADA_NOMBRE:
     CALL IMPRIMIR_NUMERO_HL                   ; 6325: cd6c78
     LD HL,$86D6                  ; 6328: 21d686
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 632B: cdf47e
-    LD HL,$8637                  ; 632E: 213786
-    LD ($8645),HL                ; 6331: 224586
+    LD HL,TABLA_POSICIONES_INICIALES_ENTIDADES+38                  ; 632E: 213786
+    LD (VARIABLE_TEMPORAL_HL_1),HL                ; 6331: 224586
     CALL INICIALIZAR_ENTIDADES                   ; 6334: cd4f79
     LD HL,$6828                  ; 6337: 212868
     LD ($8155),HL                ; 633A: 225581
@@ -411,7 +453,7 @@ PREPARAR_ENTRADA_NOMBRE:
     LD HL,($7FC6)                ; 6350: 2ac67f
     CALL FIRM_TXT_SET_CURSOR                   ; 6353: cd75bb
     XOR A                        ; 6356: af
-    LD ($8649),A                 ; 6357: 324986
+    LD (VARIABLE_TEMPORAL_A_1),A                 ; 6357: 324986
     LD A,$8F                     ; 635A: 3e8f
     CALL FIRM_TXT_OUTPUT                   ; 635C: cd5abb
     LD HL,($7FC6)                ; 635F: 2ac67f
@@ -451,7 +493,7 @@ BUCLE_LEER_NOMBRE:
     CP $7F                       ; 638C: fe7f
     JR Z,BORRAR_CARACTER_NOMBRE                   ; 638E: 2834
     LD B,A                       ; 6390: 47
-    LD A,($8649)                 ; 6391: 3a4986
+    LD A,(VARIABLE_TEMPORAL_A_1)                 ; 6391: 3a4986
     CP $0C                       ; 6394: fe0c
     JR Z,BUCLE_LEER_NOMBRE                   ; 6396: 28da
     LD A,B                       ; 6398: 78
@@ -470,16 +512,16 @@ BUCLE_LEER_NOMBRE:
     INC H                        ; 63B4: 24
     LD ($7FC6),HL                ; 63B5: 22c67f
     CALL FIRM_TXT_SET_CURSOR                   ; 63B8: cd75bb
-    LD A,($8649)                 ; 63BB: 3a4986
+    LD A,(VARIABLE_TEMPORAL_A_1)                 ; 63BB: 3a4986
     INC A                        ; 63BE: 3c
-    LD ($8649),A                 ; 63BF: 324986
+    LD (VARIABLE_TEMPORAL_A_1),A                 ; 63BF: 324986
     JR BUCLE_LEER_NOMBRE                     ; 63C2: 18ae
 BORRAR_CARACTER_NOMBRE:
-    LD A,($8649)                 ; 63C4: 3a4986
+    LD A,(VARIABLE_TEMPORAL_A_1)                 ; 63C4: 3a4986
     OR A                         ; 63C7: b7
     JR Z,BUCLE_LEER_NOMBRE                   ; 63C8: 28a8
     DEC A                        ; 63CA: 3d
-    LD ($8649),A                 ; 63CB: 324986
+    LD (VARIABLE_TEMPORAL_A_1),A                 ; 63CB: 324986
     LD HL,($7FC8)                ; 63CE: 2ac87f
     DEC HL                       ; 63D1: 2b
     LD A,$20                     ; 63D2: 3e20
@@ -1033,8 +1075,9 @@ BUCLE_DIBUJAR_FONDO_COLUMNA:
     DJNZ BUCLE_DIBUJAR_FONDO_FILA                        ; 66CD: 10e4
 
 ; COLOCAR_JUGADOR_INICIAL ($66CF): fija el puntero de posiciones
-; ($8645=$860F, la MISMA tabla que usa la demo de fondo del menu en
-; $61E5) y llama a INICIALIZAR_ENTIDADES -- coloca tantas entidades
+; (VARIABLE_TEMPORAL_HL_1 = TABLA_POSICIONES_INICIALES_ENTIDADES-2, el
+; mismo puntero base que usa la demo de fondo del menu en $61E5) y
+; llama a INICIALIZAR_ENTIDADES -- coloca tantas entidades
 ; (enemigos/coleccionables) como indique ($8169), que en PREPARAR_NIVEL
 ; se dejo sincronizado con el nivel actual (hipotesis media-alta: cada
 ; nivel introduce tantos enemigos como su numero). Despues dibuja al
@@ -1043,8 +1086,8 @@ BUCLE_DIBUJAR_FONDO_COLUMNA:
 ; ($8157)=3 (una de las 4 orientaciones/grupos de SPRITE_JUGADOR_Gx,
 ; sin resolver cual exactamente -- pendiente de sesiones anteriores).
 COLOCAR_JUGADOR_INICIAL:
-    LD HL,$860F                       ; 66CF: 210f86
-    LD ($8645),HL                     ; 66D2: 224586
+    LD HL,TABLA_POSICIONES_INICIALES_ENTIDADES-2                       ; 66CF: 210f86
+    LD (VARIABLE_TEMPORAL_HL_1),HL                     ; 66D2: 224586
     CALL INICIALIZAR_ENTIDADES        ; 66D5: cd4f79
     LD DE,$0820                       ; 66D8: 112008
     LD ($8155),DE                     ; 66DB: ed535581
@@ -2612,7 +2655,7 @@ BUCLE_AVANZAR_ENTIDAD_NUEVA:
     LD A,($816C)                     ; 7982: 3a6c81
     LD L,A                           ; 7985: 6f
     ADD HL,HL                        ; 7986: 29
-    LD DE,($8645)                    ; 7987: ed5b4586
+    LD DE,(VARIABLE_TEMPORAL_HL_1)                    ; 7987: ed5b4586
     ADD HL,DE                        ; 798B: 19
     LD E,(HL)                        ; 798C: 5e
     INC HL                           ; 798D: 23
@@ -3053,7 +3096,7 @@ VOLCAR_SPRITE_A_PANTALLA:
     PUSH DE                          ; 7CC4: d5
     LD B,$10                         ; 7CC5: 0610
     EX DE,HL                         ; 7CC7: eb
-    LD ($8647),HL                    ; 7CC8: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7CC8: 224786
 BUCLE_COPIAR_FILAS_SPRITE:
     PUSH BC                          ; 7CCB: c5
     CALL CASILLA_A_DIRECCION_PANTALLA ; 7CCC: cd927e
@@ -3064,9 +3107,9 @@ BUCLE_COPIAR_FILA_SPRITE:
     LD (HL),A                        ; 7CD6: 77
     INC HL                           ; 7CD7: 23
     DJNZ BUCLE_COPIAR_FILA_SPRITE                       ; 7CD8: 10f7
-    LD HL,($8647)                    ; 7CDA: 2a4786
+    LD HL,(PUNTERO_FILA_PANTALLA_BLIT)                    ; 7CDA: 2a4786
     INC H                            ; 7CDD: 24
-    LD ($8647),HL                    ; 7CDE: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7CDE: 224786
     POP BC                           ; 7CE1: c1
     DJNZ BUCLE_COPIAR_FILAS_SPRITE                       ; 7CE2: 10e7
     POP DE                           ; 7CE4: d1
@@ -3171,42 +3214,42 @@ CONTINUAR_MEZCLAR_BIT_ALEATORIO:
     DJNZ BUCLE_MEZCLAR_BITS_ALEATORIOS                       ; 7D82: 10fa
     RET                              ; 7D84: c9
 DIBUJAR_ICONO_SARCOFAGO:
-    LD ($8645),HL                    ; 7D85: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7D85: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7D88: cded7d
-    LD HL,($8645)                    ; 7D8B: 2a4586
+    LD HL,(VARIABLE_TEMPORAL_HL_1)                    ; 7D8B: 2a4586
     LD BC,$0602                      ; 7D8E: 010206
     ADD HL,BC                        ; 7D91: 09
-    LD ($8645),HL                    ; 7D92: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7D92: 224586
     LD IY,SPRITE_ICONO_SARCOFAGO               ; 7D95: fd217d87
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7D99: cd737e
     RET                              ; 7D9C: c9
 DIBUJAR_ICONO_LLAVE:
-    LD ($8645),HL                    ; 7D9D: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7D9D: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7DA0: cded7d
-    LD HL,($8645)                    ; 7DA3: 2a4586
+    LD HL,(VARIABLE_TEMPORAL_HL_1)                    ; 7DA3: 2a4586
     LD BC,$0602                      ; 7DA6: 010206
     ADD HL,BC                        ; 7DA9: 09
-    LD ($8645),HL                    ; 7DAA: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7DAA: 224586
     LD IY,SPRITE_ICONO_LLAVE               ; 7DAD: fd21c587
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DB1: cd737e
     RET                              ; 7DB4: c9
 DIBUJAR_ICONO_PERGAMINO:
-    LD ($8645),HL                    ; 7DB5: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7DB5: 224586
     CALL RELLENAR_MARCO_SOLIDO       ; 7DB8: cded7d
-    LD HL,($8645)                    ; 7DBB: 2a4586
+    LD HL,(VARIABLE_TEMPORAL_HL_1)                    ; 7DBB: 2a4586
     LD BC,$0602                      ; 7DBE: 010206
     ADD HL,BC                        ; 7DC1: 09
-    LD ($8645),HL                    ; 7DC2: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7DC2: 224586
     LD IY,SPRITE_ICONO_PERGAMINO               ; 7DC5: fd210d88
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DC9: cd737e
     RET                              ; 7DCC: c9
 DIBUJAR_ICONO_TESORO:
-    LD ($8645),HL                    ; 7DCD: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7DCD: 224586
     CALL RELLENAR_MARCO_MEDIO        ; 7DD0: cde57d
-    LD HL,($8645)                    ; 7DD3: 2a4586
+    LD HL,(VARIABLE_TEMPORAL_HL_1)                    ; 7DD3: 2a4586
     LD BC,$0602                      ; 7DD6: 010206
     ADD HL,BC                        ; 7DD9: 09
-    LD ($8645),HL                    ; 7DDA: 224586
+    LD (VARIABLE_TEMPORAL_HL_1),HL                    ; 7DDA: 224586
     LD IY,SPRITE_ICONO_TESORO               ; 7DDD: fd215588
     CALL COPIAR_BLOQUE_A_LIENZO      ; 7DE1: cd737e
     RET                              ; 7DE4: c9
@@ -3246,15 +3289,15 @@ DIBUJAR_ICONO_TESORO:
 ; huecos INCBIN restantes. Ver FINDINGS.md Sesion 7.
 RELLENAR_MARCO_MEDIO:
     LD A,$0F                         ; 7DE5: 3e0f
-    LD ($864A),A                     ; 7DE7: 324a86
+    LD (MASCARA_RELLENO_ACTUAL),A                     ; 7DE7: 324a86
     JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DEA: c34f7e
 RELLENAR_MARCO_SOLIDO:
     LD A,$FF                         ; 7DED: 3eff
-    LD ($864A),A                     ; 7DEF: 324a86
+    LD (MASCARA_RELLENO_ACTUAL),A                     ; 7DEF: 324a86
     JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DF2: c34f7e
 RELLENAR_MARCO_VACIO:
     XOR A                            ; 7DF5: af
-    LD ($864A),A                     ; 7DF6: 324a86
+    LD (MASCARA_RELLENO_ACTUAL),A                     ; 7DF6: 324a86
     JP PREPARAR_RELLENO_MASCARA_UNICA ; 7DF9: c34f7e
 RELLENAR_MARCO_DIAGONAL_1:
     LD A,$FF                         ; 7DFC: 3eff
@@ -3286,39 +3329,39 @@ RELLENAR_MARCO_DIAGONAL_6:
     LD ($7E47),A                     ; 7E2B: 32477e
     LD A,$05                         ; 7E2E: 3e05
 RELLENAR_MARCO_DIAGONAL_BUCLE:
-    LD ($864A),A                     ; 7E30: 324a86
+    LD (MASCARA_RELLENO_ACTUAL),A                     ; 7E30: 324a86
     LD A,$0A                         ; 7E33: 3e0a
-    LD ($8649),A                     ; 7E35: 324986
-    LD ($8647),HL                    ; 7E38: 224786
+    LD (VARIABLE_TEMPORAL_A_1),A                     ; 7E35: 324986
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7E38: 224786
     LD B,$18                         ; 7E3B: 0618
 BUCLE_ALTERNAR_MASCARA_DIAGONAL:
     PUSH BC                          ; 7E3D: c5
     LD B,$01                         ; 7E3E: 0601
     CALL RELLENAR_FILAS_MASCARA      ; 7E40: cd597e
-    LD A,($864A)                     ; 7E43: 3a4a86
+    LD A,(MASCARA_RELLENO_ACTUAL)                     ; 7E43: 3a4a86
     XOR $0F                          ; 7E46: ee0f
-    LD ($864A),A                     ; 7E48: 324a86
+    LD (MASCARA_RELLENO_ACTUAL),A                     ; 7E48: 324a86
     POP BC                           ; 7E4B: c1
     DJNZ BUCLE_ALTERNAR_MASCARA_DIAGONAL                       ; 7E4C: 10ef
     RET                              ; 7E4E: c9
 PREPARAR_RELLENO_MASCARA_UNICA:
     LD A,$0A                         ; 7E4F: 3e0a
-    LD ($8649),A                     ; 7E51: 324986
+    LD (VARIABLE_TEMPORAL_A_1),A                     ; 7E51: 324986
     LD B,$18                         ; 7E54: 0618
-    LD ($8647),HL                    ; 7E56: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7E56: 224786
 RELLENAR_FILAS_MASCARA:
     PUSH BC                          ; 7E59: c5
     CALL CASILLA_A_DIRECCION_PANTALLA ; 7E5A: cd927e
-    LD A,($8649)                     ; 7E5D: 3a4986
+    LD A,(VARIABLE_TEMPORAL_A_1)                     ; 7E5D: 3a4986
     LD B,A                           ; 7E60: 47
-    LD A,($864A)                     ; 7E61: 3a4a86
+    LD A,(MASCARA_RELLENO_ACTUAL)                     ; 7E61: 3a4a86
 BUCLE_ESCRIBIR_MASCARA_FILA:
     LD (HL),A                        ; 7E64: 77
     INC HL                           ; 7E65: 23
     DJNZ BUCLE_ESCRIBIR_MASCARA_FILA                       ; 7E66: 10fc
-    LD HL,($8647)                    ; 7E68: 2a4786
+    LD HL,(PUNTERO_FILA_PANTALLA_BLIT)                    ; 7E68: 2a4786
     INC H                            ; 7E6B: 24
-    LD ($8647),HL                    ; 7E6C: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7E6C: 224786
     POP BC                           ; 7E6F: c1
     DJNZ RELLENAR_FILAS_MASCARA      ; 7E70: 10e7
     RET                              ; 7E72: c9
@@ -3333,7 +3376,7 @@ BUCLE_ESCRIBIR_MASCARA_FILA:
 ; caracter"). Ver FINDINGS.md Sesiones 3-5 y 19.
 COPIAR_BLOQUE_A_LIENZO:
     LD B,$0C                         ; 7E73: 060c
-    LD ($8647),HL                    ; 7E75: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7E75: 224786
 BUCLE_COPIAR_FILAS_BLOQUE:
     PUSH BC                          ; 7E78: c5
     CALL CASILLA_A_DIRECCION_PANTALLA ; 7E79: cd927e
@@ -3344,9 +3387,9 @@ BUCLE_COPIAR_BYTES_FILA:
     LD (HL),A                        ; 7E83: 77
     INC HL                           ; 7E84: 23
     DJNZ BUCLE_COPIAR_BYTES_FILA                       ; 7E85: 10f7
-    LD HL,($8647)                    ; 7E87: 2a4786
+    LD HL,(PUNTERO_FILA_PANTALLA_BLIT)                    ; 7E87: 2a4786
     INC H                            ; 7E8A: 24
-    LD ($8647),HL                    ; 7E8B: 224786
+    LD (PUNTERO_FILA_PANTALLA_BLIT),HL                    ; 7E8B: 224786
     POP BC                           ; 7E8E: c1
     DJNZ BUCLE_COPIAR_FILAS_BLOQUE                       ; 7E8F: 10e7
     RET                              ; 7E91: c9
@@ -3442,7 +3485,7 @@ BUCLE_IMPRIMIR_BYTE:
 ; ---- TEXTO_MENU_OPCIONES / FLAG_MUSICA_FONDO / FLAG_EFECTOS_SONIDO /
 ; ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3 / TEXTO_HISTORIA_ATRACCION /
 ; TABLA_DESCONOCIDA_GAME_OVER / VARIABLES_INICIO_ENTIDADES / ARRAY_ENTIDADES /
-; ESTADO_PARTIDA / TABLA_OFFSETS_DIAMANTE / VARIABLES_DIBUJO_MARCO /
+; ESTADO_PARTIDA / TABLA_POSICIONES_INICIALES_ENTIDADES / VARIABLE_TEMPORAL_HL_1..2 /
 ; TABLA_PARAMETROS_TRANSICION_PUNTUACIONES / TEXTO_TABLA_PUNTUACIONES /
 ; TEXTO_MENU_PRINCIPAL / TABLA_POSICIONES_DECIMALES / TEXTO_COPYRIGHT_Y_HUD /
 ; SPRITE_ICONO_SARCOFAGO..TESORO / DATOS_MARCO_Y_TEXTO_CONTINUAR / TABLAS_SPRITE_CASILLA /
@@ -3470,24 +3513,60 @@ BUCLE_IMPRIMIR_BYTE:
 ; con hipotesis de confianza baja/media -- limites confirmados por
 ; los huecos de texto/tablas vecinas, contenido interno sin descifrar
 ; del todo. Ver FINDINGS.md Sesion 8.
+; Cada bloque DB longitud+datos de aqui en adelante corresponde EXACTO a
+; un punto de entrada real confirmado de IMPRIMIR_BYTES_CON_LONGITUD
+; (CALL con ese HL, ver PANTALLA_OPCIONES mas abajo). Los codigos de
+; control (<$20) usan las constantes CTRL_TXT_* (Appendix VII del
+; firmware); el resto son bytes de datos (parametros del codigo previo,
+; texto ASCII entre comillas, o graficos de bloque $80-$FF en hex).
+; Confianza alta: longitudes y limites verificados byte a byte contra
+; los 6 CALL reales (aritmetica exacta, ver FINDINGS.md Sesion 21).
 TEXTO_MENU_OPCIONES:
-    DB $4E,$0E,$01,$0F,$02,$0C,$1F,$0C,$03 ; 7EFD
-    DB "OH MUMMY - OPTIONS"             ; 7F06
-    DB $1F,$09,$07,$0F,$00             ; 7F18
-    DB "SPEED OF GAME (1-5) ?"          ; 7F1D
-    DB $1F,$0C,$08,$0F,$03             ; 7F32
-    DB "(1 IS FASTEST)"                 ; 7F37
-    DB $1F,$1F,$07,$8F,$08,$0F,$00,$35,$1F,$08,$0B ; 7F45
-    DB "DIFFICULTY LEVEL (1-5) ?"       ; 7F50
-    DB $1F,$0C,$0C,$0F,$03             ; 7F68
-    DB "(1 IS HARDEST)"                 ; 7F6D
-    DB $1F,$21,$0B,$8F,$08,$0F,$00,$1E,$1F,$08,$0F ; 7F7B
-    DB "BACKGROUND MUSIC (Y-N) ? "      ; 7F86
-    DB $8F,$08,$1B,$1F,$09,$13         ; 7F9F
-    DB "SOUND EFFECTS (Y-N) ? "         ; 7FA5
-    DB $8F,$08,$03                     ; 7FBB
-    DB "YES"                            ; 7FBE
-    DB $02,$4E,$4F                     ; 7FC1
+    DB 78                             ; 7EFD longitud
+    DB CTRL_TXT_FIJAR_PAPEL,$01       ; 7EFE
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 7F00
+    DB CTRL_TXT_BORRAR_VENTANA        ; 7F02
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$03 ; 7F03
+    DB "OH MUMMY - OPTIONS"           ; 7F06
+    DB CTRL_TXT_POSICIONAR_CURSOR,$09,$07 ; 7F18
+    DB CTRL_TXT_FIJAR_TINTA,$00       ; 7F1B
+    DB "SPEED OF GAME (1-5) ?"        ; 7F1D
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$08 ; 7F32
+    DB CTRL_TXT_FIJAR_TINTA,$03       ; 7F35
+    DB "(1 IS FASTEST)"               ; 7F37
+    DB CTRL_TXT_POSICIONAR_CURSOR,$1F,$07 ; 7F45
+    DB $8F                            ; 7F48 -- grafico de bloque, sin decodificar
+    DB CTRL_TXT_CURSOR_IZQUIERDA      ; 7F49
+    DB CTRL_TXT_FIJAR_TINTA,$00       ; 7F4A
+; -- entrada real: $6458 LD HL,$7F4C --
+    DB 53                             ; 7F4C longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$08,$0B ; 7F4D
+    DB "DIFFICULTY LEVEL (1-5) ?"     ; 7F50
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$0C ; 7F68
+    DB CTRL_TXT_FIJAR_TINTA,$03       ; 7F6B
+    DB "(1 IS HARDEST)"               ; 7F6D
+    DB CTRL_TXT_POSICIONAR_CURSOR,$21,$0B ; 7F7B
+    DB $8F                            ; 7F7E -- grafico de bloque, sin decodificar
+    DB CTRL_TXT_CURSOR_IZQUIERDA      ; 7F7F
+    DB CTRL_TXT_FIJAR_TINTA,$00       ; 7F80
+; -- entrada real: $647E LD HL,$7F82 --
+    DB 30                             ; 7F82 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$08,$0F ; 7F83
+    DB "BACKGROUND MUSIC (Y-N) ? "    ; 7F86
+    DB $8F                            ; 7F9F -- grafico de bloque, sin decodificar
+    DB CTRL_TXT_CURSOR_IZQUIERDA      ; 7FA0
+; -- entrada real: $64DF LD HL,$7FA1 --
+    DB 27                             ; 7FA1 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$09,$13 ; 7FA2
+    DB "SOUND EFFECTS (Y-N) ? "       ; 7FA5
+    DB $8F                            ; 7FBB -- grafico de bloque, sin decodificar
+    DB CTRL_TXT_CURSOR_IZQUIERDA      ; 7FBC
+; -- entrada real: $64C0/$6508 LD HL,$7FBD (respuesta "YES") --
+    DB 3                              ; 7FBD longitud
+    DB "YES"                          ; 7FBE
+; -- entrada real: $649A/$64FB LD HL,$7FC1 (respuesta "NO") --
+    DB 2                              ; 7FC1 longitud
+    DB "NO"                           ; 7FC2
 FLAG_MUSICA_FONDO:
     DB "Y"                            ; 7FC4 confirmado: ACTUALIZAR_SECUENCIA_SONIDO hace LD A,($7FC4):CP $59
 FLAG_EFECTOS_SONIDO:
@@ -3513,36 +3592,72 @@ ENVOLVENTE_TONO_2:
 ENVOLVENTE_TONO_3:
     DB $02,$F0,$8C,$01,$0A,$FB,$01,$04,$01,$01,$00,$00,$00,$00,$FA,$FF ; 7FF9
     DB $04,$02,$02,$64,$00,$00,$00,$00,$00,$04,$03,$03,$00,$00,$00,$00 ; 8009
-    DB $FC,$FF,$24,$0E                               ; 8019
+    DB $FC,$FF                                       ; 8019
 ; Texto literal confirmado (attract mode / pantalla "periodico"):
 ; "STOP PRESS!! British Museum today announced successful excavation
 ; of ancient Egyptian pyramid. Leader of team given bonus for his
 ; efforts of 200 points. extra man for next dig. Press "C" or Fire
 ; Button to Continue" ... "GAME OVER".
+; Igual que TEXTO_MENU_OPCIONES: cada bloque longitud+datos corresponde
+; EXACTO a un CALL real de PANTALLA_STOP_PRESS (10 puntos de entrada
+; distintos, no una unica tirada continua -- ver FINDINGS.md Sesion 21).
+; CORRECCION Sesion 21 al limite de ENVOLVENTE_TONO_3: la etiqueta
+; estaba 2 bytes tarde -- el CALL real ($673C, LD HL,$801B) demuestra
+; que el bloque empieza en $801B, no en $801D como se documentaba
+; (los 2 bytes "$24,$0E" pertenecian aqui, no al final de la envolvente
+; de sonido). Contenido de bytes sin cambios, solo el limite.
 TEXTO_HISTORIA_ATRACCION:
-    DB $01,$0F,$02,$0C,$1F,$07,$05     ; 801D
-    DB "!!  S T O P    P R E S S  !!#"  ; 8024
-    DB $0F,$00,$1F,$07,$0A             ; 8041
-    DB "British Museum today announced#" ; 8046
-    DB $1F,$05,$0B                     ; 8065
+    DB 36                             ; 801B longitud
+    DB CTRL_TXT_FIJAR_PAPEL,$01       ; 801C
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 801E
+    DB CTRL_TXT_BORRAR_VENTANA        ; 8020
+    DB CTRL_TXT_POSICIONAR_CURSOR,$07,$05 ; 8021
+    DB "!!  S T O P    P R E S S  !!"  ; 8024
+; -- entrada real: $673F LD HL,$8040 --
+    DB 35                             ; 8040 longitud
+    DB CTRL_TXT_FIJAR_TINTA,$00       ; 8041
+    DB CTRL_TXT_POSICIONAR_CURSOR,$07,$0A ; 8043
+    DB "British Museum today announced" ; 8046
+; -- entrada real: $6745 LD HL,$8064 --
+    DB 35                             ; 8064 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$05,$0B ; 8065
     DB "successful excavation of ancient" ; 8068
-    DB $14,$1F,$05,$0C                 ; 8088
+; -- entrada real: $674B LD HL,$8088 --
+    DB 20                             ; 8088 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$05,$0C ; 8089
     DB "Egyptian pyramid."              ; 808C
-    DB $1A,$0F,$03,$1F,$07,$11         ; 809D
+; -- entrada real: $675A LD HL,$809D --
+    DB 26                             ; 809D longitud
+    DB CTRL_TXT_FIJAR_TINTA,$03       ; 809E
+    DB CTRL_TXT_POSICIONAR_CURSOR,$07,$11 ; 80A0
     DB "Leader of team given "          ; 80A3
-    DB $09                             ; 80B8
+; -- entrada real: $6772 LD HL,$80B8 --
+    DB 9                              ; 80B8 longitud
     DB "bonus for"                      ; 80B9
-    DB $1D,$1F,$05,$12                 ; 80C2
+; -- entrada real: $6778 LD HL,$80C2 --
+    DB 29                             ; 80C2 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$05,$12 ; 80C3
     DB "his efforts of 200 points."     ; 80C6
-    DB $09                             ; 80E0
+; -- entrada real: $678C LD HL,$80E0 --
+    DB 9                              ; 80E0 longitud
     DB "extra man"                      ; 80E1
-    DB $10,$1F,$05,$12                 ; 80EA
-    DB "for next dig.)"                 ; 80EE
-    DB $0F,$02,$1F,$03,$17             ; 80FC
-    DB "Press "                         ; 8101
-    DB $22,$43,$22                     ; 8107
-    DB " or Fire Button to Continue"    ; 810A
-    DB $07,$0E,$01,$0F,$02,$1F,$0C,$0D ; 8125
+; -- entrada real: $6792 LD HL,$80EA --
+    DB 16                             ; 80EA longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$05,$12 ; 80EB
+    DB "for next dig."                  ; 80EE
+; -- entrada real: $6511/$679B/$67B6-2 LD HL,$80FB --
+    DB 41                             ; 80FB longitud
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 80FC
+    DB CTRL_TXT_POSICIONAR_CURSOR,$03,$17 ; 80FE
+    DB 'Press "C" or Fire Button to Continue' ; 8101
+; -- entrada real: $67B6 LD HL,$8125 (PANTALLA_GAME_OVER) -- solo el
+; preambulo de codigos de control pasa por IMPRIMIR_BYTES_CON_LONGITUD;
+; "GAME OVER" en si (812D) es texto ASCII plano ya legible, impreso por
+; otra via (ver BUCLE_IMPRIMIR_GAME_OVER) -- se deja como estaba.
+    DB 7                              ; 8125 longitud
+    DB CTRL_TXT_FIJAR_PAPEL,$01       ; 8126
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 8128
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$0D ; 812A
     DB "GAME OVER"                      ; 812D
 ; VARIABLE_CASILLA_APARICION_MOMIA ($8136, 4 bytes): posicion (fila,
 ; columna del "marco") donde ACTUALIZAR_MARCO_TRAS_MOVIMIENTO deja
@@ -3616,22 +3731,55 @@ MAPA_CASILLAS:
     DEFS 1040                              ; 8200 1040 bytes, todo cero
 RELLENO_TRAS_ESTADO:
     DEFS 1                            ; 8610 1 byte cero, justo tras el rango que limpia BORRAR_BLOQUE_ESTADO
-; Hipotesis baja-media: pares de bytes con patron ascendente/
-; descendente de paso 6 (posibles offsets de pantalla en forma de
-; diamante/piramide, byte alto $B8/$90/$A8), sin CALL/LD conocido
-; que la referencie todavia.
-TABLA_OFFSETS_DIAMANTE:
+; CORRECCION Sesion 22 a la hipotesis previa ("sin CALL/LD conocido"):
+; localizado el llamador real. Son 26 direcciones de pantalla CPC de 16
+; bits (modo 1, byte alto $B8/$90/$A8 -- rangos validos de pantalla),
+; leidas por INICIALIZAR_UNA_ENTIDAD ($7987, "LD DE,(VARIABLE_TEMPORAL_
+; HL_1)") para colocar la posicion inicial de cada entidad (enemigo o
+; coleccionable) segun su numero de orden. El puntero base se fija en 2
+; puntos distintos del codigo, ambos dentro de esta misma tabla:
+; TABLA_POSICIONES_INICIALES_ENTIDADES-2 (word 0..5, usado por la demo
+; de fondo del menu en $61E5 y por COLOCAR_JUGADOR_INICIAL en $66CF --
+; cada nivel usa tantas de las primeras posiciones como entidades tenga,
+; ($8169)) y TABLA_POSICIONES_INICIALES_ENTIDADES+38 (word 20..25,
+; usado una sola vez al empezar partida real en $632E). Confianza alta
+; en la estructura (verificada por el codigo que la consume); el
+; reparto exacto demo/nivel/partida sigue siendo hipotesis media-alta.
+; Ver FINDINGS.md Sesion 22.
+TABLA_POSICIONES_INICIALES_ENTIDADES:
     DB $04,$B8,$4A,$B8,$0A,$B8,$44,$B8,$10,$B8,$3E,$B8,$16,$B8,$38,$B8 ; 8611
     DB $1C,$B8,$32,$B8,$22,$B8,$2C,$B8,$0A,$90,$44,$90,$10,$90,$3E,$90 ; 8621
     DB $16,$90,$38,$90,$1C,$90,$32,$90,$16,$A8,$38,$A8,$1C,$A8,$32,$A8 ; 8631
     DB $22,$A8,$2C,$A8                               ; 8641
-; $8645 y $8647: variables HL usadas por DIBUJAR_ICONO_SARCOFAGO..TESORO
-; ("LD ($8645),HL") y por COPIAR_BLOQUE_A_LIENZO/RELLENAR_FILAS_MASCARA
-; ("LD ($8647),HL"). $8649/$864A: variables de 1 byte usadas por
-; RELLENAR_FILAS_MASCARA (fila/mascara). Reserva de variable, el
-; valor de fichero es irrelevante en tiempo de ejecucion.
-VARIABLES_DIBUJO_MARCO:
-    DB $00,$00,$00,$00,$00,$00                       ; 8645
+; VARIABLE_TEMPORAL_HL_1/_2 y VARIABLE_TEMPORAL_A_1: bloque de 6 bytes
+; de RAM que 3 familias de rutinas SIN RELACION ENTRE SI reutilizan como
+; almacenamiento temporal (nunca coinciden en el tiempo de ejecucion --
+; reciclaje deliberado de RAM escasa, tal y como hacian los juegos de
+; 8 bits de la epoca). Confianza alta en cada uso individual (todos
+; confirmados por el codigo que los lee/escribe), media en llamarlo
+; "temporal" en vez de darle nombre propio a cada rutina que lo usa --
+; se prefiere aqui documentar todos los usos en vez de imponer un
+; nombre que solo seria correcto en uno de ellos:
+;   - VARIABLE_TEMPORAL_HL_1 ($8645): puntero BASE a esta misma tabla
+;     en INICIALIZAR_UNA_ENTIDAD (ver arriba, $61E8/$6331/$66D2/$7987);
+;     Y ADEMAS posicion de pantalla temporal en DIBUJAR_ICONO_SARCOFAGO/
+;     _LLAVE/_PERGAMINO/_TESORO mientras preparan el icono ($7D85-$7DDA)
+;     -- dos usos sin relacion, confirmados por separado.
+;   - VARIABLE_TEMPORAL_A_1 ($8649): ancho en bytes de la fila de
+;     relleno actual en RELLENAR_FILAS_MASCARA ($7E35/$7E51/$7E5D); Y
+;     ADEMAS contador de caracteres ya tecleados del nombre del jugador
+;     en BUCLE_LEER_NOMBRE ($6357-$63CB) -- dos usos sin relacion.
+; PUNTERO_FILA_PANTALLA_BLIT ($8647) y MASCARA_RELLENO_ACTUAL ($864A)
+; se declaran aparte (mas abajo): cada uno tiene un unico papel
+; coherente en todos sus usos, sin ambiguedad, y merecen nombre propio.
+VARIABLE_TEMPORAL_HL_1:
+    DW $0000                                          ; 8645
+PUNTERO_FILA_PANTALLA_BLIT:
+    DW $0000                                          ; 8647 -- puntero a la fila de pantalla actual del volcado en curso: VOLCAR_SPRITE_A_PANTALLA ($7CC8-$7CDE), RELLENAR_FILAS_MASCARA ($7E38-$7E6C) y COPIAR_BLOQUE_A_LIENZO ($7E75-$7E8B), los 3 con el mismo patron (INC H tras cada fila)
+VARIABLE_TEMPORAL_A_1:
+    DB $00                                            ; 8649
+MASCARA_RELLENO_ACTUAL:
+    DB $00                                            ; 864A -- byte que RELLENAR_FILAS_MASCARA escribe en cada fila; fijado por RELLENAR_MARCO_SOLIDO/_VACIO/_DIAGONAL_1..6 ($7DEF-$7E48)
 ; Hipotesis baja: pequena tabla de parametros justo antes de
 ; TEXTO_TABLA_PUNTUACIONES, con grupos cortos repetidos -- posible
 ; animacion/temporizado de la transicion a la pantalla de
@@ -3639,34 +3787,70 @@ VARIABLES_DIBUJO_MARCO:
 TABLA_PARAMETROS_TRANSICION_PUNTUACIONES:
     DB $03,$04,$01,$02,$03,$04,$01,$02,$19,$1D,$18,$18,$1C,$00,$18,$18 ; 864B
     DB $1C,$01,$00,$00,$1C,$02,$0F,$0F,$1C,$03,$0B,$0B,$0E,$00,$04,$01 ; 865B
-    DB $0F,$01,$08,$1D,$0B,$0B,$0E,$03,$0C,$0E,$02,$15,$0E,$00,$0F,$01 ; 866B
-    DB $1F,$0E,$07                                   ; 867B
-; Texto literal confirmado: "HI-SCORE-TABLE" + 5 rangos con su
-; umbral de puntuacion en 16 bits little-endian intercalado --
-; "Stupendous !"=2000, "Excellent ! "=1500, "Very Good ! "=1000,
-; "Quite Good  "=500 (valores leidos directamente de los bytes,
-; sin CALL que los consuma localizado todavia).
+    DB $0F,$01                                       ; 866B
+; CORRECCION Sesion 21: los siguientes bytes ($866D en adelante) NO son
+; parte de esta tabla de hipotesis -- son la cola real de
+; IMPRIMIR_BYTES_CON_LONGITUD que llama BUCLE_SELECCIONAR_JUGADORES
+; ($622B, LD HL,$866D), confirmado byte a byte (longitud+datos encajan
+; exacto hasta $8676, la siguiente entrada real). Ver FINDINGS.md
+; Sesion 21.
+COLA_TEXTO_PRE_PUNTUACIONES:
+    DB 8                              ; 866D longitud
+    DB CTRL_TXT_FIJAR_COLOR_BORDE,$0B,$0B ; 866E
+    DB CTRL_TXT_FIJAR_PAPEL,$03       ; 8671
+    DB CTRL_TXT_BORRAR_VENTANA        ; 8673
+    DB CTRL_TXT_FIJAR_PAPEL,$02       ; 8674
+; Texto literal confirmado: "HI-SCORE-TABLE" + 5 rangos con su umbral
+; de puntuacion en 16 bits little-endian intercalado -- valores leidos
+; por IMPRIMIR_NUMERO_HL justo antes de cada CALL IMPRIMIR_BYTES_CON_
+; LONGITUD (ver $62D4-$6328 en BUCLE_SELECCIONAR_JUGADORES). Bloque
+; confirmado por 9 puntos de entrada reales -- confianza alta.
 TEXTO_TABLA_PUNTUACIONES:
+; -- entrada real: $62C5 LD HL,$8676 --
+    DB 21                             ; 8676 longitud
+    DB CTRL_TXT_FIJAR_PAPEL,$00       ; 8677
+    DB CTRL_TXT_FIJAR_TINTA,$01       ; 8679
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0E,$07 ; 867B
     DB "HI-SCORE-TABLE"                 ; 867E
-    DB $C4,$09,$0F,$1F,$12,$0A         ; 868C
+    DB $C4,$09                        ; 868C -- umbral 16 bits (2500), leido por IMPRIMIR_NUMERO_HL, no por esta secuencia
+; -- entrada real: $62DA LD HL,$868E --
+    DB 15                             ; 868E longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$12,$0A ; 868F
     DB "Stupendous !"                   ; 8692
-    DB $D0,$07,$0F,$1F,$12,$0C         ; 869E
+    DB $D0,$07                        ; 869E -- umbral 16 bits (2000)
+; -- entrada real: $62EF LD HL,$86A0 --
+    DB 15                             ; 86A0 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$12,$0C ; 86A1
     DB "Excellent ! "                   ; 86A4
-    DB $DC,$05,$0F,$1F,$12,$0E         ; 86B0
+    DB $DC,$05                        ; 86B0 -- umbral 16 bits (1500)
+; -- entrada real: $6304 LD HL,$86B2 --
+    DB 15                             ; 86B2 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$12,$0E ; 86B3
     DB "Very Good ! "                   ; 86B6
-    DB $E8,$03,$0F,$1F,$12,$10         ; 86C2
+    DB $E8,$03                        ; 86C2 -- umbral 16 bits (1000)
+; -- entrada real: $6319 LD HL,$86C4 --
+    DB 15                             ; 86C4 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$12,$10 ; 86C5
     DB "Quite Good  "                   ; 86C8
-    DB $F4,$01,$11,$1F,$12,$12         ; 86D4
+    DB $F4,$01                        ; 86D4 -- umbral 16 bits (500)
+; -- entrada real: $632B LD HL,$86D6 --
+    DB 17                             ; 86D6 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$12,$12 ; 86D7
     DB "Not Bad     "                   ; 86DA
-    DB $0E,$03,$27                     ; 86E6
+    DB CTRL_TXT_FIJAR_PAPEL,$03       ; 86E6
 ; Texto literal confirmado: "I-Instructions  O-Options  P-Play  ?"
 ; (coincide con MOVER_INDICADOR_MENU/ANIMAR_OPCION_MENU) y "Well
 ; done !!  Please enter your name" (pantalla de posicion en el
-; ranking).
+; ranking). CORRIGE Sesion 21 la nota previa ("sin CALL localizado"):
+; SI hay 2 CALL reales, ver entradas de abajo.
 TEXTO_MENU_PRINCIPAL:
-    DB $1F,$03,$19                     ; 86E9
-    DB "I-Instructions  O-Options  P-Play  ?'" ; 86EC
-    DB $1F,$03,$19                     ; 8711
+; -- entrada real: $636F/$636C LD HL,$86E8 (REANUDAR_MENU_TRAS_NOMBRE) --
+    DB 39                             ; 86E8 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$03,$19 ; 86E9
+    DB "I-Instructions  O-Options  P-Play  ?" ; 86EC
+; -- entrada real: $6349 LD HL,$8710 --
+    DB 39                             ; 8710 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$03,$19 ; 8711
     DB "Well done !!  Please enter your name" ; 8714
 ; Confirmado por IMPRIMIR_NUMERO_HL ($786E LD IY,$8736 + 2x INC IY
 ; -> primera lectura real en $8738): tabla de 4 valores de 16 bits,
@@ -3683,17 +3867,32 @@ TABLA_POSICIONES_DECIMALES:
 ; "SCORE"/"MEN". Confirmado por IMPRIMIR_BYTES_CON_LONGITUD: $60A1
 ; hace LD HL,$8740 e imprime esta tabla como longitud+bytes (Sesion 19
 ; corrige la semantica de esta rutina, antes REPETIR_CARACTER).
+; Dos puntos de entrada reales de IMPRIMIR_BYTES_CON_LONGITUD: el
+; copyright ($60A1, cabecera) y el HUD SCORE/MEN ($65D8,
+; ACTUALIZAR_HUD_VIDAS) -- confianza alta, longitudes verificadas byte
+; a byte contra ambos CALL. El caracter $22 es una comilla doble
+; literal (delimita "OH MUMMY" en pantalla); se representa entre
+; comillas simples para evitar conflicto con las comillas dobles de
+; SjASMPlus.
 TEXTO_COPYRIGHT_Y_HUD:
-    DB $23,$1F,$06,$02,$22             ; 8740
-    DB "OH MUMMY"                       ; 8745
-    DB $22,$20,$A4                     ; 874D
-    DB " 1984 GEM SOFTWARE"             ; 8750
-    DB $0E,$01,$18,$1D,$18,$18,$0E,$00,$0F,$02,$0C,$1F ; 8762
-    DB $03,$01                         ; 876E
+; -- entrada real: $60A1 LD HL,$8740 --
+    DB 35                             ; 8740 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$06,$02 ; 8741
+    DB '"OH MUMMY" '                  ; 8744
+    DB $A4                            ; 874F -- grafico de bloque (simbolo copyright), sin decodificar
+    DB " 1984 GEM SOFTWARE"           ; 8750
+    DB CTRL_TXT_FIJAR_PAPEL,$01       ; 8762
+; -- entrada real: $65D8 LD HL,$8764 (ACTUALIZAR_HUD_VIDAS) --
+    DB 24                             ; 8764 longitud
+    DB CTRL_TXT_FIJAR_COLOR_BORDE,$18,$18 ; 8765
+    DB CTRL_TXT_FIJAR_PAPEL,$00       ; 8768
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 876A
+    DB CTRL_TXT_BORRAR_VENTANA        ; 876C
+    DB CTRL_TXT_POSICIONAR_CURSOR,$03,$01 ; 876D
     DB "SCORE"                          ; 8770
-    DB $1F,$17,$01                     ; 8775
+    DB CTRL_TXT_POSICIONAR_CURSOR,$17,$01 ; 8775
     DB "MEN"                            ; 8778
-    DB $0F,$03                         ; 877B
+    DB CTRL_TXT_FIJAR_TINTA,$03       ; 877B
 ; Confirmado por DIBUJAR_ICONO_SARCOFAGO: LD IY,$877D. 72 bytes exactos
 ; = lo que consume COPIAR_BLOQUE_A_LIENZO (12 filas x 6 bytes).
 ; Sesion 17: identidad visual "sarcofago" confirmada por el usuario
@@ -3741,14 +3940,41 @@ SPRITE_ICONO_TESORO:
 ; aritmetica exacta de direcciones); el significado de cada codigo de
 ; control individual sigue sin decodificar. Ver FINDINGS.md Sesion 19.
 DATOS_MARCO_Y_TEXTO_CONTINUAR:
-    DB $68,$1F,$0C,$0B,$0E,$00,$0F,$02,$88,$8C,$88,$88,$20,$20,$8C,$8C ; 889D
-    DB $84,$84,$84,$8C,$8C,$84,$8C,$8C,$84,$84,$84,$08,$08,$08,$08,$08 ; 88AD
-    DB $08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$0A,$8A ; 88BD
-    DB $8A,$8A,$8F,$20,$20,$87,$87,$85,$8D,$85,$87,$87,$85,$87,$87,$85 ; 88CD
-    DB $8F,$85,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08 ; 88DD
-    DB $08,$08,$08,$08,$08,$0A,$82,$83,$82,$82,$20,$20,$81,$20,$81,$83 ; 88ED
-    DB $81,$81,$20,$81,$81,$20,$81,$20,$81,$12,$1F,$0E,$11,$22,$43,$22 ; 88FD
-    DB $20,$54,$4F,$20,$43,$4F,$4E,$54,$49,$4E,$55,$45 ; 890D
+; -- entrada real: $619A LD HL,$889D --
+    DB 104                            ; 889D longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$0B ; 889E
+    DB CTRL_TXT_FIJAR_PAPEL,$00       ; 88A1
+    DB CTRL_TXT_FIJAR_TINTA,$02       ; 88A3
+    DB $88,$8C,$88,$88                ; 88A5 -- graficos de bloque (marco), sin decodificar
+    DB "  "                           ; 88A9
+    DB $8C,$8C,$84,$84,$84,$8C,$8C,$84,$8C,$8C,$84,$84,$84 ; 88AB -- graficos de bloque (marco)
+; -- 19 CTRL_TXT_CURSOR_IZQUIERDA seguidos ($88B8-$88CA): mueve el
+; cursor a la izquierda tantas veces como columnas dibujadas, para
+; volver al inicio de la fila antes de dibujar la siguiente pieza del
+; marco (patron verificado byte a byte, longitud 19 confirmada).
+    DB CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA ; 88B8
+    DB CTRL_TXT_CURSOR_ABAJO                                        ; 88CB
+    DB $8A,$8A,$8A,$8F                 ; 88CC -- graficos de bloque (marco)
+    DB "  "                           ; 88D0
+    DB $87,$87,$85,$8D,$85,$87,$87,$85,$87,$87,$85,$8F,$85 ; 88D2 -- graficos de bloque (marco)
+; -- de nuevo 19 CTRL_TXT_CURSOR_IZQUIERDA seguidos ($88DF-$88F1) --
+    DB CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA,CTRL_TXT_CURSOR_IZQUIERDA ; 88DF
+    DB CTRL_TXT_CURSOR_ABAJO                                        ; 88F2
+    DB $82,$83,$82,$82                 ; 88F3 -- graficos de bloque (marco)
+    DB "  "                           ; 88F7
+    DB $81                            ; 88F9 -- grafico de bloque (marco)
+    DB " "                            ; 88FA
+    DB $81,$83,$81,$81                 ; 88FB -- graficos de bloque (marco)
+    DB " "                            ; 88FF
+    DB $81,$81                         ; 8900 -- graficos de bloque (marco)
+    DB " "                            ; 8902
+    DB $81                            ; 8903 -- grafico de bloque (marco)
+    DB " "                            ; 8904
+    DB $81                            ; 8905 -- grafico de bloque (marco)
+; -- entrada real: $61AF LD HL,$8906 --
+    DB 18                             ; 8906 longitud
+    DB CTRL_TXT_POSICIONAR_CURSOR,$0E,$11 ; 8907
+    DB '"C" TO CONTINUE'              ; 890A
 ; Confirmado que empieza aqui: DIBUJAR_ENTIDAD hace LD IY,$8919
 ; ($7B57). Hipotesis media: ~20 tablas de sprite de 4x16 bytes
 ; (dispatcher de DIBUJAR_ENTIDAD, por tipo+direccion+fotograma) + 9
@@ -3757,14 +3983,16 @@ DATOS_MARCO_Y_TEXTO_CONTINUAR:
 ; consistente con mascaras de pantalla CPC modo 1 (bloques solidos
 ; $00/$FF/$F0 alternando con datos variables).
 TABLAS_SPRITE_CASILLA:
-    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8919
-    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8929
-    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8939
-    DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; 8949
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8959
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8969
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8979
-    DB $F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0,$F0 ; 8989
+; Sesion 21: reescritos como DEFS con byte de relleno (igual que
+; ARRAY_ENTIDADES/ESTADO_PARTIDA/MAPA_CASILLAS mas abajo, mismo
+; fichero) en vez de 64 DB sueltos -- son bytes de relleno solido, no
+; una tabla de valores variables, y asi es como ya se escriben en este
+; mismo fichero los bloques de un unico byte repetido. Byte a byte
+; identico, solo cambia la notacion.
+TABLA_BASE:
+    DEFS 64, $00 ; 8919 -- relleno de "entidad no reconocida" en DIBUJAR_ENTIDAD (tipo por defecto)
+TABLA_ESPACIO:
+    DEFS 64, $F0 ; 8959 -- relleno de ' ' en DIBUJAR_ENTIDAD / valor de casilla fuera de 1-8 en DIBUJAR_CASILLA_MAPA
 ; ---- LOSETA_PISADAS_VERTICAL_1 / LOSETA_PISADAS_VERTICAL_2 ---- 2
 ; sprites de 32 bytes (4x8, 16x8 px en Modo 1), CONFIRMADOS por
 ; DIBUJAR_ENTIDAD: la rama de tipo 'T' ($7B65) con ($8157)<2 hace
