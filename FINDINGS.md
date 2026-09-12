@@ -3022,3 +3022,181 @@ el `.dsk` completo. Las 3 páginas HTML tocadas renderizan sin errores
   ahora que se sabe que no es gráfico.
 - El punto de entrada compartido `$7CC4` sigue sin etiqueta propia.
 - Todo lo demás pendiente de sesiones anteriores sigue igual.
+
+## Sesión 19 (continuación 2) — 2026-09-12: 83 direcciones literales más reciben etiqueta (cabecera + `$6401`-`$786B`)
+
+A petición del usuario ("hay otros saltos y llamadas que apuntan a
+direcciones hardcodeadas... es necesario sustituir todas esas
+llamadas"), se extiende el trabajo de nombrado de la Sesión 19 (que
+solo cubrió los bucles `DJNZ`) a **todas** las instrucciones
+`CALL`/`JP`/`JR` que saltan a una dirección `$XXXX` literal. Un
+análisis programático (script Python que cruza cada dirección de
+salto contra las etiquetas ya definidas) encontró **227** instrucciones
+de este tipo en todo el fichero, repartidas en:
+
+- **21 instrucciones** que ya apuntaban a una dirección con etiqueta
+  existente (p.ej. `CALL $7DFC` cuando `RELLENAR_MARCO_DIAGONAL_1` ya
+  vive ahí) -- sustitución mecánica sin riesgo, hecha con un script.
+- **7 direcciones** sin etiquetar dentro de la cabecera `$6000`-`$6400`
+  (arranque/menú/nombre) -- nombradas a mano por Claude, leyendo el
+  contexto de cada una: `REINICIAR_MODO_ATRACCION` ($6039, destino de
+  `JP C` desde `ACTUALIZAR_TABLA_PUNTUACIONES` cuando la puntuación no
+  entra en la tabla -- resiembra el aleatorio y vuelve al modo
+  atracción sin pedir nombre), `BUCLE_SELECCIONAR_JUGADORES` ($6201),
+  `PREPARAR_ENTRADA_NOMBRE` ($6223, punto de convergencia real: 1/2
+  jugadores confirmado, "L"/Intro tras STOP PRESS/GAME OVER, y tras
+  insertar una puntuación nueva), `ESPERAR_PRIMERA_TECLA_NOMBRE`
+  ($6365), `BUCLE_LEER_NOMBRE` ($6372), `BORRAR_CARACTER_NOMBRE`
+  ($63C4), `CONFIRMAR_NOMBRE_JUGADOR` ($63F3).
+- **55 direcciones** en `$6401`-`$786B` (`PANTALLA_OPCIONES`,
+  `INICIAR_PARTIDA`/`PREPARAR_NIVEL`/`PREPARAR_TESOROS_NIVEL`,
+  `ACTUALIZAR_HUD_VIDAS`, `SELECCIONAR_DIAGONAL_MARCO_NIVEL`,
+  `BUCLE_PRINCIPAL_JUEGO`, `PANTALLA_STOP_PRESS`/`PANTALLA_GAME_OVER`,
+  `ACTUALIZAR_TABLA_PUNTUACIONES`, `PROCESAR_ENCUENTROS_ENTIDADES`,
+  `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO`, `CALCULAR_TRAMO_MARCO_DESDE_
+  CONTENIDO`, `MARCO_CONTENIDO_MOMIA_GUARDIANA`,
+  `PROCESAR_MOVIMIENTO_JUGADOR`) -- delegadas a un agente en segundo
+  plano con la misma metodología, ver tabla completa de nombres más
+  abajo.
+- **65 direcciones** en `$786C`-fin del fichero -- ver la entrada de
+  Sesión 20 justo después de esta, incluye el hallazgo destacado
+  `VOLCAR_SPRITE_A_PANTALLA` ($7CC4).
+
+### Metodología (idéntica en las tres partes)
+
+Para cada dirección sin etiquetar: leer el contexto real (rama
+alternativa de una comparación `CP`/`JR`, o punto de convergencia de
+varias ramas) antes de nombrar; colocar la etiqueta EXACTAMENTE en la
+instrucción de destino (verificable por la dirección hex del
+comentario `; XXXX:` de esa misma línea, no "donde parece empezar la
+lógica" -- el error más costoso de la primera mitad de la Sesión 19);
+verificar `python tools/build_all.py` tras cada grupo pequeño; cuando
+varias referencias apuntan a la misma dirección, un único script
+mecánico propaga el nombre a todas de golpe.
+
+### Etiquetas nuevas del tramo `$6401`-`$786B`
+
+| Rutina | Etiquetas nuevas |
+|---|---|
+| `PANTALLA_OPCIONES` | `BUCLE_LEER_VELOCIDAD_PARTIDA`, `BUCLE_LEER_NIVEL_DIFICULTAD`, `BUCLE_LEER_MUSICA_FONDO`, `ACTIVAR_MUSICA_FONDO`, `FIJAR_MUSICA_FONDO_SI`, `ESPERAR_LIBERAR_TECLAS_MUSICA`, `ESPERAR_TECLA_TRAS_MUSICA`, `BUCLE_LEER_EFECTOS_SONIDO`, `FIJAR_EFECTOS_SONIDO_SI`, `MOSTRAR_CONFIRMACION_OPCIONES`, `BUCLE_CONFIRMAR_SALIDA_OPCIONES` |
+| `INICIAR_PARTIDA`/`PREPARAR_NIVEL`/`PREPARAR_TESOROS_NIVEL` | `LIMPIAR_ESTADO_NIVEL`, `BUCLE_RETARDO_PREPARAR_NIVEL`, `BUSCAR_CASILLA_TESORO_LIBRE`, `CONTINUAR_BUCLE_TESOROS` |
+| `SELECCIONAR_DIAGONAL_MARCO_NIVEL` | `SELECCIONAR_VARIANTE_MARCO_1`, `SELECCIONAR_VARIANTE_MARCO_5`, `SELECCIONAR_VARIANTE_MARCO_4`, `SELECCIONAR_VARIANTE_MARCO_6`, `PARCHEAR_LLAMADA_MARCO_DIAGONAL` |
+| `PANTALLA_STOP_PRESS`/`PANTALLA_GAME_OVER` | `DAR_BONUS_PUNTOS_STOP_PRESS`, `COMPROBAR_VIDA_EXTRA_STOP_PRESS`, `MOSTRAR_CONFIRMACION_STOP_PRESS`, `BUCLE_CONFIRMAR_STOP_PRESS`, `BUCLE_RETARDO_LETRA_GAME_OVER`, `BUCLE_RETARDO_FINAL_GAME_OVER` |
+| `ACTUALIZAR_TABLA_PUNTUACIONES` | `COMPLETAR_RANGO_PUNTUACION`, `FIJAR_RANGO_PUNTUACION`, `ESCRIBIR_PUNTUACION_EN_TABLA` |
+| `PROCESAR_ENCUENTROS_ENTIDADES` | `COMPROBAR_COLUMNA_ENCUENTRO`, `PROCESAR_ENCUENTRO_CONFIRMADO` |
+| `ACTUALIZAR_MARCO_TRAS_MOVIMIENTO` | `CALCULAR_LADO_MARCO_ORIENTACION_3/_2/_01`, `SUMAR_LADO_MARCO`, `MARCAR_LADO_MARCO_PAR`, `COMPROBAR_LADO_MARCO_IX`, `COMPROBAR_LADO_MARCO_IY` |
+| `CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO` | `BUCLE_DIVIDIR_INDICE_TRAMO_MARCO`, `RESTAURAR_RESTO_TRAMO_MARCO`, `DESPACHAR_DIAGONAL_NIVEL_4/_3/_2/_01` |
+| `MARCO_CONTENIDO_MOMIA_GUARDIANA` | `APARICION_MOMIA_DESPLAZAMIENTO_A/_B/_C`, `APLICAR_DESPLAZAMIENTO_APARICION_MOMIA` |
+| `PROCESAR_MOVIMIENTO_JUGADOR` | `MARCAR_TECLA_DIRECCION_PULSADA`, `CONTINUAR_BUCLE_TECLAS_DIRECCION`, `REORDENAR_PRIORIDAD_ORIENTACION_3/_2/_01`, `GUARDAR_PRIORIDAD_DIRECCION`, `CONTINUAR_INTENTO_MOVER_JUGADOR` |
+
+De paso se corrigió una referencia larga que apuntaba a este tramo
+desde más adelante en el fichero: `COMPROBAR_SALIDA_NIVEL` hacía
+`JP $654C` (dirección literal) en vez de `JP LIMPIAR_ESTADO_NIVEL`.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** en cada tanda,
+confirmado también de forma independiente por Claude tras cada agente
+(motor 13190 bytes, cargador 2564 bytes). Ningún byte del binario
+cambia en las tres partes de esta sesión.
+
+### `recursos/flujo_detallado.html`
+
+No requiere cambios: igual que se razona en la entrada de Sesión 20,
+sustituir direcciones literales por nombres de etiqueta no altera el
+flujo de llamadas, los estados ni la confianza de ninguna rutina.
+
+## Sesión 20 — 2026-09-12: últimas 65 direcciones literales (`$786C`-fin) reciben etiqueta -- incluye `VOLCAR_SPRITE_A_PANTALLA` ($7CC4, el punto de entrada más citado de todo el fichero)
+
+Continuación directa del trabajo de nombrado de saltos de la Sesión 19
+(que cubrió los bucles `DJNZ`) y de una sesión intermedia que cerró
+las direcciones de `$6401`-`$786B`. Esta sesión cubre el resto del
+fichero: desde `IMPRIMIR_NUMERO_HL` ($786C) hasta el final
+(`MEZCLAR_ALEATORIO`, $7D84) -- todas las rutinas de entidades, mapa
+y aleatoriedad. Se localizaron 65 direcciones únicas sin etiquetar
+(111 referencias `CALL`/`JP`/`JR` en total). Tras esta sesión, un
+barrido completo del fichero (no solo del rango) confirma **cero**
+instrucciones `CALL`/`JP`/`JR` que salten a una dirección `$XXXX`
+literal en todo `src/mummy1_body.asm`.
+
+### El caso destacado: `$7CC4` → `VOLCAR_SPRITE_A_PANTALLA`
+
+Con 26 referencias directas (27 si se cuenta el propio `JP` de
+`DIBUJAR_ENTIDAD` a través de su rama por defecto, ya con nombre desde
+antes), es la dirección más citada del fichero con diferencia. Es el
+bucle común de volcado a pantalla (`PUSH DE` / `LD B,$10` / copia 16
+filas de 4 bytes desde `IY` vía `CASILLA_A_DIRECCION_PANTALLA`) al que
+caen, con `JP`/`JR` (a veces condicional `Z`), prácticamente todas las
+ramas del gran despachador de `DIBUJAR_ENTIDAD` (por tipo `' '`/`T`/
+`A`/`O`, dirección y fotograma de animación) y también la única salida
+de `DIBUJAR_CASILLA_MAPA`. Nombre elegido: `VOLCAR_SPRITE_A_PANTALLA`
+(deja pendiente de la Sesión 19: "el punto de entrada compartido
+`$7CC4`... sigue sin etiqueta propia").
+
+### Resto de etiquetas nuevas, agrupadas por rutina
+
+| Rutina | Etiquetas nuevas |
+|---|---|
+| `IMPRIMIR_NUMERO_HL` | `BUCLE_RESTAR_PESO_DECIMAL`, `RESTAURAR_RESTO_DECIMAL` |
+| `ESPERAR_TECLA_2C` | `BUCLE_ESPERAR_TECLA_2C_LIBERADA`, `BUCLE_ESPERAR_CARACTER_TECLADO`, `BUCLE_VACIAR_BUFER_TECLADO` |
+| `ANIMAR_OPCION_MENU` | `BUCLE_DECREMENTAR_RETARDO_MENU` |
+| `ACTUALIZAR_SECUENCIA_SONIDO` | `REINICIAR_GUION_SONIDO` |
+| `MOVER_INDICADOR_MENU` | `COMPROBAR_LIMITE_INFERIOR_INDICADOR`, `GUARDAR_DIRECCION_INDICADOR`, `MOVER_INDICADOR_8PX` (entrada reutilizada, ya citada en un comentario de la Sesión 13), `INDICADOR_AVANZAR_FILA`, `INDICADOR_RETROCEDER_COLUMNA`, `INDICADOR_AVANZAR_COLUMNA`, `GUARDAR_COLUMNA_INDICADOR`, `GUARDAR_FILA_INDICADOR`, `REDIBUJAR_INDICADOR_MENU` |
+| `COLOCAR_ENTIDAD` | `GUARDAR_PUNTERO_ENTIDAD_COLOCAR`, `OBTENER_POSICION_ACTUAL_ENTIDAD`, `INCREMENTAR_POSICION_ENTIDAD`, `NORMALIZAR_POSICION_ENTIDAD` |
+| `HAY_COLISION` | `COMPROBAR_COLISION_EJE_Y`, `CONTAR_ENTIDAD_EN_COLISION`, `SIGUIENTE_ENTIDAD_COLISION`, `COMPROBAR_ACCESIBILIDAD_CASILLA` (entrada reutilizada, ya citada en un comentario de la Sesión 13) |
+| `CALCULAR_CASILLA_ADYACENTE` | `CALCULAR_CASILLA_ADYACENTE_DESDE_HL` (entrada reutilizada, ya citada en un comentario de la Sesión 13), `SUMAR_FILA_ADYACENTE`, `SUMAR_COLUMNA_ADYACENTE`, `RESTAR_FILA_ADYACENTE`, `DEVOLVER_CASILLA_ADYACENTE` |
+| `ELEGIR_DIRECCION_HACIA_OBJETIVO` | `DIRECCION_X_NEGATIVA`, `GUARDAR_DIRECCION_EJE_X`, `DIRECCION_Y_NEGATIVA`, `GUARDAR_DIRECCION_EJE_Y`, `GUARDAR_DIRECCION_ELEGIDA` |
+| `PREPARAR_DIBUJAR_ENTIDAD` | `DESPLAZAR_FILA_CASILLA_ANTERIOR`, `REDIBUJAR_CASILLA_FILA_ACTUAL`, `REDIBUJAR_CASILLA_FILA_SIGUIENTE`, `GUARDAR_NUEVA_POSICION_ENTIDAD` |
+| `DIBUJAR_ENTIDAD` (despachador) | `DIBUJAR_ENTIDAD_CARACTER_ESPACIO`, `DIBUJAR_ENTIDAD_LETRA_T`, `DIBUJAR_LETRA_T_PISADA_VERTICAL`, `DIBUJAR_LETRA_T_PISADA_3`, `DIBUJAR_LETRA_T_PISADA_6` (nombradas por la tabla `IY` que cargan, no por una dirección de movimiento sin confirmar), `DIBUJAR_ENTIDAD_LETRA_A`, `DIBUJAR_LETRA_A_GRUPO_1/2/3`, `DIBUJAR_ENTIDAD_LETRA_O`, `DIBUJAR_LETRA_O_GRUPO_1/2/3`, y `VOLCAR_SPRITE_A_PANTALLA` (ver arriba) |
+| `DIBUJAR_CASILLA_MAPA` | `DIBUJAR_CASILLA_PISADA_1`..`_8` (una por cada rama del despachador en cascada `CP`/`JR C`/`JR Z`), `CONFIGURAR_VOLCADO_CASILLA_MAPA` (epílogo común antes de caer en `VOLCAR_SPRITE_A_PANTALLA`) |
+| `GENERAR_ALEATORIO` | `BUCLE_REDUCIR_MODULO_ALEATORIO`, `RESTAURAR_RESTO_ALEATORIO` |
+| `MEZCLAR_ALEATORIO` | `CONTINUAR_MEZCLAR_BIT_ALEATORIO` |
+
+Además, 4 `CALL $7CE6` sueltos (dentro de una rutina de HUD anterior a
+`$786C`, con comentario ya presente "entrada intermedia en
+DIBUJAR_CASILLA_MAPA") se sustituyeron mecánicamente por
+`CALL DIBUJAR_CASILLA_MAPA`: la etiqueta ya existía en esa dirección,
+pero el script de análisis no la detectaba porque hay 5 líneas de
+comentario de bloque entre la etiqueta y la primera instrucción real
+-- limitación conocida del script, no un hueco real.
+
+Metodología idéntica a la Sesión 19: para cada dirección se leyó el
+contexto (rama `CP`/`JR` alternativa, o punto de convergencia de
+varias ramas) antes de nombrar, la etiqueta se colocó exactamente en
+la instrucción de destino (verificado por la dirección hex del
+comentario `; XXXX:`), y se usó el script de sustitución mecánica para
+propagar cada nombre a todas sus referencias de golpe. Verificación
+con `python tools/build_all.py` tras cada grupo pequeño de etiquetas
+(nunca se acumularon más de ~10 sin compilar), sin ningún
+desplazamiento mal colocado esta vez.
+
+### Verificación final
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) -- solo se añaden etiquetas y se sustituyen
+direcciones literales por nombres; ningún byte del binario cambia.
+Barrido final por regex confirma 0 instrucciones `CALL`/`JP`/`JR
+$XXXX` en todo `src/mummy1_body.asm`.
+
+### Sobre `recursos/flujo_detallado.html`
+
+No requiere cambios: esta sesión no altera el flujo de ejecución, las
+llamadas entre rutinas, los puntos de entrada ni el estado/confianza
+de ninguna rutina -- solo sustituye direcciones literales por nombres
+de etiqueta ya deducibles del propio grafo existente (p. ej. el nodo
+que recibía flechas hacia "`$7CC4`" ahora las recibe hacia
+"`VOLCAR_SPRITE_A_PANTALLA`", sin cambiar aristas ni confianza).
+
+### Pendiente
+
+- Ninguna dirección literal sin etiquetar queda en todo el fichero
+  (objetivo del "nombrado de saltos" iniciado en la Sesión 19,
+  completado).
+- El resto de pendientes de sesiones anteriores (decodificar códigos
+  VDU de `TEXTO_MENU_OPCIONES`, nombrar `DATOS_MARCO_Y_TEXTO_CONTINUAR`,
+  confirmar semántica de direcciones 0-4 en `MOVER_INDICADOR_MENU`/
+  `CALCULAR_CASILLA_ADYACENTE`/`ELEGIR_DIRECCION_HACIA_OBJETIVO` contra
+  el emulador) sigue igual -- los nombres nuevos de esta sesión evitan
+  deliberadamente afirmar semánticas de dirección (arriba/abajo/
+  izquierda/derecha) no verificadas, describiendo en su lugar la
+  operación de código real (columna/fila, tabla `IY` cargada).

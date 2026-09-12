@@ -68,6 +68,15 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL FIRM_SOUND_TONE_ENV                   ; 6030: cdbfbc
     LD HL,GUION_SONIDO_CIRCULAR   ; 6033: 215c90
     LD (PUNTERO_GUION_SONIDO),HL  ; 6036: 225a90
+; REINICIAR_MODO_ATRACCION ($6039): destino de "JP C,$6039" desde
+; ACTUALIZAR_TABLA_PUNTUACIONES cuando la puntuacion no entra ni en el
+; ultimo puesto de la tabla HI-SCORE -- vuelve aqui, DENTRO de la
+; cabecera ya reconstruida, sin pedir nombre. Resiembra el generador
+; aleatorio con el reloj del sistema y encadena con BORRAR_BLOQUE_
+; ESTADO/dibujo del marco/tabla de puntuaciones/menu principal, es
+; decir, es el mismo camino que sigue el arranque en frio del
+; programa. Confianza alta (verificado byte a byte).
+REINICIAR_MODO_ATRACCION:
     CALL FIRM_KL_TIME_PLEASE                   ; 6039: cd0dbd
     LD ($8151),HL                ; 603C: 225181  ; hipotesis: semilla de aleatoriedad a partir del reloj del sistema
 ; ACTUALIZAR_SECUENCIA_SONIDO se llama decenas de veces en todo este
@@ -218,40 +227,40 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     LD HL,$2808                  ; 616D: 210828
     CALL DIBUJAR_ICONO_SARCOFAGO                   ; 6170: cd857d
     LD HL,$2816                  ; 6173: 211628
-    CALL $7DFC                   ; 6176: cdfc7d
+    CALL RELLENAR_MARCO_DIAGONAL_1                   ; 6176: cdfc7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6179: cdd178
     LD HL,$2824                  ; 617C: 212428
     CALL DIBUJAR_ICONO_TESORO                   ; 617F: cdcd7d
     LD HL,$2832                  ; 6182: 213228
-    CALL $7E0E                   ; 6185: cd0e7e
+    CALL RELLENAR_MARCO_DIAGONAL_3                   ; 6185: cd0e7e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6188: cdd178
     LD HL,$2840                  ; 618B: 214028
     CALL DIBUJAR_ICONO_LLAVE                   ; 618E: cd9d7d
     LD HL,$5008                  ; 6191: 210850
-    CALL $7E29                   ; 6194: cd297e
+    CALL RELLENAR_MARCO_DIAGONAL_6                   ; 6194: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6197: cdd178
     LD HL,$889D                  ; 619A: 219d88
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 619D: cdf47e
     LD HL,$5040                  ; 61A0: 214050
-    CALL $7E29                   ; 61A3: cd297e
+    CALL RELLENAR_MARCO_DIAGONAL_6                   ; 61A3: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61A6: cdd178
     LD HL,$7808                  ; 61A9: 210878
-    CALL $7E29                   ; 61AC: cd297e
+    CALL RELLENAR_MARCO_DIAGONAL_6                   ; 61AC: cd297e
     LD HL,$8906                  ; 61AF: 210689
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 61B2: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61B5: cdd178
     LD HL,$7840                  ; 61B8: 214078
-    CALL $7E29                   ; 61BB: cd297e
+    CALL RELLENAR_MARCO_DIAGONAL_6                   ; 61BB: cd297e
     LD HL,$A008                  ; 61BE: 2108a0
     CALL DIBUJAR_ICONO_TESORO                   ; 61C1: cdcd7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61C4: cdd178
     LD HL,$A016                  ; 61C7: 2116a0
-    CALL $7E17                   ; 61CA: cd177e
+    CALL RELLENAR_MARCO_DIAGONAL_4                   ; 61CA: cd177e
     LD HL,$A024                  ; 61CD: 2124a0
     CALL DIBUJAR_ICONO_PERGAMINO                   ; 61D0: cdb57d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61D3: cdd178
     LD HL,$A032                  ; 61D6: 2132a0
-    CALL $7E05                   ; 61D9: cd057e
+    CALL RELLENAR_MARCO_DIAGONAL_2                   ; 61D9: cd057e
     LD HL,$A040                  ; 61DC: 2140a0
     CALL DIBUJAR_ICONO_TESORO                   ; 61DF: cdcd7d
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61E2: cdd178
@@ -272,22 +281,31 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
 ; FIRM_KM_TEST_KEY con A=$3E comprueba la tecla de confirmar (Enter,
 ; a falta de confirmar el mapa de scancodes del CPC). Ver FINDINGS.md
 ; Sesion 3 -- ninguna de estas hipotesis esta verificada en emulador.
+BUCLE_SELECCIONAR_JUGADORES:
     CALL FIRM_KM_READ_CHAR                   ; 6201: cd09bb
     LD B,$01                     ; 6204: 0601
     CALL ANIMAR_OPCION_MENU                   ; 6206: cdb778
-    CALL $78F7                   ; 6209: cdf778
+    CALL MOVER_INDICADOR_MENU                   ; 6209: cdf778
     CALL ESPERAR_TECLA_2C                   ; 620C: cd9378
     LD B,$02                     ; 620F: 0602
     CALL ANIMAR_OPCION_MENU                   ; 6211: cdb778
-    CALL $78F7                   ; 6214: cdf778
+    CALL MOVER_INDICADOR_MENU                   ; 6214: cdf778
     LD A,$3E                     ; 6217: 3e3e
     CALL FIRM_KM_TEST_KEY                   ; 6219: cd1ebb
-    JR NZ,$6223                  ; 621C: 2005
+    JR NZ,PREPARAR_ENTRADA_NOMBRE                  ; 621C: 2005
     CALL ESPERAR_TECLA_2C                   ; 621E: cd9378
-    JR $6201                     ; 6221: 18de
+    JR BUCLE_SELECCIONAR_JUGADORES                     ; 6221: 18de
+; PREPARAR_ENTRADA_NOMBRE ($6223): punto de convergencia real (5
+; referencias: confirmar 1/2 jugadores arriba, "L"/Intro tras STOP
+; PRESS/GAME OVER, y el JP final de ACTUALIZAR_TABLA_PUNTUACIONES tras
+; insertar una puntuacion nueva). Vacia el buffer de teclado, imprime
+; el prompt "Well done!! Please enter your name" ($866D, dentro de
+; TEXTO_MENU_PRINCIPAL) y borra el estado antes de caer en el bucle de
+; tecleo del nombre. Confianza alta (verificado byte a byte).
+PREPARAR_ENTRADA_NOMBRE:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6223: cdd178
     CALL FIRM_KM_READ_CHAR                   ; 6226: cd09bb
-    JR C,$6223                   ; 6229: 38f8
+    JR C,PREPARAR_ENTRADA_NOMBRE                   ; 6229: 38f8
     LD HL,$866D                  ; 622B: 216d86
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 622E: cdf47e
     CALL BORRAR_BLOQUE_ESTADO                   ; 6231: cdab7e
@@ -316,13 +334,13 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     LD A,$02                     ; 6272: 3e02
     LD ($8157),A                 ; 6274: 325781
     LD A,$41                     ; 6277: 3e41
-    CALL $7B39                   ; 6279: cd397b
+    CALL DIBUJAR_ENTIDAD                   ; 6279: cd397b
     LD DE,$283A                  ; 627C: 113a28
     LD ($8155),DE                ; 627F: ed535581
     LD A,$04                     ; 6283: 3e04
     LD ($8157),A                 ; 6285: 325781
     LD A,$41                     ; 6288: 3e41
-    CALL $7B39                   ; 628A: cd397b
+    CALL DIBUJAR_ENTIDAD                   ; 628A: cd397b
     LD A,$01                     ; 628D: 3e01
     CALL FIRM_TXT_SET_PAPER                   ; 628F: cd96bb
     LD HL,$0601                  ; 6292: 210106
@@ -348,33 +366,33 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     LD HL,$0C0A                  ; 62CE: 210a0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62D1: cd75bb
     LD HL,($868C)                ; 62D4: 2a8c86
-    CALL $786C                   ; 62D7: cd6c78
+    CALL IMPRIMIR_NUMERO_HL                   ; 62D7: cd6c78
     LD HL,$868E                  ; 62DA: 218e86
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62DD: cdf47e
     LD HL,$0C0C                  ; 62E0: 210c0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62E3: cd75bb
     LD HL,($869E)                ; 62E6: 2a9e86
-    CALL $786C                   ; 62E9: cd6c78
+    CALL IMPRIMIR_NUMERO_HL                   ; 62E9: cd6c78
     LD HL,$86A0                  ; 62EC: 21a086
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62EF: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;62F2: cdd178
     LD HL,$0C0E                  ; 62F5: 210e0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62F8: cd75bb
     LD HL,($86B0)                ; 62FB: 2ab086
-    CALL $786C                   ; 62FE: cd6c78
+    CALL IMPRIMIR_NUMERO_HL                   ; 62FE: cd6c78
     LD HL,$86B2                  ; 6301: 21b286
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6304: cdf47e
     LD HL,$0C10                  ; 6307: 21100c
     CALL FIRM_TXT_SET_CURSOR                   ; 630A: cd75bb
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;630D: cdd178
     LD HL,($86C2)                ; 6310: 2ac286
-    CALL $786C                   ; 6313: cd6c78
+    CALL IMPRIMIR_NUMERO_HL                   ; 6313: cd6c78
     LD HL,$86C4                  ; 6316: 21c486
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6319: cdf47e
     LD HL,$0C12                  ; 631C: 21120c
     CALL FIRM_TXT_SET_CURSOR                   ; 631F: cd75bb
     LD HL,($86D4)                ; 6322: 2ad486
-    CALL $786C                   ; 6325: cd6c78
+    CALL IMPRIMIR_NUMERO_HL                   ; 6325: cd6c78
     LD HL,$86D6                  ; 6328: 21d686
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 632B: cdf47e
     LD HL,$8637                  ; 632E: 213786
@@ -398,9 +416,10 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     CALL FIRM_TXT_OUTPUT                   ; 635C: cd5abb
     LD HL,($7FC6)                ; 635F: 2ac67f
     CALL FIRM_TXT_SET_CURSOR                   ; 6362: cd75bb
+ESPERAR_PRIMERA_TECLA_NOMBRE:
     CALL FIRM_KM_READ_CHAR                   ; 6365: cd09bb
-    JR C,$6365                   ; 6368: 38fb
-    JR $6372                     ; 636A: 1806
+    JR C,ESPERAR_PRIMERA_TECLA_NOMBRE                   ; 6368: 38fb
+    JR BUCLE_LEER_NOMBRE                     ; 636A: 1806
 ; REANUDAR_MENU_TRAS_NOMBRE ($636C): destino de 2 saltos -- JR Z,$636C
 ; en $6344 (bucle de tecleo del nombre, cuando el flag ($8168) ya esta
 ; a 0) y, desde la Sesion 12, JP $636C en el nuevo FIN_INTRODUCIR_NOMBRE
@@ -417,6 +436,7 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
 REANUDAR_MENU_TRAS_NOMBRE:
     LD HL,$86E8                  ; 636C: 21e886
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 636F: cdf47e
+BUCLE_LEER_NOMBRE:
     LD B,$01                     ; 6372: 0601
     CALL ANIMAR_OPCION_MENU                   ; 6374: cdb778
     LD B,$02                     ; 6377: 0602
@@ -425,20 +445,20 @@ REANUDAR_MENU_TRAS_NOMBRE:
     OR A                         ; 637F: b7
     JP Z,DESPACHAR_MENU_PRINCIPAL ; 6380: ca0464
     CALL FIRM_KM_READ_CHAR                   ; 6383: cd09bb
-    JR NC,$6372                  ; 6386: 30ea
+    JR NC,BUCLE_LEER_NOMBRE                  ; 6386: 30ea
     CP $0D                       ; 6388: fe0d
-    JR Z,$63F3                   ; 638A: 2867
+    JR Z,CONFIRMAR_NOMBRE_JUGADOR                   ; 638A: 2867
     CP $7F                       ; 638C: fe7f
-    JR Z,$63C4                   ; 638E: 2834
+    JR Z,BORRAR_CARACTER_NOMBRE                   ; 638E: 2834
     LD B,A                       ; 6390: 47
     LD A,($8649)                 ; 6391: 3a4986
     CP $0C                       ; 6394: fe0c
-    JR Z,$6372                   ; 6396: 28da
+    JR Z,BUCLE_LEER_NOMBRE                   ; 6396: 28da
     LD A,B                       ; 6398: 78
     CP $20                       ; 6399: fe20
-    JR C,$6372                   ; 639B: 38d5
+    JR C,BUCLE_LEER_NOMBRE                   ; 639B: 38d5
     CP $80                       ; 639D: fe80
-    JR NC,$6372                  ; 639F: 30d1
+    JR NC,BUCLE_LEER_NOMBRE                  ; 639F: 30d1
     LD HL,($7FC8)                ; 63A1: 2ac87f
     LD (HL),A                    ; 63A4: 77
     INC HL                       ; 63A5: 23
@@ -453,10 +473,11 @@ REANUDAR_MENU_TRAS_NOMBRE:
     LD A,($8649)                 ; 63BB: 3a4986
     INC A                        ; 63BE: 3c
     LD ($8649),A                 ; 63BF: 324986
-    JR $6372                     ; 63C2: 18ae
+    JR BUCLE_LEER_NOMBRE                     ; 63C2: 18ae
+BORRAR_CARACTER_NOMBRE:
     LD A,($8649)                 ; 63C4: 3a4986
     OR A                         ; 63C7: b7
-    JR Z,$6372                   ; 63C8: 28a8
+    JR Z,BUCLE_LEER_NOMBRE                   ; 63C8: 28a8
     DEC A                        ; 63CA: 3d
     LD ($8649),A                 ; 63CB: 324986
     LD HL,($7FC8)                ; 63CE: 2ac87f
@@ -473,7 +494,8 @@ REANUDAR_MENU_TRAS_NOMBRE:
     CALL FIRM_TXT_OUTPUT                   ; 63E7: cd5abb
     LD HL,($7FC6)                ; 63EA: 2ac67f
     CALL FIRM_TXT_SET_CURSOR                   ; 63ED: cd75bb
-    JP $6372                     ; 63F0: c37263
+    JP BUCLE_LEER_NOMBRE                     ; 63F0: c37263
+CONFIRMAR_NOMBRE_JUGADOR:
     LD A,$20                     ; 63F3: 3e20
     CALL FIRM_TXT_OUTPUT                   ; 63F5: cd5abb
     XOR A                        ; 63F8: af
@@ -511,20 +533,20 @@ FIN_INTRODUCIR_NOMBRE:
 ; animando y esperando tecla.
 DESPACHAR_MENU_PRINCIPAL:
     CALL FIRM_KM_READ_CHAR           ; 6404: cd09bb
-    JP NC,$6372                      ; 6407: d27263
+    JP NC,BUCLE_LEER_NOMBRE                      ; 6407: d27263
     CP $50                           ; 640A: fe50  ; 'P'
-    JP Z,$6529                       ; 640C: ca2965
+    JP Z,INICIAR_PARTIDA                       ; 640C: ca2965
     CP $70                           ; 640F: fe70  ; 'p'
-    JP Z,$6529                       ; 6411: ca2965
+    JP Z,INICIAR_PARTIDA                       ; 6411: ca2965
     CP $49                           ; 6414: fe49  ; 'I'
-    JP Z,$68B2                       ; 6416: cab268
+    JP Z,PANTALLA_INSTRUCCIONES                       ; 6416: cab268
     CP $69                           ; 6419: fe69  ; 'i'
-    JP Z,$68B2                       ; 641B: cab268
+    JP Z,PANTALLA_INSTRUCCIONES                       ; 641B: cab268
     CP $4F                           ; 641E: fe4f  ; 'O'
     JP Z,PANTALLA_OPCIONES           ; 6420: ca2b64
     CP $6F                           ; 6423: fe6f  ; 'o'
     JP Z,PANTALLA_OPCIONES           ; 6425: ca2b64
-    JP $6372                         ; 6428: c37263
+    JP BUCLE_LEER_NOMBRE                         ; 6428: c37263
 ; PANTALLA_OPCIONES: pantalla "OH MUMMY - OPTIONS" (texto literal
 ; confirmado en TEXTO_MENU_OPCIONES, $7EFD, Sesion 8). Confianza alta
 ; en la estructura y en el papel de las 4 variables de partida que fija
@@ -573,13 +595,14 @@ PANTALLA_OPCIONES:
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6433: cdf47e
 ; -- "SPEED OF GAME (1-5) ?": lee un digito '1'-'5', lo eco a pantalla
 ; y calcula ($8153) = $0100 + digito*$00E0 --
+BUCLE_LEER_VELOCIDAD_PARTIDA:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6436: cdd178
     CALL FIRM_KM_READ_CHAR           ; 6439: cd09bb
-    JR NC,$6436                      ; 643C: 30f8
+    JR NC,BUCLE_LEER_VELOCIDAD_PARTIDA                      ; 643C: 30f8
     CP $31                           ; 643E: fe31  ; '1'
-    JR C,$6436                       ; 6440: 38f4
+    JR C,BUCLE_LEER_VELOCIDAD_PARTIDA                       ; 6440: 38f4
     CP $36                           ; 6442: fe36  ; '6' (excluido)
-    JR NC,$6436                      ; 6444: 30f0
+    JR NC,BUCLE_LEER_VELOCIDAD_PARTIDA                      ; 6444: 30f0
     CALL FIRM_TXT_OUTPUT             ; 6446: cd5abb  ; eco del digito tecleado
     SUB $30                          ; 6449: d630   ; ASCII -> 1..5
     LD HL,$0100                      ; 644B: 210001
@@ -593,13 +616,14 @@ BUCLE_ESCALAR_RETARDO_PARTIDA:
 ; $07F8 duplicado (digito) veces, byte alto --
     LD HL,$7F4C                      ; 6458: 214c7f  ; TEXTO_MENU_OPCIONES+$4F
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 645B: cdf47e
+BUCLE_LEER_NIVEL_DIFICULTAD:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 645E: cdd178
     CALL FIRM_KM_READ_CHAR           ; 6461: cd09bb
-    JR NC,$645E                      ; 6464: 30f8
+    JR NC,BUCLE_LEER_NIVEL_DIFICULTAD                       ; 6464: 30f8
     CP $31                           ; 6466: fe31
-    JR C,$645E                       ; 6468: 38f4
+    JR C,BUCLE_LEER_NIVEL_DIFICULTAD                        ; 6468: 38f4
     CP $36                           ; 646A: fe36
-    JR NC,$645E                      ; 646C: 30f0
+    JR NC,BUCLE_LEER_NIVEL_DIFICULTAD                       ; 646C: 30f0
     CALL FIRM_TXT_OUTPUT             ; 646E: cd5abb
     SUB $30                          ; 6471: d630
     LD B,A                           ; 6473: 47
@@ -613,13 +637,14 @@ BUCLE_ESCALAR_LIMITE_DIFICULTAD:
 ; de sonido circular), '.' -> 'N' --
     LD HL,$7F82                      ; 647E: 21827f  ; TEXTO_MENU_OPCIONES+$85
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6481: cdf47e
+BUCLE_LEER_MUSICA_FONDO:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6484: cdd178
     LD A,$2B                         ; 6487: 3e2b  ; '+'
     CALL FIRM_KM_TEST_KEY            ; 6489: cd1ebb
-    JR NZ,$64AB                      ; 648C: 201d
+    JR NZ,ACTIVAR_MUSICA_FONDO                      ; 648C: 201d
     LD A,$2E                         ; 648E: 3e2e  ; '.'
     CALL FIRM_KM_TEST_KEY            ; 6490: cd1ebb
-    JR Z,$6484                       ; 6493: 28ef
+    JR Z,BUCLE_LEER_MUSICA_FONDO                    ; 6493: 28ef
     LD A,$4E                         ; 6495: 3e4e  ; 'N'
     LD (FLAG_MUSICA_FONDO),A         ; 6497: 32c47f
     LD HL,$7FC1                      ; 649A: 21c17f  ; TEXTO_MENU_OPCIONES+$C4
@@ -627,59 +652,67 @@ BUCLE_ESCALAR_LIMITE_DIFICULTAD:
     CALL FIRM_SOUND_RESET            ; 64A0: cda7bc
     LD HL,GUION_SONIDO_CIRCULAR      ; 64A3: 215c90
     LD (PUNTERO_GUION_SONIDO),HL     ; 64A6: 225a90
-    JR $64C6                         ; 64A9: 181b
+    JR ESPERAR_LIBERAR_TECLAS_MUSICA ; 64A9: 181b
+ACTIVAR_MUSICA_FONDO:
     LD A,(FLAG_MUSICA_FONDO)         ; 64AB: 3ac47f
     CP $4E                           ; 64AE: fe4e  ; 'N'
-    JR NZ,$64BB                      ; 64B0: 2009
+    JR NZ,FIJAR_MUSICA_FONDO_SI      ; 64B0: 2009
     CALL FIRM_SOUND_RESET            ; 64B2: cda7bc
     LD HL,GUION_SONIDO_CIRCULAR      ; 64B5: 215c90
     LD (PUNTERO_GUION_SONIDO),HL     ; 64B8: 225a90
+FIJAR_MUSICA_FONDO_SI:
     LD A,$59                         ; 64BB: 3e59  ; 'Y'
     LD (FLAG_MUSICA_FONDO),A         ; 64BD: 32c47f
     LD HL,$7FBD                      ; 64C0: 21bd7f  ; TEXTO_MENU_OPCIONES+$C0
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64C3: cdf47e
 ; -- "SOUND EFFECTS (Y-N) ?": mismo patron '+'/'.', sin reinicio de
 ; sonido (solo cambia el flag) --
+ESPERAR_LIBERAR_TECLAS_MUSICA:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64C6: cdd178
     LD A,$2B                         ; 64C9: 3e2b
     CALL FIRM_KM_TEST_KEY            ; 64CB: cd1ebb
-    JR NZ,$64C6                      ; 64CE: 20f6
+    JR NZ,ESPERAR_LIBERAR_TECLAS_MUSICA             ; 64CE: 20f6
     LD A,$2E                         ; 64D0: 3e2e
     CALL FIRM_KM_TEST_KEY            ; 64D2: cd1ebb
-    JR NZ,$64C6                      ; 64D5: 20ef
+    JR NZ,ESPERAR_LIBERAR_TECLAS_MUSICA             ; 64D5: 20ef
+ESPERAR_TECLA_TRAS_MUSICA:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64D7: cdd178
     CALL FIRM_KM_READ_CHAR           ; 64DA: cd09bb
-    JR C,$64D7                       ; 64DD: 38f8
+    JR C,ESPERAR_TECLA_TRAS_MUSICA                  ; 64DD: 38f8
     LD HL,$7FA1                      ; 64DF: 21a17f  ; TEXTO_MENU_OPCIONES+$A4
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64E2: cdf47e
+BUCLE_LEER_EFECTOS_SONIDO:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64E5: cdd178
     LD A,$2B                         ; 64E8: 3e2b
     CALL FIRM_KM_TEST_KEY            ; 64EA: cd1ebb
-    JR NZ,$6503                      ; 64ED: 2014
+    JR NZ,FIJAR_EFECTOS_SONIDO_SI    ; 64ED: 2014
     LD A,$2E                         ; 64EF: 3e2e
     CALL FIRM_KM_TEST_KEY            ; 64F1: cd1ebb
-    JR Z,$64E5                       ; 64F4: 28ef
+    JR Z,BUCLE_LEER_EFECTOS_SONIDO                  ; 64F4: 28ef
     LD A,$4E                         ; 64F6: 3e4e
     LD (FLAG_EFECTOS_SONIDO),A       ; 64F8: 32c57f
     LD HL,$7FC1                      ; 64FB: 21c17f
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64FE: cdf47e
-    JR $650E                         ; 6501: 180b
+    JR MOSTRAR_CONFIRMACION_OPCIONES ; 6501: 180b
+FIJAR_EFECTOS_SONIDO_SI:
     LD A,$59                         ; 6503: 3e59
     LD (FLAG_EFECTOS_SONIDO),A       ; 6505: 32c57f
     LD HL,$7FBD                      ; 6508: 21bd7f
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 650B: cdf47e
 ; -- Confirmar con 'L' o Intro; cualquier otra tecla reinicia el bucle
 ; de esta ultima pregunta ($6514) --
+MOSTRAR_CONFIRMACION_OPCIONES:
     LD HL,$80FB                      ; 650E: 21fb80  ; TEXTO_HISTORIA_ATRACCION+$DE
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6511: cdf47e
+BUCLE_CONFIRMAR_SALIDA_OPCIONES:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6514: cdd178
     LD A,$4C                         ; 6517: 3e4c  ; 'L'
     CALL FIRM_KM_TEST_KEY            ; 6519: cd1ebb
-    JP NZ,$6223                      ; 651C: c22362  ; vuelve al flujo de la cabecera (confirmar 1/2 jugadores)
+    JP NZ,PREPARAR_ENTRADA_NOMBRE                      ; 651C: c22362  ; vuelve al flujo de la cabecera (confirmar 1/2 jugadores)
     LD A,$3E                         ; 651F: 3e3e  ; Intro
     CALL FIRM_KM_TEST_KEY            ; 6521: cd1ebb
-    JP NZ,$6223                      ; 6524: c22362
-    JR $6514                         ; 6527: 18eb
+    JP NZ,PREPARAR_ENTRADA_NOMBRE                      ; 6524: c22362
+    JR BUCLE_CONFIRMAR_SALIDA_OPCIONES ; 6527: 18eb
 
 ; ---- $6529-$68B1 (905 bytes): segundo tramo promovido del INCBIN --
 ; Sesion 13. Arranca desde el punto de entrada real confirmado en la
@@ -739,7 +772,7 @@ PREPARAR_NIVEL:
     LD HL,($815A)                     ; 653B: 2a5a81
     LD A,H                            ; 653E: 7c
     OR L                              ; 653F: b5
-    JR Z,$654C                        ; 6540: 280a
+    JR Z,LIMPIAR_ESTADO_NIVEL          ; 6540: 280a
     LD A,($8161)                      ; 6542: 3a6181
     SRL A                             ; 6545: cb3f
     OR $03                            ; 6547: f603
@@ -748,15 +781,17 @@ PREPARAR_NIVEL:
 ; BORRAR_BLOQUE_ESTADO limpia entidades/mapa/HUD; el bucle siguiente
 ; (DE=$00C8=200) es una pausa que bombea sonido -- mismo patron que
 ; otros retardos fijos del fichero.
+LIMPIAR_ESTADO_NIVEL:
     CALL BORRAR_BLOQUE_ESTADO         ; 654C: cdab7e
     LD DE,$00C8                       ; 654F: 11c800
+BUCLE_RETARDO_PREPARAR_NIVEL:
     PUSH DE                           ; 6552: d5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6553: cdd178
     POP DE                            ; 6556: d1
     DEC DE                            ; 6557: 1b
     LD A,D                            ; 6558: 7a
     OR E                              ; 6559: b3
-    JR NZ,$6552                       ; 655A: 20f6
+    JR NZ,BUCLE_RETARDO_PREPARAR_NIVEL              ; 655A: 20f6
 
 ; Incrementa en paralelo un contador general ($8169, reutilizado --
 ; en el arranque del programa vale 6 para la demo de fondo del menu;
@@ -830,6 +865,7 @@ PREPARAR_TESOROS_NIVEL:
 BUCLE_COLOCAR_TESOROS_NIVEL:
     PUSH BC                           ; 65B1: c5
     PUSH AF                           ; 65B2: f5
+BUSCAR_CASILLA_TESORO_LIBRE:
     LD A,$1A                          ; 65B3: 3e1a
     CALL GENERAR_ALEATORIO            ; 65B5: cd537d
     LD B,$08                          ; 65B8: 0608
@@ -840,13 +876,14 @@ BUCLE_COLOCAR_TESOROS_NIVEL:
     ADD HL,BC                         ; 65C1: 09
     LD A,(HL)                         ; 65C2: 7e
     CP $60                            ; 65C3: fe60
-    JR NZ,$65B3                       ; 65C5: 20ec
+    JR NZ,BUSCAR_CASILLA_TESORO_LIBRE               ; 65C5: 20ec
     POP AF                            ; 65C7: f1
     LD (HL),A                         ; 65C8: 77
     POP BC                            ; 65C9: c1
     CP $50                            ; 65CA: fe50
-    JR Z,$65D0                        ; 65CC: 2802
+    JR Z,CONTINUAR_BUCLE_TESOROS      ; 65CC: 2802
     ADD A,$10                         ; 65CE: c610
+CONTINUAR_BUCLE_TESOROS:
     DJNZ BUCLE_COLOCAR_TESOROS_NIVEL                        ; 65D0: 10df
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65D2: cdd178
 
@@ -953,20 +990,25 @@ LIMPIAR_PANELES_NIVEL:
 SELECCIONAR_DIAGONAL_MARCO_NIVEL:
     LD A,($815C)                      ; 6685: 3a5c81
     CP $02                            ; 6688: fe02
-    JR C,$66A8                        ; 668A: 381c
-    JR Z,$66A3                        ; 668C: 2815
+    JR C,SELECCIONAR_VARIANTE_MARCO_6 ; 668A: 381c
+    JR Z,SELECCIONAR_VARIANTE_MARCO_4 ; 668C: 2815
     CP $04                            ; 668E: fe04
-    JR C,$669E                        ; 6690: 380c
-    JR Z,$6699                        ; 6692: 2805
+    JR C,SELECCIONAR_VARIANTE_MARCO_5 ; 6690: 380c
+    JR Z,SELECCIONAR_VARIANTE_MARCO_1 ; 6692: 2805
     LD HL,RELLENAR_MARCO_DIAGONAL_3   ; 6694: 210e7e
-    JR $66AB                          ; 6697: 1812
+    JR PARCHEAR_LLAMADA_MARCO_DIAGONAL ; 6697: 1812
+SELECCIONAR_VARIANTE_MARCO_1:
     LD HL,RELLENAR_MARCO_DIAGONAL_1   ; 6699: 21fc7d
-    JR $66AB                          ; 669C: 180d
+    JR PARCHEAR_LLAMADA_MARCO_DIAGONAL ; 669C: 180d
+SELECCIONAR_VARIANTE_MARCO_5:
     LD HL,RELLENAR_MARCO_DIAGONAL_5   ; 669E: 21207e
-    JR $66AB                          ; 66A1: 1808
+    JR PARCHEAR_LLAMADA_MARCO_DIAGONAL ; 66A1: 1808
+SELECCIONAR_VARIANTE_MARCO_4:
     LD HL,RELLENAR_MARCO_DIAGONAL_4   ; 66A3: 21177e
-    JR $66AB                          ; 66A6: 1803
+    JR PARCHEAR_LLAMADA_MARCO_DIAGONAL ; 66A6: 1803
+SELECCIONAR_VARIANTE_MARCO_6:
     LD HL,RELLENAR_MARCO_DIAGONAL_6   ; 66A8: 21297e
+PARCHEAR_LLAMADA_MARCO_DIAGONAL:
     LD ($66BA),HL                     ; 66AB: 22ba66
     LD B,$04                          ; 66AE: 0604
     LD HL,$2808                       ; 66B0: 210828
@@ -1097,7 +1139,8 @@ PANTALLA_STOP_PRESS:
     LD A,$02                          ; 675D: 3e02
     CALL GENERAR_ALEATORIO            ; 675F: cd537d
     OR A                              ; 6762: b7
-    JR Z,$677E                        ; 6763: 2819
+    JR Z,COMPROBAR_VIDA_EXTRA_STOP_PRESS ; 6763: 2819
+DAR_BONUS_PUNTOS_STOP_PRESS:
     LD HL,($815A)                     ; 6765: 2a5a81
     LD BC,$00C8                       ; 6768: 01c800
     ADD HL,BC                         ; 676B: 09
@@ -1106,19 +1149,22 @@ PANTALLA_STOP_PRESS:
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6772: cdf47e
     LD HL,$80C2                       ; 6775: 21c280
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6778: cdf47e
-    JP $6795                          ; 677B: c39567
+    JP MOSTRAR_CONFIRMACION_STOP_PRESS ; 677B: c39567
+COMPROBAR_VIDA_EXTRA_STOP_PRESS:
     LD A,($816A)                      ; 677E: 3a6a81
     CP $07                            ; 6781: fe07
-    JR Z,$6765                        ; 6783: 28e0
+    JR Z,DAR_BONUS_PUNTOS_STOP_PRESS  ; 6783: 28e0
     INC A                             ; 6785: 3c
     LD ($816A),A                      ; 6786: 326a81
     LD HL,$80E0                       ; 6789: 21e080
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 678C: cdf47e
     LD HL,$80EA                       ; 678F: 21ea80
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6792: cdf47e
+MOSTRAR_CONFIRMACION_STOP_PRESS:
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6795: cdd178
     LD HL,$80FB                       ; 6798: 21fb80
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 679B: cdf47e
+BUCLE_CONFIRMAR_STOP_PRESS:
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 679E: cdd178
     LD A,$4C                          ; 67A1: 3e4c
     CALL FIRM_KM_TEST_KEY             ; 67A3: cd1ebb
@@ -1126,7 +1172,7 @@ PANTALLA_STOP_PRESS:
     LD A,$3E                          ; 67A9: 3e3e
     CALL FIRM_KM_TEST_KEY             ; 67AB: cd1ebb
     JP NZ,PREPARAR_NIVEL              ; 67AE: c23465
-    JR $679E                          ; 67B1: 18eb
+    JR BUCLE_CONFIRMAR_STOP_PRESS     ; 67B1: 18eb
 
 ; PANTALLA_GAME_OVER ($67B3): alcanzada solo por las 4 "JP C,
 ; PANTALLA_GAME_OVER" del bucle principal (acarreo = jugador atrapado,
@@ -1156,13 +1202,14 @@ BUCLE_IMPRIMIR_GAME_OVER:
     PUSH BC                           ; 67D9: c5
     PUSH HL                           ; 67DA: e5
     LD DE,$0400                       ; 67DB: 110004
+BUCLE_RETARDO_LETRA_GAME_OVER:
     PUSH DE                           ; 67DE: d5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67DF: cdd178
     POP DE                            ; 67E2: d1
     DEC DE                            ; 67E3: 1b
     LD A,D                            ; 67E4: 7a
     OR E                              ; 67E5: b3
-    JR NZ,$67DE                       ; 67E6: 20f6
+    JR NZ,BUCLE_RETARDO_LETRA_GAME_OVER             ; 67E6: 20f6
     POP HL                            ; 67E8: e1
     LD A,(HL)                         ; 67E9: 7e
     INC HL                            ; 67EA: 23
@@ -1172,13 +1219,14 @@ BUCLE_IMPRIMIR_GAME_OVER:
     POP BC                            ; 67F3: c1
     DJNZ BUCLE_IMPRIMIR_GAME_OVER                        ; 67F4: 10e3
     LD DE,$4000                       ; 67F6: 110040
+BUCLE_RETARDO_FINAL_GAME_OVER:
     PUSH DE                           ; 67F9: d5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67FA: cdd178
     POP DE                            ; 67FD: d1
     DEC DE                            ; 67FE: 1b
     LD A,D                            ; 67FF: 7a
     OR E                              ; 6800: b3
-    JR NZ,$67F9                       ; 6801: 20f6
+    JR NZ,BUCLE_RETARDO_FINAL_GAME_OVER             ; 6801: 20f6
 
 ; ACTUALIZAR_TABLA_PUNTUACIONES ($6803): compara la puntuacion actual
 ; ($815A) contra la ultima entrada (mas baja) de la tabla HI-SCORE de 5
@@ -1208,7 +1256,7 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     LD HL,($815A)                     ; 6804: 2a5a81
     LD BC,($86D4)                     ; 6807: ed4bd486
     SBC HL,BC                         ; 680B: ed42
-    JP C,$6039                        ; 680D: da3960
+    JP C,REINICIAR_MODO_ATRACCION                        ; 680D: da3960
     LD A,$01                          ; 6810: 3e01
     LD ($8168),A                      ; 6812: 326881
     LD DE,$0012                       ; 6815: 111200
@@ -1222,15 +1270,17 @@ BUCLE_CALCULAR_RANGO_PUNTUACION:
     LD B,(IX+1)                       ; 6826: dd4601
     SBC HL,BC                         ; 6829: ed42
     POP BC                            ; 682B: c1
-    JR Z,$683B                        ; 682C: 280d
-    JR C,$683A                        ; 682E: 380a
+    JR Z,FIJAR_RANGO_PUNTUACION       ; 682C: 280d
+    JR C,COMPLETAR_RANGO_PUNTUACION   ; 682E: 380a
     PUSH IX                           ; 6830: dde5
     POP HL                            ; 6832: e1
     SBC HL,DE                         ; 6833: ed52
     PUSH HL                           ; 6835: e5
     POP IX                            ; 6836: dde1
     DJNZ BUCLE_CALCULAR_RANGO_PUNTUACION                        ; 6838: 10e5
+COMPLETAR_RANGO_PUNTUACION:
     INC B                             ; 683A: 04
+FIJAR_RANGO_PUNTUACION:
     LD A,B                            ; 683B: 78
     ADD A,A                           ; 683C: 87
     ADD A,$08                         ; 683D: c608
@@ -1240,7 +1290,7 @@ BUCLE_CALCULAR_RANGO_PUNTUACION:
     LD HL,$86D4                       ; 6845: 21d486
     LD A,$05                          ; 6848: 3e05
     CP B                              ; 684A: b8
-    JR Z,$6893                        ; 684B: 2846
+    JR Z,ESCRIBIR_PUNTUACION_EN_TABLA ; 684B: 2846
     SUB B                             ; 684D: 90
     LD B,A                            ; 684E: 47
     PUSH BC                           ; 684F: c5
@@ -1285,6 +1335,7 @@ BUCLE_DESPLAZAR_TABLA_PUNTUACIONES:
     DEC A                             ; 6890: 3d
     LD (HL),A                         ; 6891: 77
     POP HL                            ; 6892: e1
+ESCRIBIR_PUNTUACION_EN_TABLA:
     LD DE,($815A)                     ; 6893: ed5b5a81
     LD (HL),E                         ; 6897: 73
     INC HL                            ; 6898: 23
@@ -1299,7 +1350,7 @@ BUCLE_DESPLAZAR_TABLA_PUNTUACIONES:
     INC DE                            ; 68A6: 13
     LD BC,$000B                       ; 68A7: 010b00
     LDIR                              ; 68AA: edb0
-    JP $6223                          ; 68AC: c32362
+    JP PREPARAR_ENTRADA_NOMBRE                          ; 68AC: c32362
 
 ; TRAMPOLIN_TECLA_B ($68AF): destino de la comprobacion de la tecla
 ; 'B' al principio de BUCLE_PRINCIPAL_JUEGO -- ver comentario alli.
@@ -1397,7 +1448,7 @@ PANTALLA_INSTRUCCIONES:
     CALL IMPRIMIR_PARRAFO_INSTRUCCIONES; 697E: cdd269
     CALL ESPERAR_CONTINUAR_INSTRUCCIONES; 6981: cdac69
     CALL RESTAURAR_VENTANA_TEXTO_COMPLETA; 6984: cd9c69
-    JP $6223                          ; 6987: c32362
+    JP PREPARAR_ENTRADA_NOMBRE                          ; 6987: c32362
 
 ; LIMPIAR_VENTANA_INSTRUCCIONES ($698A): pausa de sonido + define una
 ; ventana de texto (HL=$0005/DE=$2718, ver firmware TXT WIN ENABLE) y la
@@ -1868,7 +1919,7 @@ COMPROBAR_SALIDA_NIVEL:
     CP $08                            ; 7571: fe08
     RET NZ                            ; 7573: c0
     POP HL                            ; 7574: e1
-    JP $654C                          ; 7575: c34c65
+    JP LIMPIAR_ESTADO_NIVEL           ; 7575: c34c65
 
 ; PROCESAR_ENCUENTROS_ENTIDADES ($7578): llamada 2 veces por jugador y por
 ; turno desde BUCLE_PRINCIPAL_JUEGO, con "JP C,PANTALLA_GAME_OVER"
@@ -1901,19 +1952,21 @@ PROCESAR_ENCUENTROS_ENTIDADES_BUCLE:
     LD A,(IY+2)                       ; 7593: fd7e02
     SUB D                             ; 7596: 92
     CP $F8                            ; 7597: fef8
-    JR Z,$75A3                        ; 7599: 2808
+    JR Z,COMPROBAR_COLUMNA_ENCUENTRO  ; 7599: 2808
     CP $08                            ; 759B: fe08
-    JR Z,$75A3                        ; 759D: 2804
+    JR Z,COMPROBAR_COLUMNA_ENCUENTRO  ; 759D: 2804
     OR A                              ; 759F: b7
     JP NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75A0: c23076
+COMPROBAR_COLUMNA_ENCUENTRO:
     LD A,(IY+3)                       ; 75A3: fd7e03
     SUB E                             ; 75A6: 93
     CP $FE                            ; 75A7: fefe
-    JR Z,$75B2                        ; 75A9: 2807
+    JR Z,PROCESAR_ENCUENTRO_CONFIRMADO ; 75A9: 2807
     CP $02                            ; 75AB: fe02
-    JR Z,$75B2                        ; 75AD: 2803
+    JR Z,PROCESAR_ENCUENTRO_CONFIRMADO ; 75AD: 2803
     OR A                              ; 75AF: b7
     JR NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75B0: 207e
+PROCESAR_ENCUENTRO_CONFIRMADO:
     XOR A                             ; 75B2: af
     LD (IY+0),A                       ; 75B3: fd7700
     LD (IY+1),A                       ; 75B6: fd7701
@@ -1921,23 +1974,23 @@ PROCESAR_ENCUENTROS_ENTIDADES_BUCLE:
     LD E,(IY+3)                       ; 75BC: fd5e03
     CALL CONSULTAR_CASILLA_MAPA       ; 75BF: cd3e7d
     LD A,(HL)                         ; 75C2: 7e
-    CALL $7CE6                        ; 75C3: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    CALL DIBUJAR_CASILLA_MAPA                        ; 75C3: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
     INC E                             ; 75C6: 1c
     INC E                             ; 75C7: 1c
     CALL CONSULTAR_CASILLA_MAPA       ; 75C8: cd3e7d
     LD A,(HL)                         ; 75CB: 7e
-    CALL $7CE6                        ; 75CC: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    CALL DIBUJAR_CASILLA_MAPA                        ; 75CC: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
     LD A,$08                          ; 75CF: 3e08
     ADD A,D                           ; 75D1: 82
     LD D,A                            ; 75D2: 57
     CALL CONSULTAR_CASILLA_MAPA       ; 75D3: cd3e7d
     LD A,(HL)                         ; 75D6: 7e
-    CALL $7CE6                        ; 75D7: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    CALL DIBUJAR_CASILLA_MAPA                        ; 75D7: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
     DEC E                             ; 75DA: 1d
     DEC E                             ; 75DB: 1d
     CALL CONSULTAR_CASILLA_MAPA       ; 75DC: cd3e7d
     LD A,(HL)                         ; 75DF: 7e
-    CALL $7CE6                        ; 75E0: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
+    CALL DIBUJAR_CASILLA_MAPA                        ; 75E0: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
     LD HL,$8169                       ; 75E3: 216981
     DEC (HL)                          ; 75E6: 35
     LD DE,($8155)                     ; 75E7: ed5b5581
@@ -2029,17 +2082,21 @@ ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
     LD L,A                            ; 766C: 6f
     LD A,($8157)                      ; 766D: 3a5781
     CP $02                            ; 7670: fe02
-    JR C,$7689                        ; 7672: 3815
-    JR Z,$7684                        ; 7674: 280e
+    JR C,CALCULAR_LADO_MARCO_ORIENTACION_01         ; 7672: 3815
+    JR Z,CALCULAR_LADO_MARCO_ORIENTACION_2          ; 7674: 280e
     CP $03                            ; 7676: fe03
-    JR Z,$767F                        ; 7678: 2805
+    JR Z,CALCULAR_LADO_MARCO_ORIENTACION_3          ; 7678: 2805
     LD BC,$0108                       ; 767A: 010801
-    JR $768C                          ; 767D: 180d
+    JR SUMAR_LADO_MARCO               ; 767D: 180d
+CALCULAR_LADO_MARCO_ORIENTACION_3:
     LD BC,$0001                       ; 767F: 010100
-    JR $768C                          ; 7682: 1808
+    JR SUMAR_LADO_MARCO               ; 7682: 1808
+CALCULAR_LADO_MARCO_ORIENTACION_2:
     LD BC,$0007                       ; 7684: 010700
-    JR $768C                          ; 7687: 1803
+    JR SUMAR_LADO_MARCO               ; 7687: 1803
+CALCULAR_LADO_MARCO_ORIENTACION_01:
     LD BC,$0708                       ; 7689: 010807
+SUMAR_LADO_MARCO:
     ADD HL,BC                         ; 768C: 09
     LD B,H                            ; 768D: 44
     LD C,L                            ; 768E: 4d
@@ -2052,16 +2109,18 @@ ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
     ADD IX,BC                         ; 769C: dd09
     ADD IY,DE                         ; 769E: fd19
     BIT 0,A                           ; 76A0: cb47
-    JR Z,$76AE                        ; 76A2: 280a
+    JR Z,MARCAR_LADO_MARCO_PAR        ; 76A2: 280a
     SET 0,(IX+0)                      ; 76A4: ddcb00c6
     SET 2,(IY+0)                      ; 76A8: fdcb00d6
-    JR $76B6                          ; 76AC: 1808
+    JR COMPROBAR_LADO_MARCO_IX        ; 76AC: 1808
+MARCAR_LADO_MARCO_PAR:
     SET 1,(IX+0)                      ; 76AE: ddcb00ce
     SET 3,(IY+0)                      ; 76B2: fdcb00de
+COMPROBAR_LADO_MARCO_IX:
     LD A,(IX+0)                       ; 76B6: dd7e00
     AND $0F                           ; 76B9: e60f
     CP $0F                            ; 76BB: fe0f
-    JR NZ,$76D4                       ; 76BD: 2015
+    JR NZ,COMPROBAR_LADO_MARCO_IY     ; 76BD: 2015
     LD A,(IX+0)                       ; 76BF: dd7e00
     LD B,C                            ; 76C2: 41
     PUSH IX                           ; 76C3: dde5
@@ -2073,6 +2132,7 @@ ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
     POP IX                            ; 76CE: dde1
     XOR A                             ; 76D0: af
     LD (IX+0),A                       ; 76D1: dd7700
+COMPROBAR_LADO_MARCO_IY:
     LD A,(IY+0)                       ; 76D4: fd7e00
     AND $0F                           ; 76D7: e60f
     CP $0F                            ; 76D9: fe0f
@@ -2103,10 +2163,12 @@ CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO:
     LD A,B                            ; 76ED: 78
     DEC A                             ; 76EE: 3d
     LD B,$00                          ; 76EF: 0600
+BUCLE_DIVIDIR_INDICE_TRAMO_MARCO:
     SUB $07                           ; 76F1: d607
-    JR C,$76F8                        ; 76F3: 3803
+    JR C,RESTAURAR_RESTO_TRAMO_MARCO  ; 76F3: 3803
     INC B                             ; 76F5: 04
-    JR $76F1                          ; 76F6: 18f9
+    JR BUCLE_DIVIDIR_INDICE_TRAMO_MARCO             ; 76F6: 18f9
+RESTAURAR_RESTO_TRAMO_MARCO:
     ADD A,$07                         ; 76F8: c607
     ADD A,A                           ; 76FA: 87
     LD C,A                            ; 76FB: 4f
@@ -2137,15 +2199,19 @@ CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO:
     JP Z,MARCO_CONTENIDO_TESORO       ; 771C: cab477
     LD A,($815C)                      ; 771F: 3a5c81
     CP $02                            ; 7722: fe02
-    JR C,$773A                        ; 7724: 3814
-    JR Z,$7737                        ; 7726: 280f
+    JR C,DESPACHAR_DIAGONAL_NIVEL_01  ; 7724: 3814
+    JR Z,DESPACHAR_DIAGONAL_NIVEL_2   ; 7726: 280f
     CP $04                            ; 7728: fe04
-    JR C,$7734                        ; 772A: 3808
-    JR Z,$7731                        ; 772C: 2803
+    JR C,DESPACHAR_DIAGONAL_NIVEL_3   ; 772A: 3808
+    JR Z,DESPACHAR_DIAGONAL_NIVEL_4   ; 772C: 2803
     JP RELLENAR_MARCO_DIAGONAL_1      ; 772E: c3fc7d
+DESPACHAR_DIAGONAL_NIVEL_4:
     JP RELLENAR_MARCO_DIAGONAL_5      ; 7731: c3207e
+DESPACHAR_DIAGONAL_NIVEL_3:
     JP RELLENAR_MARCO_DIAGONAL_4      ; 7734: c3177e
+DESPACHAR_DIAGONAL_NIVEL_2:
     JP RELLENAR_MARCO_DIAGONAL_6      ; 7737: c3297e
+DESPACHAR_DIAGONAL_NIVEL_01:
     JP RELLENAR_MARCO_DIAGONAL_3      ; 773A: c30e7e
 
 ; MARCO_CONTENIDO_PERGAMINO ($773D): rango $40-$5E. Marca ($816E) y
@@ -2208,18 +2274,25 @@ MARCO_CONTENIDO_MOMIA_GUARDIANA:
     ADD A,E                           ; 778F: 83
     SUB L                             ; 7790: 95
     CP $EC                            ; 7791: feec
-    JR Z,$77A2                        ; 7793: 280d
+    JR Z,APARICION_MOMIA_DESPLAZAMIENTO_A           ; 7793: 280d
     CP $14                            ; 7795: fe14
-    JR Z,$77AC                        ; 7797: 2813
+    JR Z,APARICION_MOMIA_DESPLAZAMIENTO_C           ; 7797: 2813
     CP $FA                            ; 7799: fefa
-    JR Z,$77A7                        ; 779B: 280a
+    JR Z,APARICION_MOMIA_DESPLAZAMIENTO_B           ; 779B: 280a
     LD DE,$0806                       ; 779D: 110608
-    JR $77AF                          ; 77A0: 180d
+    JR APLICAR_DESPLAZAMIENTO_APARICION_MOMIA       ; 77A0: 180d
+; -- 3 casos de desplazamiento segun el lado por el que aparece la Momia
+; Guardiana relativo al jugador (confianza media: no se ha confirmado en
+; emulador la correspondencia exacta lado<->valor) --
+APARICION_MOMIA_DESPLAZAMIENTO_A:
     LD DE,$0000                       ; 77A2: 110000
-    JR $77AF                          ; 77A5: 1808
+    JR APLICAR_DESPLAZAMIENTO_APARICION_MOMIA       ; 77A5: 1808
+APARICION_MOMIA_DESPLAZAMIENTO_B:
     LD DE,$0006                       ; 77A7: 110600
-    JR $77AF                          ; 77AA: 1803
+    JR APLICAR_DESPLAZAMIENTO_APARICION_MOMIA       ; 77AA: 1803
+APARICION_MOMIA_DESPLAZAMIENTO_C:
     LD DE,$0800                       ; 77AC: 110008
+APLICAR_DESPLAZAMIENTO_APARICION_MOMIA:
     ADD HL,DE                         ; 77AF: 19
     LD ($8136),HL                     ; 77B0: 223681
     RET                               ; 77B3: c9
@@ -2269,39 +2342,45 @@ BUCLE_LEER_TECLAS_DIRECCION:
     LD A,(DE)                         ; 77E3: 1a
     CALL FIRM_KM_TEST_KEY             ; 77E4: cd1ebb
     DEC DE                            ; 77E7: 1b
-    JR NZ,$77F0                       ; 77E8: 2006
+    JR NZ,MARCAR_TECLA_DIRECCION_PULSADA            ; 77E8: 2006
     LD A,(DE)                         ; 77EA: 1a
     CALL FIRM_KM_TEST_KEY             ; 77EB: cd1ebb
-    JR Z,$77F3                        ; 77EE: 2803
+    JR Z,CONTINUAR_BUCLE_TECLAS_DIRECCION           ; 77EE: 2803
+MARCAR_TECLA_DIRECCION_PULSADA:
     LD (IX+0),B                       ; 77F0: dd7000
+CONTINUAR_BUCLE_TECLAS_DIRECCION:
     DEC DE                            ; 77F3: 1b
     DEC IX                            ; 77F4: dd2b
     DJNZ BUCLE_LEER_TECLAS_DIRECCION                        ; 77F6: 10eb
     LD A,($8157)                      ; 77F8: 3a5781
     CP $02                            ; 77FB: fe02
-    JR C,$782F                        ; 77FD: 3830
-    JR Z,$7821                        ; 77FF: 2820
+    JR C,REORDENAR_PRIORIDAD_ORIENTACION_01         ; 77FD: 3830
+    JR Z,REORDENAR_PRIORIDAD_ORIENTACION_2          ; 77FF: 2820
     CP $04                            ; 7801: fe04
-    JR C,$7813                        ; 7803: 380e
+    JR C,REORDENAR_PRIORIDAD_ORIENTACION_3          ; 7803: 380e
     LD L,(IX+1)                       ; 7805: dd6e01
     LD H,(IX+3)                       ; 7808: dd6603
     LD E,(IX+2)                       ; 780B: dd5e02
     LD D,(IX+4)                       ; 780E: dd5604
-    JR $783B                          ; 7811: 1828
+    JR GUARDAR_PRIORIDAD_DIRECCION    ; 7811: 1828
+REORDENAR_PRIORIDAD_ORIENTACION_3:
     LD L,(IX+4)                       ; 7813: dd6e04
     LD H,(IX+2)                       ; 7816: dd6602
     LD E,(IX+1)                       ; 7819: dd5e01
     LD D,(IX+3)                       ; 781C: dd5603
-    JR $783B                          ; 781F: 181a
+    JR GUARDAR_PRIORIDAD_DIRECCION    ; 781F: 181a
+REORDENAR_PRIORIDAD_ORIENTACION_2:
     LD L,(IX+3)                       ; 7821: dd6e03
     LD H,(IX+1)                       ; 7824: dd6601
     LD E,(IX+4)                       ; 7827: dd5e04
     LD D,(IX+2)                       ; 782A: dd5602
-    JR $783B                          ; 782D: 180c
+    JR GUARDAR_PRIORIDAD_DIRECCION    ; 782D: 180c
+REORDENAR_PRIORIDAD_ORIENTACION_01:
     LD L,(IX+2)                       ; 782F: dd6e02
     LD H,(IX+4)                       ; 7832: dd6604
     LD E,(IX+3)                       ; 7835: dd5e03
     LD D,(IX+1)                       ; 7838: dd5601
+GUARDAR_PRIORIDAD_DIRECCION:
     LD ($814D),HL                     ; 783B: 224d81
     LD ($814F),DE                     ; 783E: ed534f81
     LD B,$04                          ; 7842: 0604
@@ -2310,14 +2389,15 @@ BUCLE_INTENTAR_MOVER_JUGADOR:
     INC IX                            ; 7845: dd23
     LD A,(IX+0)                       ; 7847: dd7e00
     OR A                              ; 784A: b7
-    JR Z,$785F                        ; 784B: 2812
+    JR Z,CONTINUAR_INTENTO_MOVER_JUGADOR            ; 784B: 2812
     LD ($8157),A                      ; 784D: 325781
     LD HL,($8155)                     ; 7850: 2a5581
-    CALL $7A98                        ; 7853: cd987a  ; entrada intermedia en CALCULAR_CASILLA_ADYACENTE (usa HL ya cargado en vez de ($8164))
-    CALL $7A64                        ; 7856: cd647a  ; entrada intermedia en HAY_COLISION (linea 'LD ($8166),DE')
-    JR Z,$785F                        ; 7859: 2804
+    CALL CALCULAR_CASILLA_ADYACENTE_DESDE_HL                        ; 7853: cd987a  ; entrada intermedia en CALCULAR_CASILLA_ADYACENTE (usa HL ya cargado en vez de ($8164))
+    CALL COMPROBAR_ACCESIBILIDAD_CASILLA                        ; 7856: cd647a  ; entrada intermedia en HAY_COLISION (linea 'LD ($8166),DE')
+    JR Z,CONTINUAR_INTENTO_MOVER_JUGADOR            ; 7859: 2804
     POP BC                            ; 785B: c1
-    JP $790B                          ; 785C: c30b79  ; entra en mitad de MOVER_INDICADOR_MENU (linea 'LD A,$54'), reutiliza el movimiento de 8px
+    JP MOVER_INDICADOR_8PX                          ; 785C: c30b79  ; entra en mitad de MOVER_INDICADOR_MENU (linea 'LD A,$54'), reutiliza el movimiento de 8px
+CONTINUAR_INTENTO_MOVER_JUGADOR:
     POP BC                            ; 785F: c1
     DJNZ BUCLE_INTENTAR_MOVER_JUGADOR                        ; 7860: 10e2
     RET                               ; 7862: c9
@@ -2381,10 +2461,12 @@ BUCLE_CALCULAR_DIGITO_DECIMAL:
     LD D,(IY+1)                      ; 7879: fd5601
     XOR A                            ; 787C: af
     LD A,$30                         ; 787D: 3e30
+BUCLE_RESTAR_PESO_DECIMAL:
     SBC HL,DE                        ; 787F: ed52
-    JR C,$7886                       ; 7881: 3803
+    JR C,RESTAURAR_RESTO_DECIMAL     ; 7881: 3803
     INC A                            ; 7883: 3c
-    JR $787F                         ; 7884: 18f9
+    JR BUCLE_RESTAR_PESO_DECIMAL     ; 7884: 18f9
+RESTAURAR_RESTO_DECIMAL:
     ADD HL,DE                        ; 7886: 19
     CALL FIRM_TXT_OUTPUT             ; 7887: cd5abb
     DJNZ BUCLE_CALCULAR_DIGITO_DECIMAL                       ; 788A: 10e6
@@ -2396,16 +2478,19 @@ ESPERAR_TECLA_2C:
     LD A,$2C                         ; 7893: 3e2c
     CALL FIRM_KM_TEST_KEY            ; 7895: cd1ebb
     RET Z                            ; 7898: c8
+BUCLE_ESPERAR_TECLA_2C_LIBERADA:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 7899: cdd178
     LD A,$2C                         ; 789C: 3e2c
     CALL FIRM_KM_TEST_KEY            ; 789E: cd1ebb
-    JR NZ,$7899                      ; 78A1: 20f6
+    JR NZ,BUCLE_ESPERAR_TECLA_2C_LIBERADA            ; 78A1: 20f6
+BUCLE_ESPERAR_CARACTER_TECLADO:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 78A3: cdd178
     CALL FIRM_KM_READ_CHAR           ; 78A6: cd09bb
-    JR C,$78A3                       ; 78A9: 38f8
+    JR C,BUCLE_ESPERAR_CARACTER_TECLADO            ; 78A9: 38f8
+BUCLE_VACIAR_BUFER_TECLADO:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 78AB: cdd178
     CALL FIRM_KM_READ_CHAR           ; 78AE: cd09bb
-    JR NC,$78AB                      ; 78B1: 30f8
+    JR NC,BUCLE_VACIAR_BUFER_TECLADO            ; 78B1: 30f8
     CALL FIRM_KM_CHAR_RETURN         ; 78B3: cd0cbb
     RET                              ; 78B6: c9
 ANIMAR_OPCION_MENU:
@@ -2413,10 +2498,11 @@ ANIMAR_OPCION_MENU:
     CALL COLOCAR_ENTIDAD             ; 78B8: cd9679
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 78BB: cdd178
     LD DE,($8153)                    ; 78BE: ed5b5381
+BUCLE_DECREMENTAR_RETARDO_MENU:
     DEC DE                           ; 78C2: 1b
     LD A,D                           ; 78C3: 7a
     OR E                             ; 78C4: b3
-    JR NZ,$78C2                      ; 78C5: 20fb
+    JR NZ,BUCLE_DECREMENTAR_RETARDO_MENU            ; 78C5: 20fb
     POP BC                           ; 78C7: c1
     LD A,$02                         ; 78C8: 3e02
     ADD A,B                          ; 78CA: 80
@@ -2436,51 +2522,61 @@ ACTUALIZAR_SECUENCIA_SONIDO:
     XOR A                            ; 78E2: af
     EX DE,HL                         ; 78E3: eb
     SBC HL,DE                        ; 78E4: ed52
-    JR Z,$78F0                       ; 78E6: 2808
+    JR Z,REINICIAR_GUION_SONIDO      ; 78E6: 2808
     LD HL,$0009                      ; 78E8: 210900
     ADD HL,DE                        ; 78EB: 19
     LD (PUNTERO_GUION_SONIDO),HL     ; 78EC: 225a90
     RET                              ; 78EF: c9
+REINICIAR_GUION_SONIDO:
     LD HL,GUION_SONIDO_CIRCULAR      ; 78F0: 215c90
     LD (PUNTERO_GUION_SONIDO),HL     ; 78F3: 225a90
     RET                              ; 78F6: c9
 MOVER_INDICADOR_MENU:
     LD A,($8155)                     ; 78F7: 3a5581
     CP $1A                           ; 78FA: fe1a
-    JR NZ,$7902                      ; 78FC: 2004
+    JR NZ,COMPROBAR_LIMITE_INFERIOR_INDICADOR            ; 78FC: 2004
     LD A,$02                         ; 78FE: 3e02
-    JR $7908                         ; 7900: 1806
+    JR GUARDAR_DIRECCION_INDICADOR   ; 7900: 1806
+COMPROBAR_LIMITE_INFERIOR_INDICADOR:
     CP $34                           ; 7902: fe34
-    JR NZ,$790B                      ; 7904: 2005
+    JR NZ,MOVER_INDICADOR_8PX        ; 7904: 2005
     LD A,$04                         ; 7906: 3e04
+GUARDAR_DIRECCION_INDICADOR:
     LD ($8157),A                     ; 7908: 325781
+MOVER_INDICADOR_8PX:
     LD A,$54                         ; 790B: 3e54
     LD DE,($8155)                    ; 790D: ed5b5581
     CALL DIBUJAR_ENTIDAD             ; 7911: cd397b
     LD A,($8157)                     ; 7914: 3a5781
     CP $02                           ; 7917: fe02
-    JR C,$792F                       ; 7919: 3814
-    JR Z,$7928                       ; 791B: 280b
+    JR C,INDICADOR_RETROCEDER_COLUMNA            ; 7919: 3814
+    JR Z,INDICADOR_AVANZAR_FILA      ; 791B: 280b
     CP $03                           ; 791D: fe03
-    JR Z,$7937                       ; 791F: 2816
+    JR Z,INDICADOR_AVANZAR_COLUMNA   ; 791F: 2816
     LD A,($8155)                     ; 7921: 3a5581
     DEC A                            ; 7924: 3d
     DEC A                            ; 7925: 3d
-    JR $7942                         ; 7926: 181a
+    JR GUARDAR_FILA_INDICADOR        ; 7926: 181a
+INDICADOR_AVANZAR_FILA:
     LD A,($8155)                     ; 7928: 3a5581
     INC A                            ; 792B: 3c
     INC A                            ; 792C: 3c
-    JR $7942                         ; 792D: 1813
+    JR GUARDAR_FILA_INDICADOR        ; 792D: 1813
+INDICADOR_RETROCEDER_COLUMNA:
     LD A,($8156)                     ; 792F: 3a5681
     LD B,$08                         ; 7932: 0608
     SUB B                            ; 7934: 90
-    JR $793D                         ; 7935: 1806
+    JR GUARDAR_COLUMNA_INDICADOR     ; 7935: 1806
+INDICADOR_AVANZAR_COLUMNA:
     LD A,($8156)                     ; 7937: 3a5681
     LD B,$08                         ; 793A: 0608
     ADD A,B                          ; 793C: 80
+GUARDAR_COLUMNA_INDICADOR:
     LD ($8156),A                     ; 793D: 325681
-    JR $7945                         ; 7940: 1803
+    JR REDIBUJAR_INDICADOR_MENU      ; 7940: 1803
+GUARDAR_FILA_INDICADOR:
     LD ($8155),A                     ; 7942: 325581
+REDIBUJAR_INDICADOR_MENU:
     LD A,$41                         ; 7945: 3e41
     LD DE,($8155)                    ; 7947: ed5b5581
     CALL DIBUJAR_ENTIDAD             ; 794B: cd397b
@@ -2532,10 +2628,11 @@ BUCLE_AVANZAR_ENTIDAD_COLOCAR:
     DJNZ BUCLE_AVANZAR_ENTIDAD_COLOCAR                       ; 799F: 10fc
     LD A,(IX+0)                      ; 79A1: dd7e00
     OR A                             ; 79A4: b7
-    JR NZ,$79AC                      ; 79A5: 2005
+    JR NZ,GUARDAR_PUNTERO_ENTIDAD_COLOCAR            ; 79A5: 2005
     LD A,(IX+1)                      ; 79A7: dd7e01
     OR A                             ; 79AA: b7
     RET Z                            ; 79AB: c8
+GUARDAR_PUNTERO_ENTIDAD_COLOCAR:
     LD ($8162),IX                    ; 79AC: dd226281
     LD D,(IX+2)                      ; 79B0: dd5602
     LD E,(IX+3)                      ; 79B3: dd5e03
@@ -2554,20 +2651,23 @@ BUCLE_AVANZAR_ENTIDAD_COLOCAR:
     LD A,$02                         ; 79D7: 3e02
     CALL GENERAR_ALEATORIO           ; 79D9: cd537d
     OR A                             ; 79DC: b7
-    JR NZ,$79EA                      ; 79DD: 200b
+    JR NZ,OBTENER_POSICION_ACTUAL_ENTIDAD            ; 79DD: 200b
     LD D,(IX+2)                      ; 79DF: dd5602
     LD E,(IX+3)                      ; 79E2: dd5e03
     LD A,$4F                         ; 79E5: 3e4f
     JP DIBUJAR_ENTIDAD               ; 79E7: c3397b
+OBTENER_POSICION_ACTUAL_ENTIDAD:
     LD B,(IX+0)                      ; 79EA: dd4600
     LD C,(IX+1)                      ; 79ED: dd4e01
     DEC A                            ; 79F0: 3d
-    JR Z,$79F7                       ; 79F1: 2804
+    JR Z,INCREMENTAR_POSICION_ENTIDAD            ; 79F1: 2804
     DEC B                            ; 79F3: 05
     DEC C                            ; 79F4: 0d
-    JR $79F9                         ; 79F5: 1802
+    JR NORMALIZAR_POSICION_ENTIDAD   ; 79F5: 1802
+INCREMENTAR_POSICION_ENTIDAD:
     INC B                            ; 79F7: 04
     INC C                            ; 79F8: 0c
+NORMALIZAR_POSICION_ENTIDAD:
     LD HL,$864B                      ; 79F9: 214b86
     LD D,$00                         ; 79FC: 1600
     LD E,B                           ; 79FE: 58
@@ -2599,33 +2699,37 @@ BUCLE_COMPROBAR_COLISION_ENTIDADES:
     ADD IY,BC                        ; 7A29: fd09
     LD A,(IY+0)                      ; 7A2B: fd7e00
     OR (IY+1)                        ; 7A2E: fdb601
-    JR Z,$7A58                       ; 7A31: 2825
+    JR Z,SIGUIENTE_ENTIDAD_COLISION  ; 7A31: 2825
     LD A,(IY+2)                      ; 7A33: fd7e02
     SUB D                            ; 7A36: 92
     CP $F8                           ; 7A37: fef8
-    JR Z,$7A42                       ; 7A39: 2807
+    JR Z,COMPROBAR_COLISION_EJE_Y    ; 7A39: 2807
     CP $08                           ; 7A3B: fe08
-    JR Z,$7A42                       ; 7A3D: 2803
+    JR Z,COMPROBAR_COLISION_EJE_Y    ; 7A3D: 2803
     OR A                             ; 7A3F: b7
-    JR NZ,$7A58                      ; 7A40: 2016
+    JR NZ,SIGUIENTE_ENTIDAD_COLISION ; 7A40: 2016
+COMPROBAR_COLISION_EJE_Y:
     LD A,(IY+3)                      ; 7A42: fd7e03
     SUB E                            ; 7A45: 93
     CP $FE                           ; 7A46: fefe
-    JR Z,$7A51                       ; 7A48: 2807
+    JR Z,CONTAR_ENTIDAD_EN_COLISION  ; 7A48: 2807
     CP $02                           ; 7A4A: fe02
-    JR Z,$7A51                       ; 7A4C: 2803
+    JR Z,CONTAR_ENTIDAD_EN_COLISION  ; 7A4C: 2803
     OR A                             ; 7A4E: b7
-    JR NZ,$7A58                      ; 7A4F: 2007
+    JR NZ,SIGUIENTE_ENTIDAD_COLISION ; 7A4F: 2007
+CONTAR_ENTIDAD_EN_COLISION:
     LD A,($8610)                     ; 7A51: 3a1086
     INC A                            ; 7A54: 3c
     LD ($8610),A                     ; 7A55: 321086
+SIGUIENTE_ENTIDAD_COLISION:
     POP BC                           ; 7A58: c1
     DJNZ BUCLE_COMPROBAR_COLISION_ENTIDADES                       ; 7A59: 10ca
     LD A,($8610)                     ; 7A5B: 3a1086
     CP $01                           ; 7A5E: fe01
-    JR Z,$7A64                       ; 7A60: 2802
+    JR Z,COMPROBAR_ACCESIBILIDAD_CASILLA            ; 7A60: 2802
     XOR A                            ; 7A62: af
     RET                              ; 7A63: c9
+COMPROBAR_ACCESIBILIDAD_CASILLA:
     LD ($8166),DE                    ; 7A64: ed536681
     LD IY,MAPA_CASILLAS               ; 7A68: fd210082
     LD A,E                           ; 7A6C: 7b
@@ -2654,52 +2758,62 @@ BUCLE_COMPROBAR_COLISION_ENTIDADES:
     RET                              ; 7A94: c9
 CALCULAR_CASILLA_ADYACENTE:
     LD HL,($8164)                    ; 7A95: 2a6481
+CALCULAR_CASILLA_ADYACENTE_DESDE_HL:
     CP $02                           ; 7A98: fe02
-    JR C,$7AB0                       ; 7A9A: 3814
-    JR Z,$7AAC                       ; 7A9C: 280e
+    JR C,RESTAR_FILA_ADYACENTE       ; 7A9A: 3814
+    JR Z,SUMAR_COLUMNA_ADYACENTE     ; 7A9C: 280e
     CP $03                           ; 7A9E: fe03
-    JR Z,$7AA6                       ; 7AA0: 2804
+    JR Z,SUMAR_FILA_ADYACENTE        ; 7AA0: 2804
     DEC L                            ; 7AA2: 2d
     DEC L                            ; 7AA3: 2d
-    JR $7AB4                         ; 7AA4: 180e
+    JR DEVOLVER_CASILLA_ADYACENTE    ; 7AA4: 180e
+SUMAR_FILA_ADYACENTE:
     LD A,H                           ; 7AA6: 7c
     ADD A,$08                        ; 7AA7: c608
     LD H,A                           ; 7AA9: 67
-    JR $7AB4                         ; 7AAA: 1808
+    JR DEVOLVER_CASILLA_ADYACENTE    ; 7AAA: 1808
+SUMAR_COLUMNA_ADYACENTE:
     INC L                            ; 7AAC: 2c
     INC L                            ; 7AAD: 2c
-    JR $7AB4                         ; 7AAE: 1804
+    JR DEVOLVER_CASILLA_ADYACENTE    ; 7AAE: 1804
+RESTAR_FILA_ADYACENTE:
     LD A,H                           ; 7AB0: 7c
     SUB $08                          ; 7AB1: d608
     LD H,A                           ; 7AB3: 67
+DEVOLVER_CASILLA_ADYACENTE:
     EX DE,HL                         ; 7AB4: eb
     RET                              ; 7AB5: c9
 ELEGIR_DIRECCION_HACIA_OBJETIVO:
     LD BC,($8164)                    ; 7AB6: ed4b6481
     LD A,($8156)                     ; 7ABA: 3a5681
     SUB B                            ; 7ABD: 90
-    JR C,$7AC6                       ; 7ABE: 3806
-    JR Z,$7AC8                       ; 7AC0: 2806
+    JR C,DIRECCION_X_NEGATIVA        ; 7ABE: 3806
+    JR Z,GUARDAR_DIRECCION_EJE_X     ; 7AC0: 2806
     LD A,$03                         ; 7AC2: 3e03
-    JR $7AC8                         ; 7AC4: 1802
+    JR GUARDAR_DIRECCION_EJE_X       ; 7AC4: 1802
+DIRECCION_X_NEGATIVA:
     LD A,$01                         ; 7AC6: 3e01
+GUARDAR_DIRECCION_EJE_X:
     LD ($815F),A                     ; 7AC8: 325f81
     LD A,($8155)                     ; 7ACB: 3a5581
     SUB C                            ; 7ACE: 91
-    JR C,$7AD7                       ; 7ACF: 3806
-    JR Z,$7AD9                       ; 7AD1: 2806
+    JR C,DIRECCION_Y_NEGATIVA        ; 7ACF: 3806
+    JR Z,GUARDAR_DIRECCION_EJE_Y     ; 7AD1: 2806
     LD A,$02                         ; 7AD3: 3e02
-    JR $7AD9                         ; 7AD5: 1802
+    JR GUARDAR_DIRECCION_EJE_Y       ; 7AD5: 1802
+DIRECCION_Y_NEGATIVA:
     LD A,$04                         ; 7AD7: 3e04
+GUARDAR_DIRECCION_EJE_Y:
     LD ($8160),A                     ; 7AD9: 326081
     LD A,$02                         ; 7ADC: 3e02
     CALL GENERAR_ALEATORIO           ; 7ADE: cd537d
     LD BC,($815F)                    ; 7AE1: ed4b5f81
     OR A                             ; 7AE5: b7
-    JR Z,$7AEB                       ; 7AE6: 2803
+    JR Z,GUARDAR_DIRECCION_ELEGIDA   ; 7AE6: 2803
     LD A,B                           ; 7AE8: 78
     LD B,C                           ; 7AE9: 41
     LD C,A                           ; 7AEA: 4f
+GUARDAR_DIRECCION_ELEGIDA:
     LD (IX+0),B                      ; 7AEB: dd7000
     LD (IX+1),C                      ; 7AEE: dd7101
     RET                              ; 7AF1: c9
@@ -2707,12 +2821,13 @@ PREPARAR_DIBUJAR_ENTIDAD:
     LD DE,($8164)                    ; 7AF2: ed5b6481
     LD A,($8159)                     ; 7AF6: 3a5981
     CP $02                           ; 7AF9: fe02
-    JR C,$7B19                       ; 7AFB: 381c
-    JR Z,$7B05                       ; 7AFD: 2806
+    JR C,DESPLAZAR_FILA_CASILLA_ANTERIOR            ; 7AFB: 381c
+    JR Z,REDIBUJAR_CASILLA_FILA_ACTUAL            ; 7AFD: 2806
     CP $03                           ; 7AFF: fe03
-    JR Z,$7B1D                       ; 7B01: 281a
+    JR Z,REDIBUJAR_CASILLA_FILA_SIGUIENTE            ; 7B01: 281a
     INC E                            ; 7B03: 1c
     INC E                            ; 7B04: 1c
+REDIBUJAR_CASILLA_FILA_ACTUAL:
     CALL CONSULTAR_CASILLA_MAPA      ; 7B05: cd3e7d
     LD A,(HL)                        ; 7B08: 7e
     CALL DIBUJAR_CASILLA_MAPA        ; 7B09: cde67c
@@ -2722,10 +2837,12 @@ PREPARAR_DIBUJAR_ENTIDAD:
     CALL CONSULTAR_CASILLA_MAPA      ; 7B10: cd3e7d
     LD A,(HL)                        ; 7B13: 7e
     CALL DIBUJAR_CASILLA_MAPA        ; 7B14: cde67c
-    JR $7B2D                         ; 7B17: 1814
+    JR GUARDAR_NUEVA_POSICION_ENTIDAD            ; 7B17: 1814
+DESPLAZAR_FILA_CASILLA_ANTERIOR:
     LD A,$08                         ; 7B19: 3e08
     ADD A,D                          ; 7B1B: 82
     LD D,A                           ; 7B1C: 57
+REDIBUJAR_CASILLA_FILA_SIGUIENTE:
     CALL CONSULTAR_CASILLA_MAPA      ; 7B1D: cd3e7d
     LD A,(HL)                        ; 7B20: 7e
     CALL DIBUJAR_CASILLA_MAPA        ; 7B21: cde67c
@@ -2734,6 +2851,7 @@ PREPARAR_DIBUJAR_ENTIDAD:
     CALL CONSULTAR_CASILLA_MAPA      ; 7B26: cd3e7d
     LD A,(HL)                        ; 7B29: 7e
     CALL DIBUJAR_CASILLA_MAPA        ; 7B2A: cde67c
+GUARDAR_NUEVA_POSICION_ENTIDAD:
     LD DE,($8166)                    ; 7B2D: ed5b6681
     LD (IX+2),D                      ; 7B31: dd7202
     LD (IX+3),E                      ; 7B34: dd7303
@@ -2756,23 +2874,25 @@ DIBUJAR_ENTIDAD:
     LD ($7CD0),A                     ; 7B41: 32d07c
     POP AF                           ; 7B44: f1
     CP $20                           ; 7B45: fe20
-    JR Z,$7B5E                       ; 7B47: 2815
+    JR Z,DIBUJAR_ENTIDAD_CARACTER_ESPACIO            ; 7B47: 2815
     CP $54                           ; 7B49: fe54
-    JR Z,$7B65                       ; 7B4B: 2818
+    JR Z,DIBUJAR_ENTIDAD_LETRA_T     ; 7B4B: 2818
     CP $41                           ; 7B4D: fe41
-    JP Z,$7C2F                       ; 7B4F: ca2f7c
+    JP Z,DIBUJAR_ENTIDAD_LETRA_A     ; 7B4F: ca2f7c
     CP $4F                           ; 7B52: fe4f
-    JP Z,$7C7C                       ; 7B54: ca7c7c
+    JP Z,DIBUJAR_ENTIDAD_LETRA_O     ; 7B54: ca7c7c
     LD IY,TABLAS_SPRITE_CASILLA       ; 7B57: fd211989
-    JP $7CC4                         ; 7B5B: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7B5B: c3c47c
+DIBUJAR_ENTIDAD_CARACTER_ESPACIO:
     LD IY,$8959                      ; 7B5E: fd215989
-    JP $7CC4                         ; 7B62: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7B62: c3c47c
+DIBUJAR_ENTIDAD_LETRA_T:
     LD A,($8157)                     ; 7B65: 3a5781
     CP $02                           ; 7B68: fe02
-    JP C,$7C01                       ; 7B6A: da017c
-    JR Z,$7BD1                       ; 7B6D: 2862
+    JP C,DIBUJAR_LETRA_T_PISADA_VERTICAL            ; 7B6A: da017c
+    JR Z,DIBUJAR_LETRA_T_PISADA_3    ; 7B6D: 2862
     CP $03                           ; 7B6F: fe03
-    JR Z,$7BA5                       ; 7B71: 2832
+    JR Z,DIBUJAR_LETRA_T_PISADA_6    ; 7B71: 2832
     LD IY,LOSETA_MAPA_PISADA_7        ; 7B73: fd21898a
     LD A,$02                         ; 7B77: 3e02
     LD ($7CD0),A                     ; 7B79: 32d07c
@@ -2788,14 +2908,15 @@ DIBUJAR_ENTIDAD:
     LD A,($8158)                     ; 7B8B: 3a5881
     XOR $01                          ; 7B8E: ee01
     LD ($8158),A                     ; 7B90: 325881
-    JP Z,$7CC4                       ; 7B93: cac47c
+    JP Z,VOLCAR_SPRITE_A_PANTALLA    ; 7B93: cac47c
     LD IY,LOSETA_PISADA_ESCRITURA_VALOR7 ; 7B96: fd21998a
     LD A,$07                         ; 7B9A: 3e07
     LD (HL),A                        ; 7B9C: 77
     ADD A,$19                        ; 7B9D: c619
     SBC HL,BC                        ; 7B9F: ed42
     LD (HL),A                        ; 7BA1: 77
-    JP $7CC4                         ; 7BA2: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7BA2: c3c47c
+DIBUJAR_LETRA_T_PISADA_6:
     LD IY,LOSETA_PISADA_ESCRITURA_VALOR6 ; 7BA5: fd21298a
     LD A,$08                         ; 7BA9: 3e08
     LD ($7CC6),A                     ; 7BAB: 32c67c
@@ -2808,14 +2929,15 @@ DIBUJAR_ENTIDAD:
     LD A,($8158)                     ; 7BB8: 3a5881
     XOR $01                          ; 7BBB: ee01
     LD ($8158),A                     ; 7BBD: 325881
-    JP Z,$7CC4                       ; 7BC0: cac47c
+    JP Z,VOLCAR_SPRITE_A_PANTALLA    ; 7BC0: cac47c
     LD IY,LOSETA_PISADA_ESCRITURA_VALOR5 ; 7BC3: fd21498a
     LD A,$05                         ; 7BC7: 3e05
     LD (HL),A                        ; 7BC9: 77
     LD A,$20                         ; 7BCA: 3e20
     DEC HL                           ; 7BCC: 2b
     LD (HL),A                        ; 7BCD: 77
-    JP $7CC4                         ; 7BCE: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7BCE: c3c47c
+DIBUJAR_LETRA_T_PISADA_3:
     LD IY,LOSETA_MAPA_PISADA_3        ; 7BD1: fd21f989
     LD A,$02                         ; 7BD5: 3e02
     LD ($7CD0),A                     ; 7BD7: 32d07c
@@ -2829,14 +2951,15 @@ DIBUJAR_ENTIDAD:
     LD A,($8158)                     ; 7BE7: 3a5881
     XOR $01                          ; 7BEA: ee01
     LD ($8158),A                     ; 7BEC: 325881
-    JP Z,$7CC4                       ; 7BEF: cac47c
+    JP Z,VOLCAR_SPRITE_A_PANTALLA    ; 7BEF: cac47c
     LD IY,LOSETA_PISADA_ESCRITURA_VALOR4 ; 7BF2: fd21098a
     LD A,$04                         ; 7BF6: 3e04
     LD (HL),A                        ; 7BF8: 77
     ADD A,$1C                        ; 7BF9: c61c
     SBC HL,BC                        ; 7BFB: ed42
     LD (HL),A                        ; 7BFD: 77
-    JP $7CC4                         ; 7BFE: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7BFE: c3c47c
+DIBUJAR_LETRA_T_PISADA_VERTICAL:
     LD IY,LOSETA_PISADAS_VERTICAL_1   ; 7C01: fd219989
     LD A,$08                         ; 7C05: 3e08
     LD ($7CC6),A                     ; 7C07: 32c67c
@@ -2851,73 +2974,82 @@ DIBUJAR_ENTIDAD:
     LD A,($8158)                     ; 7C16: 3a5881
     XOR $01                          ; 7C19: ee01
     LD ($8158),A                     ; 7C1B: 325881
-    JP Z,$7CC4                       ; 7C1E: cac47c
+    JP Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C1E: cac47c
     LD IY,LOSETA_PISADAS_VERTICAL_2   ; 7C21: fd21b989
     LD A,$02                         ; 7C25: 3e02
     LD (HL),A                        ; 7C27: 77
     LD A,$20                         ; 7C28: 3e20
     DEC HL                           ; 7C2A: 2b
     LD (HL),A                        ; 7C2B: 77
-    JP $7CC4                         ; 7C2C: c3c47c
+    JP VOLCAR_SPRITE_A_PANTALLA      ; 7C2C: c3c47c
+DIBUJAR_ENTIDAD_LETRA_A:
     LD A,($8157)                     ; 7C2F: 3a5781
     CP $02                           ; 7C32: fe02
-    JR C,$7C6C                       ; 7C34: 3836
-    JR Z,$7C5C                       ; 7C36: 2824
+    JR C,DIBUJAR_LETRA_A_GRUPO_1     ; 7C34: 3836
+    JR Z,DIBUJAR_LETRA_A_GRUPO_2     ; 7C36: 2824
     CP $03                           ; 7C38: fe03
-    JR Z,$7C4C                       ; 7C3A: 2810
+    JR Z,DIBUJAR_LETRA_A_GRUPO_3     ; 7C3A: 2810
     LD IY,SPRITE_JUGADOR_G4_F1        ; 7C3C: fd21398c
     LD A,($8158)                     ; 7C40: 3a5881
     OR A                             ; 7C43: b7
-    JR Z,$7CC4                       ; 7C44: 287e
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C44: 287e
     LD IY,SPRITE_JUGADOR_G4_F2        ; 7C46: fd21798c
-    JR $7CC4                         ; 7C4A: 1878
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7C4A: 1878
+DIBUJAR_LETRA_A_GRUPO_3:
     LD IY,SPRITE_JUGADOR_G3_F1        ; 7C4C: fd21b98b
     LD A,($8158)                     ; 7C50: 3a5881
     OR A                             ; 7C53: b7
-    JR Z,$7CC4                       ; 7C54: 286e
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C54: 286e
     LD IY,SPRITE_JUGADOR_G3_F2        ; 7C56: fd21f98b
-    JR $7CC4                         ; 7C5A: 1868
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7C5A: 1868
+DIBUJAR_LETRA_A_GRUPO_2:
     LD IY,SPRITE_JUGADOR_G2_F1        ; 7C5C: fd21398b
     LD A,($8158)                     ; 7C60: 3a5881
     OR A                             ; 7C63: b7
-    JR Z,$7CC4                       ; 7C64: 285e
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C64: 285e
     LD IY,SPRITE_JUGADOR_G2_F2        ; 7C66: fd21798b
-    JR $7CC4                         ; 7C6A: 1858
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7C6A: 1858
+DIBUJAR_LETRA_A_GRUPO_1:
     LD IY,SPRITE_JUGADOR_G1_F1        ; 7C6C: fd21b98a
     LD A,($8158)                     ; 7C70: 3a5881
     OR A                             ; 7C73: b7
-    JR Z,$7CC4                       ; 7C74: 284e
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C74: 284e
     LD IY,SPRITE_JUGADOR_G1_F2        ; 7C76: fd21f98a
-    JR $7CC4                         ; 7C7A: 1848
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7C7A: 1848
+DIBUJAR_ENTIDAD_LETRA_O:
     LD A,(IX+4)                      ; 7C7C: dd7e04
     XOR $01                          ; 7C7F: ee01
     LD (IX+4),A                      ; 7C81: dd7704
     PUSH AF                          ; 7C84: f5
     LD A,($8159)                     ; 7C85: 3a5981
     CP $02                           ; 7C88: fe02
-    JR C,$7CB9                       ; 7C8A: 382d
-    JR Z,$7CAC                       ; 7C8C: 281e
+    JR C,DIBUJAR_LETRA_O_GRUPO_1     ; 7C8A: 382d
+    JR Z,DIBUJAR_LETRA_O_GRUPO_2     ; 7C8C: 281e
     CP $03                           ; 7C8E: fe03
-    JR Z,$7C9F                       ; 7C90: 280d
+    JR Z,DIBUJAR_LETRA_O_GRUPO_3     ; 7C90: 280d
     POP AF                           ; 7C92: f1
     LD IY,SPRITE_MOMIA_G4_F1          ; 7C93: fd21398e
-    JR Z,$7CC4                       ; 7C97: 282b
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7C97: 282b
     LD IY,SPRITE_MOMIA_G4_F2          ; 7C99: fd21798e
-    JR $7CC4                         ; 7C9D: 1825
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7C9D: 1825
+DIBUJAR_LETRA_O_GRUPO_3:
     POP AF                           ; 7C9F: f1
     LD IY,SPRITE_MOMIA_G3_F1          ; 7CA0: fd21b98d
-    JR Z,$7CC4                       ; 7CA4: 281e
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7CA4: 281e
     LD IY,SPRITE_MOMIA_G3_F2          ; 7CA6: fd21f98d
-    JR $7CC4                         ; 7CAA: 1818
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7CAA: 1818
+DIBUJAR_LETRA_O_GRUPO_2:
     POP AF                           ; 7CAC: f1
     LD IY,SPRITE_MOMIA_G2_F1          ; 7CAD: fd21398d
-    JR Z,$7CC4                       ; 7CB1: 2811
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7CB1: 2811
     LD IY,SPRITE_MOMIA_G2_F2          ; 7CB3: fd21798d
-    JR $7CC4                         ; 7CB7: 180b
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7CB7: 180b
+DIBUJAR_LETRA_O_GRUPO_1:
     POP AF                           ; 7CB9: f1
     LD IY,SPRITE_MOMIA_G1_F1          ; 7CBA: fd21b98c
-    JR Z,$7CC4                       ; 7CBE: 2804
+    JR Z,VOLCAR_SPRITE_A_PANTALLA    ; 7CBE: 2804
     LD IY,SPRITE_MOMIA_G1_F2          ; 7CC0: fd21f98c
+VOLCAR_SPRITE_A_PANTALLA:
     PUSH DE                          ; 7CC4: d5
     LD B,$10                         ; 7CC5: 0610
     EX DE,HL                         ; 7CC7: eb
@@ -2946,39 +3078,48 @@ DIBUJAR_CASILLA_MAPA:
 ; dentro de cada direccion queda demostrado por el valor escrito, pero
 ; "pie izquierdo/derecho" sigue siendo una interpretacion visual.
     CP $02                           ; 7CE6: fe02
-    JR C,$7D2E                       ; 7CE8: 3844
-    JR Z,$7D28                       ; 7CEA: 283c
+    JR C,DIBUJAR_CASILLA_PISADA_1    ; 7CE8: 3844
+    JR Z,DIBUJAR_CASILLA_PISADA_2    ; 7CEA: 283c
     CP $04                           ; 7CEC: fe04
-    JR C,$7D22                       ; 7CEE: 3832
-    JR Z,$7D1C                       ; 7CF0: 282a
+    JR C,DIBUJAR_CASILLA_PISADA_3    ; 7CEE: 3832
+    JR Z,DIBUJAR_CASILLA_PISADA_4    ; 7CF0: 282a
     CP $06                           ; 7CF2: fe06
-    JR C,$7D16                       ; 7CF4: 3820
-    JR Z,$7D10                       ; 7CF6: 2818
+    JR C,DIBUJAR_CASILLA_PISADA_6    ; 7CF4: 3820
+    JR Z,DIBUJAR_CASILLA_PISADA_5    ; 7CF6: 2818
     CP $08                           ; 7CF8: fe08
-    JR C,$7D0A                       ; 7CFA: 380e
-    JR Z,$7D04                       ; 7CFC: 2806
+    JR C,DIBUJAR_CASILLA_PISADA_8    ; 7CFA: 380e
+    JR Z,DIBUJAR_CASILLA_PISADA_7    ; 7CFC: 2806
     LD IY,$8959                      ; 7CFE: fd215989
-    JR $7D32                         ; 7D02: 182e
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D02: 182e
+DIBUJAR_CASILLA_PISADA_7:
     LD IY,LOSETA_MAPA_PISADA_7        ; 7D04: fd21898a
-    JR $7D32                         ; 7D08: 1828
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D08: 1828
+DIBUJAR_CASILLA_PISADA_8:
     LD IY,LOSETA_MAPA_PISADA_8        ; 7D0A: fd21a98a
-    JR $7D32                         ; 7D0E: 1822
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D0E: 1822
+DIBUJAR_CASILLA_PISADA_5:
     LD IY,LOSETA_MAPA_PISADA_5        ; 7D10: fd21698a
-    JR $7D32                         ; 7D14: 181c
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D14: 181c
+DIBUJAR_CASILLA_PISADA_6:
     LD IY,LOSETA_MAPA_PISADA_6        ; 7D16: fd21798a
-    JR $7D32                         ; 7D1A: 1816
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D1A: 1816
+DIBUJAR_CASILLA_PISADA_4:
     LD IY,LOSETA_MAPA_PISADA_4        ; 7D1C: fd21198a
-    JR $7D32                         ; 7D20: 1810
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D20: 1810
+DIBUJAR_CASILLA_PISADA_3:
     LD IY,LOSETA_MAPA_PISADA_3        ; 7D22: fd21f989
-    JR $7D32                         ; 7D26: 180a
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D26: 180a
+DIBUJAR_CASILLA_PISADA_2:
     LD IY,LOSETA_MAPA_PISADA_2        ; 7D28: fd21e989
-    JR $7D32                         ; 7D2C: 1804
+    JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D2C: 1804
+DIBUJAR_CASILLA_PISADA_1:
     LD IY,LOSETA_MAPA_PISADA_1        ; 7D2E: fd21d989
+CONFIGURAR_VOLCADO_CASILLA_MAPA:
     LD A,$08                         ; 7D32: 3e08
     LD ($7CC6),A                     ; 7D34: 32c67c
     LD A,$02                         ; 7D37: 3e02
     LD ($7CD0),A                     ; 7D39: 32d07c
-    JR $7CC4                         ; 7D3C: 1886
+    JR VOLCAR_SPRITE_A_PANTALLA      ; 7D3C: 1886
 CONSULTAR_CASILLA_MAPA:
     PUSH DE                          ; 7D3E: d5
     LD HL,MAPA_CASILLAS               ; 7D3F: 210082
@@ -3007,9 +3148,11 @@ GENERAR_ALEATORIO:
     ADD HL,DE                        ; 7D66: 19
     LD DE,$0101                      ; 7D67: 110101
     XOR A                            ; 7D6A: af
+BUCLE_REDUCIR_MODULO_ALEATORIO:
     SBC HL,DE                        ; 7D6B: ed52
-    JR C,$7D71                       ; 7D6D: 3802
-    JR $7D6B                         ; 7D6F: 18fa
+    JR C,RESTAURAR_RESTO_ALEATORIO   ; 7D6D: 3802
+    JR BUCLE_REDUCIR_MODULO_ALEATORIO            ; 7D6F: 18fa
+RESTAURAR_RESTO_ALEATORIO:
     ADD HL,DE                        ; 7D71: 19
     DEC HL                           ; 7D72: 2b
     LD ($8151),HL                    ; 7D73: 225181
@@ -3022,8 +3165,9 @@ MEZCLAR_ALEATORIO:
     LD B,$08                         ; 7D7C: 0608
 BUCLE_MEZCLAR_BITS_ALEATORIOS:
     ADD HL,HL                        ; 7D7E: 29
-    JR NC,$7D82                      ; 7D7F: 3001
+    JR NC,CONTINUAR_MEZCLAR_BIT_ALEATORIO            ; 7D7F: 3001
     ADD HL,DE                        ; 7D81: 19
+CONTINUAR_MEZCLAR_BIT_ALEATORIO:
     DJNZ BUCLE_MEZCLAR_BITS_ALEATORIOS                       ; 7D82: 10fa
     RET                              ; 7D84: c9
 DIBUJAR_ICONO_SARCOFAGO:
