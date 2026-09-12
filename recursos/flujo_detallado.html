@@ -181,7 +181,11 @@
   Complementa a <code>recursos/flujo_programa.html</code> (inventario plano de rutinas) con el
   <strong>grafo real de llamadas</strong> entre ellas. Punto de entrada confirmado: <code>$6000</code>
   (<code>src/load_disk/mummy_bas.bas</code>, linea 570-580: <code>LOAD"!mummy1",&amp;6000:CALL &amp;6000</code>).
-  Ultima actualizacion: <strong>Sesion 17, 2026-09-10</strong> (renombrado
+  Ultima actualizacion: <strong>Sesion 19, 2026-09-12</strong> (29 bucles
+  <code>DJNZ</code> con direccion literal reciben etiqueta funcional, y se corrige
+  <code>IMPRIMIR_BYTES_CON_LONGITUD</code> -- antes <code>REPETIR_CARACTER</code>: no
+  repite un caracter fijo, imprime una secuencia de bytes con longitud, confirmado
+  con aritmetica exacta contra <code>TEXTO_MENU_OPCIONES</code>). Sesion 17 renombrado
   <code>DIBUJAR_ICONO_SARCOFAGO</code>/<code>LLAVE</code>/<code>PERGAMINO</code>/<code>TESORO</code>, antes
   <code>DIBUJAR_TRAMO_MARCO_1..4</code>: identidad visual confirmada por el usuario con el explorador
   parametrizable de <code>recursos/sprites.html</code> y corroborada por su unico llamador de cada una
@@ -475,16 +479,16 @@ const NODOS = [
     estado: "hipotesis", confianza: "media", evidencia: "Borra un indicador ('T') y dibuja otro ('A') en la posicion vecina via DIBUJAR_ENTIDAD. Sesion 6.", sesion: "6" },
   { id: "BORRAR_RECTANGULO_VENTANA", addr: "$7EB9", addrFin: "$7EF3", nombre: "BORRAR_RECTANGULO_VENTANA", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Borra un rectangulo de VENTANA_TEXTO_HUD (paso 40B/fila) y usa firmware TXT WIN ENABLE/TXT CLEAR WINDOW. Sesion 3, subida a alta en Sesion 5.", sesion: "3" },
-  { id: "REPETIR_CARACTER", addr: "$7EF4", addrFin: "$7EFC", nombre: "REPETIR_CARACTER", subsistema: "menu", tipo: "codigo",
-    estado: "hipotesis", confianza: "alta", evidencia: "Repite un caracter N veces via FIRM_TXT_OUTPUT (formato cuenta+caracter). Sesion 3.", sesion: "3" },
+  { id: "IMPRIMIR_BYTES_CON_LONGITUD", addr: "$7EF4", addrFin: "$7EFC", nombre: "IMPRIMIR_BYTES_CON_LONGITUD", subsistema: "menu", tipo: "codigo",
+    estado: "confirmado", confianza: "alta", evidencia: "Sesion 19 CORRIGE la hipotesis de la Sesion 3 (\"repite un caracter N veces\"): el DJNZ salta a INC HL, no a la lectura, asi que HL avanza en cada vuelta -- imprime via FIRM_TXT_OUTPUT los B bytes siguientes a la longitud, uno a uno (formato longitud+bytes). Verificado con aritmetica exacta de direcciones contra TEXTO_MENU_OPCIONES (los bloques encajan byte a byte, incluido un 'YES'/'NO' literal).", sesion: "19" },
   // ---- menu (Sesion 12: primer tramo real del ultimo hueco INCBIN) ----
   { id: "FIN_INTRODUCIR_NOMBRE", addr: "$6401", addrFin: "$6403", nombre: "FIN_INTRODUCIR_NOMBRE", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "JP $636C (3 bytes). Entrada por caida natural desde el final de ENTRADA_MOTOR ($63FE-$6400), alcanzada solo cuando ($8168)<>0 -- justo tras confirmar el nombre con Intro. Sesion 12.", sesion: "12" },
   { id: "DESPACHAR_MENU_PRINCIPAL", addr: "$6404", addrFin: "$642A", nombre: "DESPACHAR_MENU_PRINCIPAL", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Lee un caracter y compara P/p/I/i/O/o -- coincide exactamente con TEXTO_MENU_PRINCIPAL (Sesion 8, Instructions/Options/Play). Sesion 12.", sesion: "12" },
   { id: "PANTALLA_OPCIONES", addr: "$642B", addrFin: "$6528", nombre: "PANTALLA_OPCIONES", subsistema: "menu", tipo: "codigo",
-    estado: "hipotesis", confianza: "alta en estructura y variables, baja/media en el efecto visual exacto de REPETIR_CARACTER",
-    evidencia: "Pantalla 'OH MUMMY - OPTIONS' completa: fija ($8153)=retardo de partida y ($8161)=limite de persecucion IA segun 2 digitos 1-5 tecleados (cuadra numericamente con 'SPEED OF GAME'/'DIFFICULTY LEVEL' de TEXTO_MENU_OPCIONES, Sesion 8), y alterna FLAG_MUSICA_FONDO/FLAG_EFECTOS_SONIDO con '+'/'.'. Resuelve el pendiente de Sesion 8 sobre quien escribe FLAG_EFECTOS_SONIDO. Sesion 12.", sesion: "12" },
+    estado: "hipotesis", confianza: "alta en estructura y variables, alta en el efecto visual de IMPRIMIR_BYTES_CON_LONGITUD (Sesion 19)",
+    evidencia: "Pantalla 'OH MUMMY - OPTIONS' completa: fija ($8153)=retardo de partida y ($8161)=limite de persecucion IA segun 2 digitos 1-5 tecleados (cuadra numericamente con 'SPEED OF GAME'/'DIFFICULTY LEVEL' de TEXTO_MENU_OPCIONES, Sesion 8), y alterna FLAG_MUSICA_FONDO/FLAG_EFECTOS_SONIDO con '+'/'.'. Resuelve el pendiente de Sesion 8 sobre quien escribe FLAG_EFECTOS_SONIDO. Sesion 19 confirma ademas que los 6 IMPRIMIR_BYTES_CON_LONGITUD de esta pantalla SI imprimen los rotulos literales reales. Sesion 12.", sesion: "12" },
   // ---- partida / juego (Sesion 13: segundo y tercer tramo del ultimo hueco INCBIN) ----
   { id: "INICIAR_PARTIDA", addr: "$6529", addrFin: "$6533", nombre: "INICIAR_PARTIDA", subsistema: "menu", tipo: "codigo",
     estado: "hipotesis", confianza: "alta", evidencia: "Entrada real de tecla P/p desde DESPACHAR_MENU_PRINCIPAL. Fija vidas ($816A)=5 y puntuacion ($815A)=0 -- unica vez en todo el tramo. Cae en PREPARAR_NIVEL. Sesion 13.", sesion: "13" },
@@ -565,7 +569,7 @@ const ARISTAS = [
   { from: "ENTRADA_MOTOR", to: "FIRM_KL_TIME_PLEASE", tipo: "call", nota: "$6039" },
   { from: "ENTRADA_MOTOR", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "docenas de veces, intercalada por todo el bloque" },
   { from: "ENTRADA_MOTOR", to: "BORRAR_BLOQUE_ESTADO", tipo: "call", nota: "x2 ($604B/$6231)" },
-  { from: "ENTRADA_MOTOR", to: "REPETIR_CARACTER", tipo: "call", nota: "varias veces (distintos textos)" },
+  { from: "ENTRADA_MOTOR", to: "IMPRIMIR_BYTES_CON_LONGITUD", tipo: "call", nota: "varias veces (distintos textos)" },
   { from: "ENTRADA_MOTOR", to: "FIRM_SCR_DOT_POSITION", tipo: "call", nota: "bucle x200 ($6085)" },
   { from: "ENTRADA_MOTOR", to: "BORRAR_RECTANGULO_VENTANA", tipo: "call", nota: "x14 seguidas" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_WIN_ENABLE", tipo: "call", nota: "varias veces" },
@@ -608,7 +612,7 @@ const ARISTAS = [
   { from: "PREPARAR_TESOROS_NIVEL", to: "GENERAR_ALEATORIO", tipo: "call", nota: "$65B5, 14 veces (una por tesoro colocado). Sesion 13." },
   { from: "PREPARAR_TESOROS_NIVEL", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "$65AA/$65D2. Sesion 13." },
   { from: "PREPARAR_TESOROS_NIVEL", to: "ACTUALIZAR_HUD_VIDAS", tipo: "fallthrough", nota: "sin salto: cae directamente ($65D5). Sesion 13." },
-  { from: "ACTUALIZAR_HUD_VIDAS", to: "REPETIR_CARACTER", tipo: "call", nota: "$65D8. Sesion 13." },
+  { from: "ACTUALIZAR_HUD_VIDAS", to: "IMPRIMIR_BYTES_CON_LONGITUD", tipo: "call", nota: "$65D8. Sesion 13." },
   { from: "ACTUALIZAR_HUD_VIDAS", to: "IMPRIMIR_PUNTUACION_HUD", tipo: "call", nota: "$65DB. Sesion 13." },
   { from: "ACTUALIZAR_HUD_VIDAS", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "$65F6, en bucle por cada vida en ($816A). Sesion 13." },
   { from: "ACTUALIZAR_HUD_VIDAS", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "$6601. Sesion 13." },
@@ -658,11 +662,11 @@ const ARISTAS = [
   { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "HAY_COLISION", tipo: "call", nota: "entrada intermedia en $7A64 (linea 'LD ($8166),DE'). Sesion 14." },
   { from: "PROCESAR_MOVIMIENTO_JUGADOR", to: "MOVER_INDICADOR_MENU", tipo: "jp", nota: "entra en mitad de la rutina ($790B, linea 'LD A,$54') -- confirma que MOVER_INDICADOR_MENU se reutiliza para el movimiento real del jugador, no solo el cursor del menu. Sesion 14." },
   { from: "PANTALLA_STOP_PRESS", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, intercalada. Sesion 13." },
-  { from: "PANTALLA_STOP_PRESS", to: "REPETIR_CARACTER", tipo: "call", nota: "varias veces, imprime TEXTO_HISTORIA_ATRACCION. Sesion 13." },
+  { from: "PANTALLA_STOP_PRESS", to: "IMPRIMIR_BYTES_CON_LONGITUD", tipo: "call", nota: "varias veces, imprime TEXTO_HISTORIA_ATRACCION. Sesion 13." },
   { from: "PANTALLA_STOP_PRESS", to: "GENERAR_ALEATORIO", tipo: "call", nota: "$675F, sortea bonus de puntos vs. vida extra. Sesion 13." },
   { from: "PANTALLA_STOP_PRESS", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "x2 (L/Intro). Sesion 13." },
   { from: "PANTALLA_STOP_PRESS", to: "PREPARAR_NIVEL", tipo: "jpcc", cond: "NZ", nota: "JP NZ,$6534 x2 ($67A6/$67AE) -- confirmar con L o Intro, NO pasa por ACTUALIZAR_TABLA_PUNTUACIONES. Sesion 13." },
-  { from: "PANTALLA_GAME_OVER", to: "REPETIR_CARACTER", tipo: "call", nota: "$67B6, imprime 'GAME OVER'. Sesion 13." },
+  { from: "PANTALLA_GAME_OVER", to: "IMPRIMIR_BYTES_CON_LONGITUD", tipo: "call", nota: "$67B6, imprime 'GAME OVER'. Sesion 13." },
   { from: "PANTALLA_GAME_OVER", to: "BORRAR_RECTANGULO_VENTANA", tipo: "call", nota: "$67BF. Sesion 13." },
   { from: "PANTALLA_GAME_OVER", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, pausas dramaticas letra a letra. Sesion 13." },
   { from: "PANTALLA_GAME_OVER", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "x2 por letra de 'GAME OVER'. Sesion 13." },
@@ -673,7 +677,7 @@ const ARISTAS = [
   { from: "IMPRIMIR_PUNTUACION_HUD", to: "IMPRIMIR_NUMERO_HL", tipo: "fallthrough", nota: "sin salto: cae directamente en $786C con HL=($815A). Sesion 13." },
 
   { from: "PANTALLA_OPCIONES", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "x4 ($642B/$6439/$6461/$64DA). Sesion 12." },
-  { from: "PANTALLA_OPCIONES", to: "REPETIR_CARACTER", tipo: "call", nota: "x6 (titulo + 4 preguntas + confirmacion), HL apunta dentro de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION. Sesion 12." },
+  { from: "PANTALLA_OPCIONES", to: "IMPRIMIR_BYTES_CON_LONGITUD", tipo: "call", nota: "x6 (titulo + 4 preguntas + confirmacion), HL apunta dentro de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION. Sesion 12." },
   { from: "PANTALLA_OPCIONES", to: "ACTUALIZAR_SECUENCIA_SONIDO", tipo: "call", nota: "varias veces, intercalada. Sesion 12." },
   { from: "PANTALLA_OPCIONES", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "x8 (tecla '+'/'.' de musica y efectos, x2; 'L'/Intro de confirmar, x2; mas los 2 pares de re-lectura). Sesion 12." },
   { from: "PANTALLA_OPCIONES", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "x2, eco de los digitos de velocidad/dificultad tecleados. Sesion 12." },
@@ -746,7 +750,7 @@ const ARISTAS = [
   { from: "BORRAR_RECTANGULO_VENTANA", to: "FIRM_TXT_WIN_ENABLE", tipo: "call", nota: "$7EED" },
   { from: "BORRAR_RECTANGULO_VENTANA", to: "FIRM_TXT_CLEAR_WINDOW", tipo: "call", nota: "$7EF0" },
 
-  { from: "REPETIR_CARACTER", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "$7EF7, en bucle DJNZ" },
+  { from: "IMPRIMIR_BYTES_CON_LONGITUD", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "$7EF7, en bucle DJNZ" },
   { from: "IMPRIMIR_NUMERO_HL", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "x2 ($7887/$788F)" },
 ];
 
@@ -756,7 +760,7 @@ const ARISTAS = [
 // ============================================================================
 const ARISTAS_DATO = [
   { from: "ENTRADA_MOTOR", to: "DATO_ENVOLVENTES", nota: "LD HL,$7FCA/$7FD4/.../$7FF9 antes de cada CALL FIRM_SOUND_*_ENV" },
-  { from: "REPETIR_CARACTER", to: "DATO_TEXTOS", nota: "HL pasado por el llamador apunta a texto+contador" },
+  { from: "IMPRIMIR_BYTES_CON_LONGITUD", to: "DATO_TEXTOS", nota: "HL pasado por el llamador apunta a un bloque longitud+bytes (Sesion 19)" },
   { from: "DIBUJAR_ICONO_SARCOFAGO", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_SARCOFAGO ($877D)" },
   { from: "DIBUJAR_ICONO_LLAVE", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_LLAVE ($87C5)" },
   { from: "DIBUJAR_ICONO_PERGAMINO", to: "DATO_TABLAS_MARCO", nota: "LD IY,SPRITE_ICONO_PERGAMINO ($880D)" },
@@ -786,7 +790,7 @@ const RELACIONES_ADICIONALES = [
   { origen: "ENTRADA_MOTOR", destino: "INICIAR_PARTIDA ($6529)", tipo: "Salto resuelto en la Sesion 13", detalle: "JP Z,$6529 x2 (tecla P/p, jugar): hasta la Sesion 12 el destino caia en el hueco sin resolver. La Sesion 13 desensambla y nombra INICIAR_PARTIDA -- ya no aparece en este panel como 'salto a zona sin resolver'." },
   { origen: "DESPACHAR_MENU_PRINCIPAL", destino: "PANTALLA_INSTRUCCIONES ($68B2)", tipo: "Salto resuelto en la Sesion 14", detalle: "JP Z,$68B2 (tecla I/i, instrucciones): hasta la Sesion 13 el destino caia en el hueco sin resolver (explorado mecanicamente sin promover). La Sesion 14 desensambla y nombra PANTALLA_INSTRUCCIONES -- ya no aparece en este panel como 'salto a zona sin resolver'. Sesion 12/13/14." },
   { origen: "BUCLE_PRINCIPAL_JUEGO", destino: "PROCESAR_ENCUENTROS_ENTIDADES / PROCESAR_MOVIMIENTO_JUGADOR / ACTUALIZAR_MARCO_TRAS_MOVIMIENTO / COMPROBAR_SALIDA_NIVEL / ANIMAR_APARICION_MOMIA_GUARDIANA", tipo: "5 llamadas RESUELTAS en la Sesion 14", detalle: "$7578 (x4), $77D1 (x2), $7637 (x2), $7566 (x2) y CALL NZ,$7513 (x1): las 5 llamadas internas del bucle de turnos que la Sesion 12 ya sospechaba dentro del hueco y la Sesion 13 confirmo que caian en $68B2-$7862 -- la Sesion 14 las desensambla y nombra por completo, cerrando el ultimo hueco INCBIN del motor. Sesion 12/13/14." },
-  { origen: "PANTALLA_OPCIONES", destino: "REPETIR_CARACTER, pares de bytes reciclados de TEXTO_MENU_OPCIONES", tipo: "Aclaracion sobre REPETIR_CARACTER", detalle: "Los 6 CALL REPETIR_CARACTER de PANTALLA_OPCIONES pasan HL apuntando DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION (p.ej. $7EFD, $7FBD, $80FB). Releyendo el propio codigo de REPETIR_CARACTER se confirma que repite UN SOLO caracter fijo B veces (no recorre una cadena) -- estas llamadas NO imprimen los rotulos 'OH MUMMY - OPTIONS'/'SPEED OF GAME...' como texto legible, reutilizan un par de bytes incidental como 'contador+caracter'. La impresion real de esos rotulos como texto sigue sin localizarse. Sesion 12." },
+  { origen: "PANTALLA_OPCIONES", destino: "IMPRIMIR_BYTES_CON_LONGITUD, bloques longitud+bytes de TEXTO_MENU_OPCIONES", tipo: "Aclaracion sobre IMPRIMIR_BYTES_CON_LONGITUD (corregida Sesion 19)", detalle: "Los 6 CALL IMPRIMIR_BYTES_CON_LONGITUD de PANTALLA_OPCIONES pasan HL apuntando DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION (p.ej. $7EFD, $7FBD, $80FB). La Sesion 12 dio por confirmado, sin comprobar el DJNZ byte a byte, que la rutina 'repite UN SOLO caracter fijo B veces' -- la Sesion 19 relee el bucle y confirma justo lo contrario: el DJNZ salta a INC HL, asi que HL avanza en cada iteracion e imprime los B bytes SIGUIENTES uno a uno (formato longitud+bytes). Verificado con aritmetica exacta: HL=$7EFD (longitud 78) termina EXACTO en HL=$7F4C, la siguiente llamada; HL=$7FBD (longitud 3, reutiliza un byte interno de otro bloque) imprime literalmente 'YES'; HL=$7FC1 (longitud 2) imprime literalmente 'NO'. Los rotulos 'OH MUMMY - OPTIONS'/'SPEED OF GAME...' SI se imprimen como texto real por esta via -- ya no es un pendiente. Sesion 12 (hipotesis original) / Sesion 19 (correccion)." },
   { origen: "COLOCAR_ENTIDAD", destino: "PREPARAR_DIBUJAR_ENTIDAD", tipo: "JP condicional (no CALL)", detalle: "JP NZ,PREPARAR_DIBUJAR_ENTIDAD, dos veces ($79CA/$79D4). Al ser JP y no CALL, la ejecucion no vuelve a COLOCAR_ENTIDAD: quien continua tras PREPARAR_DIBUJAR_ENTIDAD/DIBUJAR_ENTIDAD es el llamador original de COLOCAR_ENTIDAD." },
   { origen: "COLOCAR_ENTIDAD", destino: "DIBUJAR_ENTIDAD", tipo: "JP incondicional (tail-jump)", detalle: "JP DIBUJAR_ENTIDAD ($79E7) tras decidir dibujar el sprite 'O' fijo -- mismo razonamiento que el caso anterior." },
   { origen: "RELLENAR_MARCO_MEDIO / _SOLIDO / _VACIO", destino: "PREPARAR_RELLENO_MASCARA_UNICA", tipo: "JP incondicional (tail-jump)", detalle: "Las 3 fijan un byte de mascara y saltan (no llaman) a la preparacion comun -- ahorra el RET/CALL a cambio de que el RET final 'pertenece' a PREPARAR_RELLENO_MASCARA_UNICA/RELLENAR_FILAS_MASCARA." },

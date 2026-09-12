@@ -2840,3 +2840,185 @@ Igual que la Sesión 17: confirmar en emulador el patrón de fondo
 exacto tras cada icono, y decidir si `DATOS_MARCO_Y_TEXTO_CONTINUAR`
 (el bloque mixto texto+gráfico que sigue a `SPRITE_ICONO_TESORO`)
 también extrae a fichero en cuanto se entienda su formato.
+
+## Sesión 19 — 2026-09-12: 29 bucles `DJNZ`/`JR` con dirección literal reciben etiqueta, y una corrección importante en `REPETIR_CARACTER`
+
+A petición del usuario: el ASM reconstruido tenía 29 bucles internos
+(`DJNZ $XXXX`) que saltaban a una dirección literal en vez de a una
+etiqueta con nombre funcional -- estilo mecánico, no el que tendría
+un fuente original. Se revisó el contexto de cada uno (qué hace el
+cuerpo del bucle, en qué rutina vive) y se le dio nombre. Lista
+completa (rutina → etiqueta del bucle):
+
+| Rutina | Etiqueta nueva del bucle |
+|---|---|
+| (cabecera $6000-$6400) | `BUCLE_CALCULAR_DIRECCIONES_PANTALLA` (200 filas → `TABLA_DIRECCIONES_PANTALLA`) |
+| `PANTALLA_OPCIONES` | `BUCLE_ESCALAR_RETARDO_PARTIDA`, `BUCLE_ESCALAR_LIMITE_DIFICULTAD` |
+| `PREPARAR_TESOROS_NIVEL` | `BUCLE_COLOCAR_TESOROS_NIVEL` |
+| `ACTUALIZAR_HUD_VIDAS` | `BUCLE_DIBUJAR_ICONOS_VIDAS` |
+| `SELECCIONAR_DIAGONAL_MARCO_NIVEL` | `BUCLE_DIBUJAR_FONDO_FILA` / `BUCLE_DIBUJAR_FONDO_COLUMNA` (anidados: 4 filas x 5 columnas = 20 casillas -- confirma mecánicamente la rejilla 5x4 del tablero) |
+| `PANTALLA_GAME_OVER` | `BUCLE_IMPRIMIR_GAME_OVER` |
+| `ACTUALIZAR_TABLA_PUNTUACIONES` | `BUCLE_CALCULAR_RANGO_PUNTUACION`, `BUCLE_DESPLAZAR_TABLA_PUNTUACIONES` |
+| `ANIMAR_APARICION_MOMIA_GUARDIANA` | `BUCLE_COPIAR_SPRITE_MOMIA_GUARDIANA` |
+| `PROCESAR_MOVIMIENTO_JUGADOR` | `BUCLE_LEER_TECLAS_DIRECCION`, `BUCLE_INTENTAR_MOVER_JUGADOR` |
+| `IMPRIMIR_NUMERO_HL` | `BUCLE_CALCULAR_DIGITO_DECIMAL` |
+| `INICIALIZAR_ENTIDADES` / `INICIALIZAR_UNA_ENTIDAD` / `COLOCAR_ENTIDAD` | `BUCLE_INICIALIZAR_ENTIDADES`, `BUCLE_AVANZAR_ENTIDAD_NUEVA`, `BUCLE_AVANZAR_ENTIDAD_COLOCAR` |
+| `HAY_COLISION` | `BUCLE_COMPROBAR_COLISION_ENTIDADES` |
+| `DIBUJAR_ENTIDAD` (bucle común de volcado) | `BUCLE_COPIAR_FILAS_SPRITE` / `BUCLE_COPIAR_FILA_SPRITE` |
+| `MEZCLAR_ALEATORIO` | `BUCLE_MEZCLAR_BITS_ALEATORIOS` |
+| `RELLENAR_MARCO_DIAGONAL_BUCLE` / `RELLENAR_FILAS_MASCARA` | `BUCLE_ALTERNAR_MASCARA_DIAGONAL`, `BUCLE_ESCRIBIR_MASCARA_FILA` |
+| `COPIAR_BLOQUE_A_LIENZO` | `BUCLE_COPIAR_FILAS_BLOQUE` / `BUCLE_COPIAR_BYTES_FILA` |
+| `BORRAR_RECTANGULO_VENTANA` | `BUCLE_LOCALIZAR_FILA_VENTANA`, `BUCLE_BORRAR_FILAS_VENTANA` / `BUCLE_BORRAR_FILA_VENTANA` |
+| `REPETIR_CARACTER` | `BUCLE_IMPRIMIR_BYTE` (nombre neutro -- ver corrección abajo) |
+
+Antes de nombrar cada uno se comprobó con `grep` que la dirección
+destino no tuviera más referencias que su propio `DJNZ` (solo `$607E`
+aparecía también en un comentario de rango, sin riesgo). Al colocar la
+etiqueta, dos casos exigieron corregir la posición tras un primer
+intento fallido -- **el propio `python tools/build_all.py` lo detectó
+con precisión de byte** (offsets exactos `0x0094` y `0x188B`, ambos
+resueltos comparando el desplazamiento relativo real del `DJNZ` contra
+el generado): la etiqueta debe ir exactamente en la instrucción a la
+que salta el `DJNZ`, no en la línea "donde parece empezar la lógica
+del bucle" -- en `BUCLE_CALCULAR_DIRECCIONES_PANTALLA` el bucle
+arranca en `LD DE,$0000` (no en `LD H,D`, una instrucción después), y
+en `BUCLE_CALCULAR_DIGITO_DECIMAL` arranca en el primer `INC IY` (no
+en `XOR A`, tres instrucciones después) -- el `DJNZ` re-ejecuta
+también el incremento de `IY` en cada dígito, no solo la resta.
+
+### Hallazgo importante: `REPETIR_CARACTER` probablemente NO repite un carácter fijo
+
+Al examinar el bucle de `REPETIR_CARACTER` ($7EF4-$7EFC) para ponerle
+nombre, la secuencia real de instrucciones es:
+
+```
+REPETIR_CARACTER:
+    LD B,(HL)      ; B = primer byte (contador)
+BUCLE_IMPRIMIR_BYTE:
+    INC HL         ; avanza el puntero -- EN CADA vuelta, no solo la primera
+    LD A,(HL)      ; lee el byte en la nueva posicion
+    CALL FIRM_TXT_OUTPUT
+    DJNZ BUCLE_IMPRIMIR_BYTE
+```
+
+El `DJNZ` salta a `INC HL`, no a `LD A,(HL)`: **`HL` avanza una
+posición en cada iteración**, incluida la primera. Con `B` iteraciones
+esto imprime los `B` bytes que siguen al contador (`HL+1`..`HL+B`),
+uno detrás de otro -- es decir, un **formato "longitud + bytes",
+imprimiendo una secuencia de bytes distintos**, no "repite el mismo
+carácter en `HL+1` un total de `B` veces".
+
+Esto **contradice** la hipótesis dada por confirmada desde la Sesión 3
+("formato: cuenta+caracter", repetida y reforzada en la Sesión 12:
+"REPETIR_CARACTER repite un unico caracter, no recorre una cadena:
+confirmado leyendo su propio codigo, $7EF4-$7EFC" -- una lectura que,
+revisada ahora byte a byte, no se sostiene: el propio código muestra
+justo lo contrario). Es coherente además con cómo se usa en la
+práctica: por ejemplo `PANTALLA_OPCIONES` la llama con
+`HL=TEXTO_MENU_OPCIONES` ($7EFD, primer byte `$4E`=78) para imprimir
+el título "OH MUMMY - OPTIONS" -- tiene mucho más sentido como "imprime
+78 bytes seguidos" (mezcla de códigos de control VDU tipo `$0E`/`$1F`
+y texto ASCII, todo alimentado byte a byte a `FIRM_TXT_OUTPUT`, que sí
+interpreta valores bajos como códigos de control) que como "repite 78
+veces el carácter que sigue al título".
+
+**No se ha renombrado `REPETIR_CARACTER` en esta sesión** (son ~20
+puntos de llamada y varios comentarios de sesiones anteriores que
+asumen la semántica antigua; corregirlo con el mismo rigor que el
+resto del proyecto es una tarea aparte, no un efecto secundario de
+etiquetar bucles). El bucle interno se nombró con un término neutro
+(`BUCLE_IMPRIMIR_BYTE`) que no afirma ninguna de las dos hipótesis.
+**Pendiente decidir y ejecutar**: renombrar `REPETIR_CARACTER` (candidato:
+`IMPRIMIR_BYTES_CON_LONGITUD` o similar) y revisar/corregir los
+comentarios de las sesiones que asumieron "repite un carácter" en cada
+uno de sus puntos de llamada.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) tras corregir los 2 desplazamientos mal
+colocados. `python tools/dsk_build.py` → **0 diferencias** en el `.dsk`
+completo. Ningún byte del binario cambia; solo se añaden etiquetas.
+
+### Pendiente
+
+- Decidir el nombre definitivo de `REPETIR_CARACTER` y propagar la
+  corrección a todos sus comentarios de sitio de llamada. **Resuelto
+  en la continuación de esta misma sesión, ver abajo.**
+- El punto de entrada compartido `$7CC4` (llegada de casi todas las
+  ramas de `DIBUJAR_ENTIDAD`) sigue sin etiqueta propia -- no es un
+  bucle `DJNZ`, quedó fuera del alcance de esta sesión.
+- Todo lo demás pendiente de sesiones anteriores sigue igual.
+
+## Sesión 19 (continuación) — 2026-09-12: `REPETIR_CARACTER` → `IMPRIMIR_BYTES_CON_LONGITUD`, y el mecanismo real de impresión de rótulos en `PANTALLA_OPCIONES` queda resuelto
+
+A petición del usuario, se ejecuta la corrección que quedó pendiente
+en la continuación anterior: renombrar `REPETIR_CARACTER` y propagar
+la semántica correcta (imprime una secuencia de bytes con longitud, no
+repite un carácter fijo) a todos sus puntos de llamada y a la
+documentación.
+
+### Cambios
+
+- `src/mummy1_body.asm`: `REPETIR_CARACTER` → `IMPRIMIR_BYTES_CON_LONGITUD`
+  en las ~37 ocurrencias (definición + todos los `CALL`). Reescrito el
+  comentario de la rutina (junto a `$7EF4`) explicando el mecanismo
+  real. Corregidos los 3 bloques de comentarios que afirmaban
+  explícitamente la hipótesis antigua: el primer punto de llamada
+  histórico ($6066, Sesión 3), el bloque de `PANTALLA_OPCIONES`
+  (Sesión 12) y la nota de `TEXTO_COPYRIGHT_Y_HUD`.
+- `recursos/flujo_programa.html`, `recursos/flujo_detallado.html`,
+  `recursos/mapa_memoria.html`, `src/README.md`: sincronizados con el
+  nombre y la semántica nuevos. De paso se corrigió en `src/README.md`
+  una referencia a `DIBUJAR_TRAMO_MARCO_1..4` que se había quedado sin
+  actualizar desde la Sesión 17.
+
+### Verificación adicional que resuelve un pendiente de la Sesión 12
+
+Al corregir el comentario de `PANTALLA_OPCIONES` se verificó con
+aritmética exacta sobre los bytes reales de `TEXTO_MENU_OPCIONES`
+(no solo releyendo el bucle) que los 6 `IMPRIMIR_BYTES_CON_LONGITUD`
+de esa pantalla **sí imprimen los rótulos reales**:
+
+- `HL=$7EFD` (longitud `$4E`=78) imprime "OH MUMMY - OPTIONS" con sus
+  códigos de control, y termina **exacto** en `$7F4C` -- la dirección
+  de la siguiente llamada.
+- `HL=$7F4C` (longitud `$35`=53) imprime "SPEED OF GAME (1-5) ?" y
+  termina **exacto** en `$7F82` -- la siguiente llamada.
+- `HL=$7FBD` (byte de longitud `$03`, reutilizado desde dentro de otro
+  bloque de datos) imprime literalmente **"YES"**.
+- `HL=$7FC1` (longitud `$02`) imprime literalmente **"NO"**.
+
+Esto cierra el pendiente que la Sesión 12 había dejado abierto ("la
+impresión real de los rótulos... queda sin localizar"): sí está
+localizada, es exactamente este mecanismo.
+
+### Hallazgo colateral: `DATOS_MARCO_Y_TEXTO_CONTINUAR` tampoco es gráfico
+
+La cabecera del motor llama `IMPRIMIR_BYTES_CON_LONGITUD` dos veces
+con `HL=$889D` y `HL=$8906` (dentro de `DATOS_MARCO_Y_TEXTO_CONTINUAR`,
+$6170 y $61B2). La hipótesis previa ("mezcla de máscara/gráfico sin
+separar con precisión, similar a las tablas de icono") queda
+descartada: es otro bloque longitud+bytes -- `HL=$889D` (longitud
+`$68`=104) termina **exacto** en `$8906`, la siguiente llamada real,
+confirmando de nuevo el mecanismo con aritmética exacta. Se corrigió
+el comentario de esa etiqueta; no se ha renombrado ni decodificado el
+contenido byte a byte todavía (sigue siendo una tarea aparte).
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes) -- solo cambian nombres y comentarios, ningún
+byte del binario. `python tools/dsk_build.py` → **0 diferencias** en
+el `.dsk` completo. Las 3 páginas HTML tocadas renderizan sin errores
+(comprobado con Microsoft Edge headless).
+
+### Pendiente
+
+- Decodificar byte a byte los códigos de control VDU usados dentro de
+  `TEXTO_MENU_OPCIONES`/`DATOS_MARCO_Y_TEXTO_CONTINUAR` (posición de
+  cursor, tinta...) -- se sabe que se imprimen, no qué hace cada uno.
+- Decidir si `DATOS_MARCO_Y_TEXTO_CONTINUAR` merece un nombre propio
+  ahora que se sabe que no es gráfico.
+- El punto de entrada compartido `$7CC4` sigue sin etiqueta propia.
+- Todo lo demás pendiente de sesiones anteriores sigue igual.

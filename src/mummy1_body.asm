@@ -94,25 +94,29 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     LD ($8168),A                 ; 605D: 326881
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6060: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6063: cdd178
-; $7EF4: hipotesis "repetir un caracter N veces por FIRM_TXT_OUTPUT" --
-; lee (HL)=contador, (HL+1)=caracter, y saca ese caracter "contador"
-; veces sin avanzar mas el puntero (formato de datos de 2 bytes por
-; llamada: cuenta+caracter). Encaja con dibujar tramos rectos de un
-; marco/borde decorativo. Ver FINDINGS.md Sesion 3.
+; $7EF4 (IMPRIMIR_BYTES_CON_LONGITUD, nombre corregido en Sesion 19 --
+; la hipotesis original de la Sesion 3, "repetir un caracter N veces",
+; era incorrecta): lee (HL)=longitud, y saca por FIRM_TXT_OUTPUT los
+; "longitud" bytes siguientes uno a uno, avanzando el puntero en cada
+; uno -- formato "longitud + secuencia de bytes", no "cuenta+caracter
+; fijo". Aqui imprime bytes de TABLA_PARAMETROS_TRANSICION_PUNTUACIONES
+; (mezcla de codigos de control VDU y/o mascara, sin decodificar a
+; texto en este punto). Ver FINDINGS.md Sesiones 3 y 19.
     LD HL,TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8 ; 6066: 215386
-    CALL REPETIR_CARACTER                   ; 6069: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6069: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;606C: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;606F: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6072: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6075: cdd178
     LD IX,TABLA_DIRECCIONES_PANTALLA ; 6078: dd21ca8e
     LD B,$C8                     ; 607C: 06c8
-    LD DE,$0000                  ; 607E: 110000
 ; Bucle $607E-$6093: confirmado (Sesion 8) -- 200 iteraciones (B=$C8),
 ; cada una calcula con el firmware FIRM_SCR_DOT_POSITION la direccion
 ; de pantalla de una fila y la guarda en TABLA_DIRECCIONES_PANTALLA
 ; (200 entradas x 2 bytes). Tecnica muy comun en juegos de CPC para
 ; acelerar el acceso a filas de pantalla.
+BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
+    LD DE,$0000                  ; 607E: 110000
     LD H,D                       ; 6081: 62
     LD L,B                       ; 6082: 68
     DEC L                        ; 6083: 2d
@@ -123,13 +127,13 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     INC IX                       ; 608E: dd23
     INC IX                       ; 6090: dd23
     POP BC                       ; 6092: c1
-    DJNZ $607E                   ; 6093: 10e9
+    DJNZ BUCLE_CALCULAR_DIRECCIONES_PANTALLA                   ; 6093: 10e9
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6095: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6098: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;609B: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;609E: cdd178
     LD HL,TEXTO_COPYRIGHT_Y_HUD   ; 60A1: 214087
-    CALL REPETIR_CARACTER                   ; 60A4: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 60A4: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;60A7: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;60AA: cdd178
 ; BORRAR_RECTANGULO_VENTANA, llamada 14 veces seguidas con pares HL/DE
@@ -227,14 +231,14 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL $7E29                   ; 6194: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6197: cdd178
     LD HL,$889D                  ; 619A: 219d88
-    CALL REPETIR_CARACTER                   ; 619D: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 619D: cdf47e
     LD HL,$5040                  ; 61A0: 214050
     CALL $7E29                   ; 61A3: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61A6: cdd178
     LD HL,$7808                  ; 61A9: 210878
     CALL $7E29                   ; 61AC: cd297e
     LD HL,$8906                  ; 61AF: 210689
-    CALL REPETIR_CARACTER                   ; 61B2: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 61B2: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;61B5: cdd178
     LD HL,$7840                  ; 61B8: 214078
     CALL $7E29                   ; 61BB: cd297e
@@ -285,7 +289,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     CALL FIRM_KM_READ_CHAR                   ; 6226: cd09bb
     JR C,$6223                   ; 6229: 38f8
     LD HL,$866D                  ; 622B: 216d86
-    CALL REPETIR_CARACTER                   ; 622E: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 622E: cdf47e
     CALL BORRAR_BLOQUE_ESTADO                   ; 6231: cdab7e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6234: cdd178
     XOR A                        ; 6237: af
@@ -339,40 +343,40 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     LD DE,$2718                  ; 62BF: 111827
     CALL FIRM_TXT_WIN_ENABLE                   ; 62C2: cd66bb
     LD HL,$8676                  ; 62C5: 217686
-    CALL REPETIR_CARACTER                   ; 62C8: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62C8: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;62CB: cdd178
     LD HL,$0C0A                  ; 62CE: 210a0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62D1: cd75bb
     LD HL,($868C)                ; 62D4: 2a8c86
     CALL $786C                   ; 62D7: cd6c78
     LD HL,$868E                  ; 62DA: 218e86
-    CALL REPETIR_CARACTER                   ; 62DD: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62DD: cdf47e
     LD HL,$0C0C                  ; 62E0: 210c0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62E3: cd75bb
     LD HL,($869E)                ; 62E6: 2a9e86
     CALL $786C                   ; 62E9: cd6c78
     LD HL,$86A0                  ; 62EC: 21a086
-    CALL REPETIR_CARACTER                   ; 62EF: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62EF: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;62F2: cdd178
     LD HL,$0C0E                  ; 62F5: 210e0c
     CALL FIRM_TXT_SET_CURSOR                   ; 62F8: cd75bb
     LD HL,($86B0)                ; 62FB: 2ab086
     CALL $786C                   ; 62FE: cd6c78
     LD HL,$86B2                  ; 6301: 21b286
-    CALL REPETIR_CARACTER                   ; 6304: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6304: cdf47e
     LD HL,$0C10                  ; 6307: 21100c
     CALL FIRM_TXT_SET_CURSOR                   ; 630A: cd75bb
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;630D: cdd178
     LD HL,($86C2)                ; 6310: 2ac286
     CALL $786C                   ; 6313: cd6c78
     LD HL,$86C4                  ; 6316: 21c486
-    CALL REPETIR_CARACTER                   ; 6319: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6319: cdf47e
     LD HL,$0C12                  ; 631C: 21120c
     CALL FIRM_TXT_SET_CURSOR                   ; 631F: cd75bb
     LD HL,($86D4)                ; 6322: 2ad486
     CALL $786C                   ; 6325: cd6c78
     LD HL,$86D6                  ; 6328: 21d686
-    CALL REPETIR_CARACTER                   ; 632B: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 632B: cdf47e
     LD HL,$8637                  ; 632E: 213786
     LD ($8645),HL                ; 6331: 224586
     CALL INICIALIZAR_ENTIDADES                   ; 6334: cd4f79
@@ -383,7 +387,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
     OR A                         ; 6343: b7
     JR Z,REANUDAR_MENU_TRAS_NOMBRE ; 6344: 2826
     LD HL,$8710                  ; 6346: 211087
-    CALL REPETIR_CARACTER                   ; 6349: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6349: cdf47e
     XOR A                        ; 634C: af
     CALL FIRM_TXT_SET_PAPER                   ; 634D: cd96bb
     LD HL,($7FC6)                ; 6350: 2ac67f
@@ -412,7 +416,7 @@ FIRM_SOUND_QUEUE        EQU $BCAA   ; Anadir un sonido a una cola de sonido
 ; exacto de $86E8. Ver FINDINGS.md Sesion 12.
 REANUDAR_MENU_TRAS_NOMBRE:
     LD HL,$86E8                  ; 636C: 21e886
-    CALL REPETIR_CARACTER                   ; 636F: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 636F: cdf47e
     LD B,$01                     ; 6372: 0601
     CALL ANIMAR_OPCION_MENU                   ; 6374: cdb778
     LD B,$02                     ; 6377: 0602
@@ -545,21 +549,28 @@ DESPACHAR_MENU_PRINCIPAL:
 ;     sesion localiza por fin el punto donde se ESCRIBE el flag, que
 ;     FINDINGS.md Sesion 8 dejaba pendiente; el codigo que la LEE
 ;     sigue sin localizarse).
-; Los REPETIR_CARACTER(HL) de este tramo usan como argumento pares de
-; bytes que caen DENTRO de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION
-; (p.ej. $7EFD=[$4E,$0E], $7FBD=[$03,'Y']) -- NO imprimen el texto
-; literal vecino (REPETIR_CARACTER repite un unico caracter, no recorre
-; una cadena: confirmado leyendo su propio codigo, $7EF4-$7EFC). Son
-; pares reutilizados a proposito como "contador+caracter" para algun
-; adorno visual (posible separador o parpadeo), efecto exacto sin
-; verificar en emulador -- confianza baja/media. La impresion real de
-; los rotulos "OH MUMMY - OPTIONS"/"SPEED OF GAME..." etc. como texto
-; queda sin localizar, pendiente de los tramos siguientes del INCBIN.
+; Sesion 19 RESUELVE lo que quedaba pendiente aqui: los IMPRIMIR_BYTES_
+; CON_LONGITUD(HL) de este tramo SI imprimen el texto/codigos de
+; control real de TEXTO_MENU_OPCIONES/TEXTO_HISTORIA_ATRACCION -- la
+; hipotesis previa ("repite un caracter, no recorre una cadena") era
+; incorrecta (ver correccion junto a la rutina, $7EF4). Verificado con
+; aritmetica exacta sobre los datos reales: la llamada con HL=$7EFD
+; (longitud $4E=78) imprime el titulo "OH MUMMY - OPTIONS" con sus
+; codigos de control, y termina EXACTO en $7F4C -- la siguiente
+; llamada, confirmando que son bloques consecutivos sin hueco.
+; HL=$7F4C (longitud $35=53) imprime "SPEED OF GAME (1-5) ?" y
+; termina EXACTO en $7F82, la siguiente llamada. El patron se rompe
+; adrede a partir de ahi porque el programa empieza a ramificar segun
+; la tecla pulsada: HL=$7FBD (byte de longitud $03, reutilizado desde
+; dentro de otro bloque) imprime literalmente "YES", y HL=$7FC1
+; (longitud $02) imprime literalmente "NO" -- confirmado letra a letra
+; contra los DB reales. Confianza alta: el mecanismo de impresion de
+; rotulos de esta pantalla queda identificado por completo.
 PANTALLA_OPCIONES:
     CALL FIRM_KM_READ_CHAR           ; 642B: cd09bb
     JR C,PANTALLA_OPCIONES           ; 642E: 38fb  ; vacia el buffer de teclado antes de dibujar
     LD HL,$7EFD                      ; 6430: 21fd7e  ; TEXTO_MENU_OPCIONES (titulo)
-    CALL REPETIR_CARACTER            ; 6433: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6433: cdf47e
 ; -- "SPEED OF GAME (1-5) ?": lee un digito '1'-'5', lo eco a pantalla
 ; y calcula ($8153) = $0100 + digito*$00E0 --
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6436: cdd178
@@ -574,13 +585,14 @@ PANTALLA_OPCIONES:
     LD HL,$0100                      ; 644B: 210001
     LD DE,$00E0                      ; 644E: 11e000
     LD B,A                           ; 6451: 47
+BUCLE_ESCALAR_RETARDO_PARTIDA:
     ADD HL,DE                        ; 6452: 19
-    DJNZ $6452                       ; 6453: 10fd
+    DJNZ BUCLE_ESCALAR_RETARDO_PARTIDA                       ; 6453: 10fd
     LD ($8153),HL                    ; 6455: 225381  ; retardo de partida (ya usado por ANIMAR_OPCION_MENU)
 ; -- "DIFFICULTY LEVEL (1-5) ?": mismo patron, digito 1-5 -> ($8161) =
 ; $07F8 duplicado (digito) veces, byte alto --
     LD HL,$7F4C                      ; 6458: 214c7f  ; TEXTO_MENU_OPCIONES+$4F
-    CALL REPETIR_CARACTER            ; 645B: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 645B: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 645E: cdd178
     CALL FIRM_KM_READ_CHAR           ; 6461: cd09bb
     JR NC,$645E                      ; 6464: 30f8
@@ -592,14 +604,15 @@ PANTALLA_OPCIONES:
     SUB $30                          ; 6471: d630
     LD B,A                           ; 6473: 47
     LD HL,$07F8                      ; 6474: 21f807
+BUCLE_ESCALAR_LIMITE_DIFICULTAD:
     ADD HL,HL                        ; 6477: 29
-    DJNZ $6477                       ; 6478: 10fd
+    DJNZ BUCLE_ESCALAR_LIMITE_DIFICULTAD                       ; 6478: 10fd
     LD A,H                           ; 647A: 7c
     LD ($8161),A                     ; 647B: 326181  ; limite de persecucion IA (ya usado por COLOCAR_ENTIDAD)
 ; -- "BACKGROUND MUSIC (Y-N) ?": tecla '+' -> 'Y' (y reinicia el guion
 ; de sonido circular), '.' -> 'N' --
     LD HL,$7F82                      ; 647E: 21827f  ; TEXTO_MENU_OPCIONES+$85
-    CALL REPETIR_CARACTER            ; 6481: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6481: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6484: cdd178
     LD A,$2B                         ; 6487: 3e2b  ; '+'
     CALL FIRM_KM_TEST_KEY            ; 6489: cd1ebb
@@ -610,7 +623,7 @@ PANTALLA_OPCIONES:
     LD A,$4E                         ; 6495: 3e4e  ; 'N'
     LD (FLAG_MUSICA_FONDO),A         ; 6497: 32c47f
     LD HL,$7FC1                      ; 649A: 21c17f  ; TEXTO_MENU_OPCIONES+$C4
-    CALL REPETIR_CARACTER            ; 649D: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 649D: cdf47e
     CALL FIRM_SOUND_RESET            ; 64A0: cda7bc
     LD HL,GUION_SONIDO_CIRCULAR      ; 64A3: 215c90
     LD (PUNTERO_GUION_SONIDO),HL     ; 64A6: 225a90
@@ -624,7 +637,7 @@ PANTALLA_OPCIONES:
     LD A,$59                         ; 64BB: 3e59  ; 'Y'
     LD (FLAG_MUSICA_FONDO),A         ; 64BD: 32c47f
     LD HL,$7FBD                      ; 64C0: 21bd7f  ; TEXTO_MENU_OPCIONES+$C0
-    CALL REPETIR_CARACTER            ; 64C3: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64C3: cdf47e
 ; -- "SOUND EFFECTS (Y-N) ?": mismo patron '+'/'.', sin reinicio de
 ; sonido (solo cambia el flag) --
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64C6: cdd178
@@ -638,7 +651,7 @@ PANTALLA_OPCIONES:
     CALL FIRM_KM_READ_CHAR           ; 64DA: cd09bb
     JR C,$64D7                       ; 64DD: 38f8
     LD HL,$7FA1                      ; 64DF: 21a17f  ; TEXTO_MENU_OPCIONES+$A4
-    CALL REPETIR_CARACTER            ; 64E2: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64E2: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 64E5: cdd178
     LD A,$2B                         ; 64E8: 3e2b
     CALL FIRM_KM_TEST_KEY            ; 64EA: cd1ebb
@@ -649,16 +662,16 @@ PANTALLA_OPCIONES:
     LD A,$4E                         ; 64F6: 3e4e
     LD (FLAG_EFECTOS_SONIDO),A       ; 64F8: 32c57f
     LD HL,$7FC1                      ; 64FB: 21c17f
-    CALL REPETIR_CARACTER            ; 64FE: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 64FE: cdf47e
     JR $650E                         ; 6501: 180b
     LD A,$59                         ; 6503: 3e59
     LD (FLAG_EFECTOS_SONIDO),A       ; 6505: 32c57f
     LD HL,$7FBD                      ; 6508: 21bd7f
-    CALL REPETIR_CARACTER            ; 650B: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 650B: cdf47e
 ; -- Confirmar con 'L' o Intro; cualquier otra tecla reinicia el bucle
 ; de esta ultima pregunta ($6514) --
     LD HL,$80FB                      ; 650E: 21fb80  ; TEXTO_HISTORIA_ATRACCION+$DE
-    CALL REPETIR_CARACTER            ; 6511: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6511: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ; 6514: cdd178
     LD A,$4C                         ; 6517: 3e4c  ; 'L'
     CALL FIRM_KM_TEST_KEY            ; 6519: cd1ebb
@@ -814,6 +827,7 @@ PREPARAR_TESOROS_NIVEL:
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65AA: cdd178
     LD B,$0E                          ; 65AD: 060e
     LD A,$10                          ; 65AF: 3e10
+BUCLE_COLOCAR_TESOROS_NIVEL:
     PUSH BC                           ; 65B1: c5
     PUSH AF                           ; 65B2: f5
     LD A,$1A                          ; 65B3: 3e1a
@@ -833,7 +847,7 @@ PREPARAR_TESOROS_NIVEL:
     CP $50                            ; 65CA: fe50
     JR Z,$65D0                        ; 65CC: 2802
     ADD A,$10                         ; 65CE: c610
-    DJNZ $65B1                        ; 65D0: 10df
+    DJNZ BUCLE_COLOCAR_TESOROS_NIVEL                        ; 65D0: 10df
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65D2: cdd178
 
 ; ACTUALIZAR_HUD_VIDAS ($65D5): redibuja una etiqueta ($8764, dato aun
@@ -852,7 +866,7 @@ PREPARAR_TESOROS_NIVEL:
 ; bucle principal ($7578/$77D1/$7637/$7566, ver BUCLE_PRINCIPAL_JUEGO).
 ACTUALIZAR_HUD_VIDAS:
     LD HL,$8764                       ; 65D5: 216487
-    CALL REPETIR_CARACTER             ; 65D8: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 65D8: cdf47e
     CALL IMPRIMIR_PUNTUACION_HUD      ; 65DB: cd6378
     LD A,$01                          ; 65DE: 3e01
     CALL FIRM_TXT_SET_PAPER           ; 65E0: cd96bb
@@ -862,6 +876,7 @@ ACTUALIZAR_HUD_VIDAS:
     LD ($8157),A                      ; 65E9: 325781
     LD DE,$0034                       ; 65EC: 113400
     LD ($8155),DE                     ; 65EF: ed535581
+BUCLE_DIBUJAR_ICONOS_VIDAS:
     PUSH BC                           ; 65F3: c5
     LD A,$41                          ; 65F4: 3e41
     CALL DIBUJAR_ENTIDAD              ; 65F6: cd397b
@@ -875,7 +890,7 @@ ACTUALIZAR_HUD_VIDAS:
     LD ($8155),HL                     ; 660C: 225581
     EX DE,HL                          ; 660F: eb
     POP BC                            ; 6610: c1
-    DJNZ $65F3                        ; 6611: 10e0
+    DJNZ BUCLE_DIBUJAR_ICONOS_VIDAS                        ; 6611: 10e0
 
 ; LIMPIAR_PANELES_NIVEL ($6613): 9 llamadas a BORRAR_RECTANGULO_VENTANA
 ; con pares HL/DE distintos (mismo patron ya documentado en el arranque
@@ -955,9 +970,11 @@ SELECCIONAR_DIAGONAL_MARCO_NIVEL:
     LD ($66BA),HL                     ; 66AB: 22ba66
     LD B,$04                          ; 66AE: 0604
     LD HL,$2808                       ; 66B0: 210828
+BUCLE_DIBUJAR_FONDO_FILA:
     PUSH BC                           ; 66B3: c5
     PUSH HL                           ; 66B4: e5
     LD B,$05                          ; 66B5: 0605
+BUCLE_DIBUJAR_FONDO_COLUMNA:
     PUSH BC                           ; 66B7: c5
     PUSH HL                           ; 66B8: e5
     CALL RELLENAR_MARCO_DIAGONAL_6    ; 66B9: cd297e
@@ -966,12 +983,12 @@ SELECCIONAR_DIAGONAL_MARCO_NIVEL:
     LD BC,$000E                       ; 66C0: 010e00
     ADD HL,BC                         ; 66C3: 09
     POP BC                            ; 66C4: c1
-    DJNZ $66B7                        ; 66C5: 10f0
+    DJNZ BUCLE_DIBUJAR_FONDO_COLUMNA                        ; 66C5: 10f0
     POP HL                            ; 66C7: e1
     LD BC,$2800                       ; 66C8: 010028
     ADD HL,BC                         ; 66CB: 09
     POP BC                            ; 66CC: c1
-    DJNZ $66B3                        ; 66CD: 10e4
+    DJNZ BUCLE_DIBUJAR_FONDO_FILA                        ; 66CD: 10e4
 
 ; COLOCAR_JUGADOR_INICIAL ($66CF): fija el puntero de posiciones
 ; ($8645=$860F, la MISMA tabla que usa la demo de fondo del menu en
@@ -1067,16 +1084,16 @@ INICIO_TURNO_JUGADOR1:
 PANTALLA_STOP_PRESS:
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6739: cdd178
     LD HL,$801B                       ; 673C: 211b80
-    CALL REPETIR_CARACTER             ; 673F: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 673F: cdf47e
     LD HL,$8040                       ; 6742: 214080
-    CALL REPETIR_CARACTER             ; 6745: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6745: cdf47e
     LD HL,$8064                       ; 6748: 216480
-    CALL REPETIR_CARACTER             ; 674B: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 674B: cdf47e
     LD HL,$8088                       ; 674E: 218880
-    CALL REPETIR_CARACTER             ; 6751: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6751: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6754: cdd178
     LD HL,$809D                       ; 6757: 219d80
-    CALL REPETIR_CARACTER             ; 675A: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 675A: cdf47e
     LD A,$02                          ; 675D: 3e02
     CALL GENERAR_ALEATORIO            ; 675F: cd537d
     OR A                              ; 6762: b7
@@ -1086,9 +1103,9 @@ PANTALLA_STOP_PRESS:
     ADD HL,BC                         ; 676B: 09
     LD ($815A),HL                     ; 676C: 225a81
     LD HL,$80B8                       ; 676F: 21b880
-    CALL REPETIR_CARACTER             ; 6772: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6772: cdf47e
     LD HL,$80C2                       ; 6775: 21c280
-    CALL REPETIR_CARACTER             ; 6778: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6778: cdf47e
     JP $6795                          ; 677B: c39567
     LD A,($816A)                      ; 677E: 3a6a81
     CP $07                            ; 6781: fe07
@@ -1096,12 +1113,12 @@ PANTALLA_STOP_PRESS:
     INC A                             ; 6785: 3c
     LD ($816A),A                      ; 6786: 326a81
     LD HL,$80E0                       ; 6789: 21e080
-    CALL REPETIR_CARACTER             ; 678C: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 678C: cdf47e
     LD HL,$80EA                       ; 678F: 21ea80
-    CALL REPETIR_CARACTER             ; 6792: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6792: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6795: cdd178
     LD HL,$80FB                       ; 6798: 21fb80
-    CALL REPETIR_CARACTER             ; 679B: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 679B: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 679E: cdd178
     LD A,$4C                          ; 67A1: 3e4c
     CALL FIRM_KM_TEST_KEY             ; 67A3: cd1ebb
@@ -1123,7 +1140,7 @@ PANTALLA_STOP_PRESS:
 ; Confianza alta (verificada byte a byte).
 PANTALLA_GAME_OVER:
     LD HL,$8125                       ; 67B3: 212581
-    CALL REPETIR_CARACTER             ; 67B6: cdf47e
+    CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 67B6: cdf47e
     LD HL,$090A                       ; 67B9: 210a09
     LD DE,$1F11                       ; 67BC: 11111f
     CALL BORRAR_RECTANGULO_VENTANA    ; 67BF: cdb97e
@@ -1135,6 +1152,7 @@ PANTALLA_GAME_OVER:
     CALL FIRM_TXT_SET_CURSOR          ; 67D1: cd75bb
     LD HL,$812D                       ; 67D4: 212d81
     LD B,$09                          ; 67D7: 0609
+BUCLE_IMPRIMIR_GAME_OVER:
     PUSH BC                           ; 67D9: c5
     PUSH HL                           ; 67DA: e5
     LD DE,$0400                       ; 67DB: 110004
@@ -1152,7 +1170,7 @@ PANTALLA_GAME_OVER:
     LD A,$20                          ; 67EE: 3e20
     CALL FIRM_TXT_OUTPUT              ; 67F0: cd5abb
     POP BC                            ; 67F3: c1
-    DJNZ $67D9                        ; 67F4: 10e3
+    DJNZ BUCLE_IMPRIMIR_GAME_OVER                        ; 67F4: 10e3
     LD DE,$4000                       ; 67F6: 110040
     PUSH DE                           ; 67F9: d5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 67FA: cdd178
@@ -1197,6 +1215,7 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     LD IX,$86D4                       ; 6818: dd21d486
     XOR A                             ; 681C: af
     LD B,$05                          ; 681D: 0605
+BUCLE_CALCULAR_RANGO_PUNTUACION:
     PUSH BC                           ; 681F: c5
     LD HL,($815A)                     ; 6820: 2a5a81
     LD C,(IX+0)                       ; 6823: dd4e00
@@ -1210,7 +1229,7 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     SBC HL,DE                         ; 6833: ed52
     PUSH HL                           ; 6835: e5
     POP IX                            ; 6836: dde1
-    DJNZ $681F                        ; 6838: 10e5
+    DJNZ BUCLE_CALCULAR_RANGO_PUNTUACION                        ; 6838: 10e5
     INC B                             ; 683A: 04
     LD A,B                            ; 683B: 78
     ADD A,A                           ; 683C: 87
@@ -1229,6 +1248,7 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     POP BC                            ; 6853: c1
     LD HL,$86C2                       ; 6854: 21c286
     LD DE,$86D4                       ; 6857: 11d486
+BUCLE_DESPLAZAR_TABLA_PUNTUACIONES:
     PUSH BC                           ; 685A: c5
     LD BC,$0012                       ; 685B: 011200
     LDIR                              ; 685E: edb0
@@ -1239,7 +1259,7 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     SBC HL,BC                         ; 6867: ed42
     EX DE,HL                          ; 6869: eb
     POP BC                            ; 686A: c1
-    DJNZ $685A                        ; 686B: 10ed
+    DJNZ BUCLE_DESPLAZAR_TABLA_PUNTUACIONES                        ; 686B: 10ed
     PUSH HL                           ; 686D: e5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 686E: cdd178
     POP HL                            ; 6871: e1
@@ -1795,11 +1815,12 @@ ANIMAR_APARICION_MOMIA_GUARDIANA:
     LD H,A                            ; 752A: 67
     CALL CASILLA_A_DIRECCION_PANTALLA ; 752B: cd927e
     LD B,$04                          ; 752E: 0604
+BUCLE_COPIAR_SPRITE_MOMIA_GUARDIANA:
     LD A,(IY+0)                       ; 7530: fd7e00
     LD (HL),A                         ; 7533: 77
     INC IY                            ; 7534: fd23
     INC HL                            ; 7536: 23
-    DJNZ $7530                        ; 7537: 10f7
+    DJNZ BUCLE_COPIAR_SPRITE_MOMIA_GUARDIANA                        ; 7537: 10f7
     LD A,($816D)            ; 7539: 3a6d81
     OR A                              ; 753C: b7
     RET NZ                            ; 753D: c0
@@ -2244,6 +2265,7 @@ PROCESAR_MOVIMIENTO_JUGADOR:
     LD IX,$8150                       ; 77DA: dd215081
     LD DE,$814C                       ; 77DE: 114c81
     LD B,$04                          ; 77E1: 0604
+BUCLE_LEER_TECLAS_DIRECCION:
     LD A,(DE)                         ; 77E3: 1a
     CALL FIRM_KM_TEST_KEY             ; 77E4: cd1ebb
     DEC DE                            ; 77E7: 1b
@@ -2254,7 +2276,7 @@ PROCESAR_MOVIMIENTO_JUGADOR:
     LD (IX+0),B                       ; 77F0: dd7000
     DEC DE                            ; 77F3: 1b
     DEC IX                            ; 77F4: dd2b
-    DJNZ $77E3                        ; 77F6: 10eb
+    DJNZ BUCLE_LEER_TECLAS_DIRECCION                        ; 77F6: 10eb
     LD A,($8157)                      ; 77F8: 3a5781
     CP $02                            ; 77FB: fe02
     JR C,$782F                        ; 77FD: 3830
@@ -2283,6 +2305,7 @@ PROCESAR_MOVIMIENTO_JUGADOR:
     LD ($814D),HL                     ; 783B: 224d81
     LD ($814F),DE                     ; 783E: ed534f81
     LD B,$04                          ; 7842: 0604
+BUCLE_INTENTAR_MOVER_JUGADOR:
     PUSH BC                           ; 7844: c5
     INC IX                            ; 7845: dd23
     LD A,(IX+0)                       ; 7847: dd7e00
@@ -2296,7 +2319,7 @@ PROCESAR_MOVIMIENTO_JUGADOR:
     POP BC                            ; 785B: c1
     JP $790B                          ; 785C: c30b79  ; entra en mitad de MOVER_INDICADOR_MENU (linea 'LD A,$54'), reutiliza el movimiento de 8px
     POP BC                            ; 785F: c1
-    DJNZ $7844                        ; 7860: 10e2
+    DJNZ BUCLE_INTENTAR_MOVER_JUGADOR                        ; 7860: 10e2
     RET                               ; 7862: c9
 
 ; ---- $7863-$786B (9 bytes): tercer tramo promovido del INCBIN --
@@ -2351,6 +2374,7 @@ IMPRIMIR_PUNTUACION_HUD:
 IMPRIMIR_NUMERO_HL:
     LD B,$04                         ; 786C: 0604
     LD IY,TABLA_POSICIONES_DECIMALES-2 ; 786E: fd213687
+BUCLE_CALCULAR_DIGITO_DECIMAL:
     INC IY                           ; 7872: fd23
     INC IY                           ; 7874: fd23
     LD E,(IY+0)                      ; 7876: fd5e00
@@ -2363,7 +2387,7 @@ IMPRIMIR_NUMERO_HL:
     JR $787F                         ; 7884: 18f9
     ADD HL,DE                        ; 7886: 19
     CALL FIRM_TXT_OUTPUT             ; 7887: cd5abb
-    DJNZ $7872                       ; 788A: 10e6
+    DJNZ BUCLE_CALCULAR_DIGITO_DECIMAL                       ; 788A: 10e6
     LD A,$30                         ; 788C: 3e30
     ADD A,L                          ; 788E: 85
     CALL FIRM_TXT_OUTPUT             ; 788F: cd5abb
@@ -2464,10 +2488,11 @@ MOVER_INDICADOR_MENU:
 INICIALIZAR_ENTIDADES:
     LD A,($8169)                     ; 794F: 3a6981
     LD B,A                           ; 7952: 47
+BUCLE_INICIALIZAR_ENTIDADES:
     PUSH BC                          ; 7953: c5
     CALL INICIALIZAR_UNA_ENTIDAD     ; 7954: cd5b79
     POP BC                           ; 7957: c1
-    DJNZ $7953                       ; 7958: 10f9
+    DJNZ BUCLE_INICIALIZAR_ENTIDADES                       ; 7958: 10f9
     RET                              ; 795A: c9
 INICIALIZAR_UNA_ENTIDAD:
     LD A,($816C)                     ; 795B: 3a6c81
@@ -2476,8 +2501,9 @@ INICIALIZAR_UNA_ENTIDAD:
     LD B,A                           ; 7962: 47
     LD IX,ARRAY_ENTIDADES             ; 7963: dd216d81
     LD DE,$0005                      ; 7967: 110500
+BUCLE_AVANZAR_ENTIDAD_NUEVA:
     ADD IX,DE                        ; 796A: dd19
-    DJNZ $796A                       ; 796C: 10fc
+    DJNZ BUCLE_AVANZAR_ENTIDAD_NUEVA                       ; 796C: 10fc
     LD A,$04                         ; 796E: 3e04
     CALL GENERAR_ALEATORIO           ; 7970: cd537d
     INC A                            ; 7973: 3c
@@ -2501,8 +2527,9 @@ INICIALIZAR_UNA_ENTIDAD:
 COLOCAR_ENTIDAD:
     LD IX,ARRAY_ENTIDADES             ; 7996: dd216d81
     LD DE,$0005                      ; 799A: 110500
+BUCLE_AVANZAR_ENTIDAD_COLOCAR:
     ADD IX,DE                        ; 799D: dd19
-    DJNZ $799D                       ; 799F: 10fc
+    DJNZ BUCLE_AVANZAR_ENTIDAD_COLOCAR                       ; 799F: 10fc
     LD A,(IX+0)                      ; 79A1: dd7e00
     OR A                             ; 79A4: b7
     JR NZ,$79AC                      ; 79A5: 2005
@@ -2566,6 +2593,7 @@ HAY_COLISION:
     LD IY,ARRAY_ENTIDADES             ; 7A1D: fd216d81
     LD A,($816C)                     ; 7A21: 3a6c81
     LD B,A                           ; 7A24: 47
+BUCLE_COMPROBAR_COLISION_ENTIDADES:
     PUSH BC                          ; 7A25: c5
     LD BC,$0005                      ; 7A26: 010500
     ADD IY,BC                        ; 7A29: fd09
@@ -2592,7 +2620,7 @@ HAY_COLISION:
     INC A                            ; 7A54: 3c
     LD ($8610),A                     ; 7A55: 321086
     POP BC                           ; 7A58: c1
-    DJNZ $7A25                       ; 7A59: 10ca
+    DJNZ BUCLE_COMPROBAR_COLISION_ENTIDADES                       ; 7A59: 10ca
     LD A,($8610)                     ; 7A5B: 3a1086
     CP $01                           ; 7A5E: fe01
     JR Z,$7A64                       ; 7A60: 2802
@@ -2894,19 +2922,21 @@ DIBUJAR_ENTIDAD:
     LD B,$10                         ; 7CC5: 0610
     EX DE,HL                         ; 7CC7: eb
     LD ($8647),HL                    ; 7CC8: 224786
+BUCLE_COPIAR_FILAS_SPRITE:
     PUSH BC                          ; 7CCB: c5
     CALL CASILLA_A_DIRECCION_PANTALLA ; 7CCC: cd927e
     LD B,$04                         ; 7CCF: 0604
+BUCLE_COPIAR_FILA_SPRITE:
     LD A,(IY+0)                      ; 7CD1: fd7e00
     INC IY                           ; 7CD4: fd23
     LD (HL),A                        ; 7CD6: 77
     INC HL                           ; 7CD7: 23
-    DJNZ $7CD1                       ; 7CD8: 10f7
+    DJNZ BUCLE_COPIAR_FILA_SPRITE                       ; 7CD8: 10f7
     LD HL,($8647)                    ; 7CDA: 2a4786
     INC H                            ; 7CDD: 24
     LD ($8647),HL                    ; 7CDE: 224786
     POP BC                           ; 7CE1: c1
-    DJNZ $7CCB                       ; 7CE2: 10e7
+    DJNZ BUCLE_COPIAR_FILAS_SPRITE                       ; 7CE2: 10e7
     POP DE                           ; 7CE4: d1
     RET                              ; 7CE5: c9
 DIBUJAR_CASILLA_MAPA:
@@ -2990,10 +3020,11 @@ MEZCLAR_ALEATORIO:
     LD L,$00                         ; 7D79: 2e00
     LD D,L                           ; 7D7B: 55
     LD B,$08                         ; 7D7C: 0608
+BUCLE_MEZCLAR_BITS_ALEATORIOS:
     ADD HL,HL                        ; 7D7E: 29
     JR NC,$7D82                      ; 7D7F: 3001
     ADD HL,DE                        ; 7D81: 19
-    DJNZ $7D7E                       ; 7D82: 10fa
+    DJNZ BUCLE_MEZCLAR_BITS_ALEATORIOS                       ; 7D82: 10fa
     RET                              ; 7D84: c9
 DIBUJAR_ICONO_SARCOFAGO:
     LD ($8645),HL                    ; 7D85: 224586
@@ -3116,6 +3147,7 @@ RELLENAR_MARCO_DIAGONAL_BUCLE:
     LD ($8649),A                     ; 7E35: 324986
     LD ($8647),HL                    ; 7E38: 224786
     LD B,$18                         ; 7E3B: 0618
+BUCLE_ALTERNAR_MASCARA_DIAGONAL:
     PUSH BC                          ; 7E3D: c5
     LD B,$01                         ; 7E3E: 0601
     CALL RELLENAR_FILAS_MASCARA      ; 7E40: cd597e
@@ -3123,7 +3155,7 @@ RELLENAR_MARCO_DIAGONAL_BUCLE:
     XOR $0F                          ; 7E46: ee0f
     LD ($864A),A                     ; 7E48: 324a86
     POP BC                           ; 7E4B: c1
-    DJNZ $7E3D                       ; 7E4C: 10ef
+    DJNZ BUCLE_ALTERNAR_MASCARA_DIAGONAL                       ; 7E4C: 10ef
     RET                              ; 7E4E: c9
 PREPARAR_RELLENO_MASCARA_UNICA:
     LD A,$0A                         ; 7E4F: 3e0a
@@ -3136,9 +3168,10 @@ RELLENAR_FILAS_MASCARA:
     LD A,($8649)                     ; 7E5D: 3a4986
     LD B,A                           ; 7E60: 47
     LD A,($864A)                     ; 7E61: 3a4a86
+BUCLE_ESCRIBIR_MASCARA_FILA:
     LD (HL),A                        ; 7E64: 77
     INC HL                           ; 7E65: 23
-    DJNZ $7E64                       ; 7E66: 10fc
+    DJNZ BUCLE_ESCRIBIR_MASCARA_FILA                       ; 7E66: 10fc
     LD HL,($8647)                    ; 7E68: 2a4786
     INC H                            ; 7E6B: 24
     LD ($8647),HL                    ; 7E6C: 224786
@@ -3146,29 +3179,32 @@ RELLENAR_FILAS_MASCARA:
     DJNZ RELLENAR_FILAS_MASCARA      ; 7E70: 10e7
     RET                              ; 7E72: c9
 
-; ---- COPIAR_BLOQUE_A_LIENZO / CASILLA_A_DIRECCION_PANTALLA / BORRAR_BLOQUE_ESTADO / BORRAR_RECTANGULO_VENTANA / REPETIR_CARACTER ----
+; ---- COPIAR_BLOQUE_A_LIENZO / CASILLA_A_DIRECCION_PANTALLA / BORRAR_BLOQUE_ESTADO / BORRAR_RECTANGULO_VENTANA / IMPRIMIR_BYTES_CON_LONGITUD ----
 ; hipotesis: copia un bloque de 6x12 bytes a un lienzo de trabajo (media);
 ; indexa la tabla de 200 direcciones de pantalla por fila (alta); borra
 ; 1182 bytes de estado en $8172 (alta); borra un rectangulo de la
 ; ventana de texto via el firmware (alta, confirma uso de TXT WIN
-; ENABLE/TXT CLEAR WINDOW); repite un caracter N veces (alta). Ver
-; FINDINGS.md Sesiones 3-5.
+; ENABLE/TXT CLEAR WINDOW); imprime una secuencia de bytes con longitud
+; (alta -- Sesion 19 corrige la hipotesis previa de "repite un
+; caracter"). Ver FINDINGS.md Sesiones 3-5 y 19.
 COPIAR_BLOQUE_A_LIENZO:
     LD B,$0C                         ; 7E73: 060c
     LD ($8647),HL                    ; 7E75: 224786
+BUCLE_COPIAR_FILAS_BLOQUE:
     PUSH BC                          ; 7E78: c5
     CALL CASILLA_A_DIRECCION_PANTALLA ; 7E79: cd927e
     LD B,$06                         ; 7E7C: 0606
+BUCLE_COPIAR_BYTES_FILA:
     LD A,(IY+0)                      ; 7E7E: fd7e00
     INC IY                           ; 7E81: fd23
     LD (HL),A                        ; 7E83: 77
     INC HL                           ; 7E84: 23
-    DJNZ $7E7E                       ; 7E85: 10f7
+    DJNZ BUCLE_COPIAR_BYTES_FILA                       ; 7E85: 10f7
     LD HL,($8647)                    ; 7E87: 2a4786
     INC H                            ; 7E8A: 24
     LD ($8647),HL                    ; 7E8B: 224786
     POP BC                           ; 7E8E: c1
-    DJNZ $7E78                       ; 7E8F: 10e7
+    DJNZ BUCLE_COPIAR_FILAS_BLOQUE                       ; 7E8F: 10e7
     RET                              ; 7E91: c9
 CASILLA_A_DIRECCION_PANTALLA:
     PUSH IX                          ; 7E92: dde5
@@ -3204,13 +3240,15 @@ BORRAR_RECTANGULO_VENTANA:
     INC B                            ; 7EC4: 04
     PUSH DE                          ; 7EC5: d5
     LD DE,$0028                      ; 7EC6: 112800
+BUCLE_LOCALIZAR_FILA_VENTANA:
     ADD IY,DE                        ; 7EC9: fd19
-    DJNZ $7EC9                       ; 7ECB: 10fc
+    DJNZ BUCLE_LOCALIZAR_FILA_VENTANA                       ; 7ECB: 10fc
     POP DE                           ; 7ECD: d1
     LD A,E                           ; 7ECE: 7b
     INC A                            ; 7ECF: 3c
     SUB L                            ; 7ED0: 95
     LD B,A                           ; 7ED1: 47
+BUCLE_BORRAR_FILAS_VENTANA:
     PUSH BC                          ; 7ED2: c5
     LD A,D                           ; 7ED3: 7a
     INC A                            ; 7ED4: 3c
@@ -3218,24 +3256,44 @@ BORRAR_RECTANGULO_VENTANA:
     LD B,A                           ; 7ED6: 47
     LD A,$20                         ; 7ED7: 3e20
     PUSH IY                          ; 7ED9: fde5
+BUCLE_BORRAR_FILA_VENTANA:
     LD (IY+0),A                      ; 7EDB: fd7700
     INC IY                           ; 7EDE: fd23
-    DJNZ $7EDB                       ; 7EE0: 10f9
+    DJNZ BUCLE_BORRAR_FILA_VENTANA                       ; 7EE0: 10f9
     LD BC,$0028                      ; 7EE2: 012800
     POP IY                           ; 7EE5: fde1
     ADD IY,BC                        ; 7EE7: fd09
     POP BC                           ; 7EE9: c1
-    DJNZ $7ED2                       ; 7EEA: 10e6
+    DJNZ BUCLE_BORRAR_FILAS_VENTANA                       ; 7EEA: 10e6
     POP HL                           ; 7EEC: e1
     CALL FIRM_TXT_WIN_ENABLE         ; 7EED: cd66bb
     CALL FIRM_TXT_CLEAR_WINDOW       ; 7EF0: cd6cbb
     RET                              ; 7EF3: c9
-REPETIR_CARACTER:
+; IMPRIMIR_BYTES_CON_LONGITUD ($7EF4): antes nombrada REPETIR_CARACTER
+; desde la Sesion 3, con la hipotesis "formato cuenta+caracter, repite
+; el mismo caracter N veces". Sesion 19 CORRIGE esa hipotesis leyendo
+; el propio bucle byte a byte: el DJNZ salta a "INC HL" (BUCLE_
+; IMPRIMIR_BYTE), no a "LD A,(HL)" -- HL avanza en TODAS las
+; iteraciones, incluida la primera. Con B=(HL) iteraciones, imprime los
+; B bytes siguientes (HL+1..HL+B) UNO A UNO via FIRM_TXT_OUTPUT, no el
+; mismo byte repetido: es un formato "longitud + secuencia de bytes".
+; Como FIRM_TXT_OUTPUT interpreta los valores bajos (<$20) como
+; codigos de control VDU (posicion de cursor, tinta...) en vez de
+; caracteres imprimibles, esto explica de forma natural por que los
+; argumentos observados mezclan codigos de control y texto ASCII en la
+; misma secuencia (p.ej. TEXTO_MENU_OPCIONES: $4E=78 seguido de bytes
+; de control + "OH MUMMY - OPTIONS" + mas control). Confianza alta en
+; la estructura (verificada byte a byte); el significado exacto de
+; cada codigo de control individual sigue sin decodificar. Todos los
+; puntos de llamada de esta sesion en adelante se documentan con esta
+; semantica corregida -- ver FINDINGS.md Sesion 19.
+IMPRIMIR_BYTES_CON_LONGITUD:
     LD B,(HL)                        ; 7EF4: 46
+BUCLE_IMPRIMIR_BYTE:
     INC HL                           ; 7EF5: 23
     LD A,(HL)                        ; 7EF6: 7e
     CALL FIRM_TXT_OUTPUT             ; 7EF7: cd5abb
-    DJNZ $7EF5                       ; 7EFA: 10f9
+    DJNZ BUCLE_IMPRIMIR_BYTE                       ; 7EFA: 10f9
     RET                              ; 7EFC: c9
 ; ---- TEXTO_MENU_OPCIONES / FLAG_MUSICA_FONDO / FLAG_EFECTOS_SONIDO /
 ; ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3 / TEXTO_HISTORIA_ATRACCION /
@@ -3478,8 +3536,9 @@ TABLA_POSICIONES_DECIMALES:
     DW 10000,1000,100,10  ; 8738
 ; Texto literal confirmado: copyright real del juego ("OH MUMMY" (c)
 ; 1984 GEM SOFTWARE, confirma AVISO-LEGAL.md) y las etiquetas de HUD
-; "SCORE"/"MEN". Confirmado por REPETIR_CARACTER: $6066 LD HL,$8653
-; y $60A1 LD HL,$8740 leen (cuenta,caracter) de aqui dentro.
+; "SCORE"/"MEN". Confirmado por IMPRIMIR_BYTES_CON_LONGITUD: $60A1
+; hace LD HL,$8740 e imprime esta tabla como longitud+bytes (Sesion 19
+; corrige la semantica de esta rutina, antes REPETIR_CARACTER).
 TEXTO_COPYRIGHT_Y_HUD:
     DB $23,$1F,$06,$02,$22             ; 8740
     DB "OH MUMMY"                       ; 8745
@@ -3526,9 +3585,17 @@ SPRITE_ICONO_PERGAMINO:
 ; SPRITE_ICONO_SARCOFAGO. Confianza alta.
 SPRITE_ICONO_TESORO:
     INCBIN "data/img/sprites/sprite_icono_tesoro.spr"  ; 8855, 72 bytes
-; Hipotesis baja-media: mezcla sin separar con precision -- mas bytes
-; de mascara/grafico de estilo similar a las 4 tablas de marco de
-; arriba, seguidos del texto literal confirmado '"C" TO CONTINUE'.
+; Sesion 19 CORRIGE la hipotesis previa ("mascara/grafico sin separar
+; con precision, similar a las tablas de icono de arriba"): esto NO es
+; grafico. Confirmado que es una llamada a IMPRIMIR_BYTES_CON_LONGITUD
+; con HL=$889D ($619D en la cabecera) -- longitud $68=104, imprime los
+; 104 bytes siguientes ($889E-$8905) como codigos de control VDU +
+; texto. Termina EXACTO donde empieza la siguiente llamada real, HL=
+; $8906 ($61B2), que imprime otro bloque de longitud igual de precisa
+; hasta el literal '"C" TO CONTINUE' al final. Confianza alta en la
+; estructura (dos bloques longitud+bytes consecutivos, verificado por
+; aritmetica exacta de direcciones); el significado de cada codigo de
+; control individual sigue sin decodificar. Ver FINDINGS.md Sesion 19.
 DATOS_MARCO_Y_TEXTO_CONTINUAR:
     DB $68,$1F,$0C,$0B,$0E,$00,$0F,$02,$88,$8C,$88,$88,$20,$20,$8C,$8C ; 889D
     DB $84,$84,$84,$8C,$8C,$84,$8C,$8C,$84,$84,$84,$08,$08,$08,$08,$08 ; 88AD

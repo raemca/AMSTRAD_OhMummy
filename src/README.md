@@ -100,11 +100,11 @@ al original.
 | `DIBUJAR_CASILLA_MAPA` | Render — dispatcher de 9 tablas de casilla 2x8 bytes | Media |
 | `PREPARAR_DIBUJAR_ENTIDAD` | Render — prepara posición y cae en `DIBUJAR_ENTIDAD` | Media |
 | `MOVER_INDICADOR_MENU` | Menú — borra/redibuja un indicador vía `DIBUJAR_ENTIDAD` | Media |
-| `DIBUJAR_TRAMO_MARCO_1..4` / `COPIAR_BLOQUE_A_LIENZO` | Pantalla — marco decorativo (6 variantes de máscara) | Media |
+| `DIBUJAR_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO` / `COPIAR_BLOQUE_A_LIENZO` | Render — iconos de contenido de casilla (Sesión 17, antes mal identificados como "marco decorativo") | Alta |
 | `CASILLA_A_DIRECCION_PANTALLA` | Pantalla — indexa la tabla de 200 direcciones de fila | Alta |
 | `BORRAR_BLOQUE_ESTADO` | Arranque — borra 1182 bytes de estado en `$8172` | Alta |
 | `BORRAR_RECTANGULO_VENTANA` | Pantalla/HUD — borra un rectángulo vía firmware | Alta |
-| `REPETIR_CARACTER` | Texto/HUD — repite un carácter N veces vía firmware | Alta |
+| `IMPRIMIR_BYTES_CON_LONGITUD` | Texto/HUD — imprime un bloque longitud+bytes vía firmware (Sesión 19, antes `REPETIR_CARACTER`: no repite un carácter fijo) | Alta |
 | `IMPRIMIR_NUMERO_HL` | HUD — imprime HL como 4 dígitos decimales (posible marcador) | Media-alta |
 | `ESPERAR_TECLA_2C` | Entrada — espera una tecla con antirrebote | Alta |
 | `ANIMAR_OPCION_MENU` | Menú — anima/temporiza la opción resaltada (1/2 jugadores) | Baja |
@@ -119,7 +119,7 @@ al original.
 | `FIN_INTRODUCIR_NOMBRE` | Menú — entrada por caída natural tras confirmar el nombre con Intro, redirige a `REANUDAR_MENU_TRAS_NOMBRE` | Alta |
 | `REANUDAR_MENU_TRAS_NOMBRE` (etiqueta añadida en la cabecera, `$636C`) | Menú — redibuja y decide si seguir tecleando el nombre o pasar al despachador principal | Alta en el flujo, media en el rol visual de `$86E8` |
 | `DESPACHAR_MENU_PRINCIPAL` | Menú — lee P/I/O para Play/Instructions/Options | Alta |
-| `PANTALLA_OPCIONES` | Menú — velocidad y dificultad de partida (1-5), música y efectos de sonido (Y/N), confirmar con L/Intro | Alta en estructura y variables, baja/media en el efecto visual exacto de los `REPETIR_CARACTER` |
+| `PANTALLA_OPCIONES` | Menú — velocidad y dificultad de partida (1-5), música y efectos de sonido (Y/N), confirmar con L/Intro | Alta en estructura, variables y efecto visual (Sesión 19 confirma que los `IMPRIMIR_BYTES_CON_LONGITUD` imprimen los rótulos literales reales) |
 
 ### Rutinas reconstruidas — Sesión 13 (`$6529`-`$68B1` y `$7863`-`$786B`)
 
