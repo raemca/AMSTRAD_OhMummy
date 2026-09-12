@@ -20,6 +20,7 @@
     --accent-niveles: #4ea6cf;
     --accent-unknown: #b3aa9c;
     --accent-sistema: #e4dfd4;
+    --accent-pantalla: #d86b5f;
     --accent-pisadas: #b0703e;
     --accent-personajes: #8a6ab0;
   }
@@ -39,6 +40,7 @@
       --accent-niveles: #5eb6df;
       --accent-unknown: #4a453d;
       --accent-sistema: #322e28;
+      --accent-pantalla: #c85c52;
       --accent-pisadas: #d0925e;
       --accent-personajes: #a98fd4;
     }
@@ -228,6 +230,7 @@
   <span><span class="swatch" style="background:var(--accent-sonido)"></span>datos: sonido</span>
   <span><span class="swatch" style="background:var(--accent-niveles)"></span>datos: niveles</span>
   <span><span class="swatch" style="background:var(--accent-sistema)"></span>fuera de alcance (sistema/BASIC/pantalla CPC)</span>
+  <span><span class="swatch" style="background:var(--accent-pantalla)"></span>pantalla CPC ($C000-$FFFF)</span>
 </div>
 
 <h2>Regiones identificadas</h2>
@@ -246,6 +249,18 @@ verificados byte a byte al compilar; el nivel de confianza se refiere
 al significado exacto de cada campo, no a si el limite es correcto.
 Ninguna confirmada ejecutando el juego en un emulador. Ver
 <code>FINDINGS.md</code> Sesion 8.</p>
+
+<p><strong>Memoria de pantalla CPC:</strong> en la configuracion estandar
+del firmware, este juego dibuja sobre la pantalla cuya base es
+<code>$C000</code> y cuyo area de video ocupa normalmente
+<code>$C000-$FFFF</code>. El fuente no contiene una instruccion literal que
+fije <code>$C000</code>: construye <code>TABLA_DIRECCIONES_PANTALLA</code>
+(<code>$8ECA</code>, 200 direcciones de fila) llamando a
+<code>FIRM_SCR_DOT_POSITION</code> (<code>$BC1D</code>). Por tanto,
+<code>$C000</code> es la base efectiva esperada mientras el cargador o el
+firmware no hayan cambiado la base de pantalla; la tabla de
+<code>$8ECA</code> es una cache de direcciones de escritura y no contiene
+la imagen visible.</p>
 <table id="tabla-subregiones">
   <thead>
     <tr><th>Rango aproximado</th><th>Contenido probable</th><th>Usado por</th><th>Confianza</th></tr>
@@ -288,7 +303,8 @@ const REGIONS = [
   { start: 0x8999, end: 0x8AB9, label: "MUMMY1.BIN: sprites de pisadas -- 12 losetas nombradas (LOSETA_PISADAS_VERTICAL_1/_2, LOSETA_MAPA_PISADA_1..8, LOSETA_PISADA_ESCRITURA_VALOR4/5/6/7), rama 'T' de DIBUJAR_ENTIDAD + DIBUJAR_CASILLA_MAPA", kind: "pisadas", fuente: "FINDINGS.md Sesion 8 (continuacion 4/5), Sesion 10, Sesion 11 (compilado, 0 diferencias)" },
   { start: 0x8AB9, end: 0x8EB9, label: "MUMMY1.BIN: sprites de personajes -- 16 sprites de 64 bytes (SPRITE_JUGADOR_G1_F1..G4_F2 / SPRITE_MOMIA_G1_F1..G4_F2), tipos 'A'/'O' de DIBUJAR_ENTIDAD", kind: "personajes", fuente: "FINDINGS.md Sesion 8 (continuacion 2/3) (compilado, 0 diferencias)" },
   { start: 0x8EB9, end: 0x6000 + 13190, label: "MUMMY1.BIN: resto de dato confirmado -- cola de TABLAS_SPRITE_CASILLA sin identificar, tabla de direcciones de pantalla, guion de sonido circular. Ver detalle abajo", kind: "dato", fuente: "FINDINGS.md Sesion 8 (compilado, 0 diferencias)" },
-  { start: 0x6000 + 13190, end: 0x10000, label: "Sistema CPC / pantalla / RAM no usada por el motor -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
+  { start: 0x6000 + 13190, end: 0xC000, label: "Sistema CPC / RAM libre entre MUMMY1.BIN y la pantalla -- fuera del alcance de este proyecto", kind: "sistema", fuente: "no analizado" },
+  { start: 0xC000, end: 0x10000, label: "Pantalla CPC / RAM de video -- base estandar $C000", kind: "pantalla", fuente: "FIRM_SCR_DOT_POSITION ($BC1D) y configuracion estandar del firmware CPC" },
 ];
 
 // ============================================================
@@ -311,12 +327,13 @@ const SUBREGIONES = [
   { start: 0x7FF9, end: 0x801B, contenido: "ENVOLVENTE_TONO_3", usado_por: "arranque $602D-$6030", confianza: "alta" },
   { start: 0x801B, end: 0x8136, contenido: "TEXTO_HISTORIA_ATRACCION -- \"STOP PRESS!! British Museum today announced successful excavation of ancient Egyptian pyramid...\" + \"GAME OVER\" -- reescrito Sesion 21 con constantes CTRL_TXT_* (Appendix VII del firmware) en vez de hexadecimal en bruto; 10 puntos de entrada reales confirmados, no una tirada continua. Limite corregido 2 bytes antes de lo documentado previamente (los 2 bytes finales de ENVOLVENTE_TONO_3 pertenecian aqui)", usado_por: "IMPRIMIR_BYTES_CON_LONGITUD, 10 CALL reales desde PANTALLA_STOP_PRESS ($673C..$67B6)", confianza: "alta (texto y estructura verificados byte a byte)" },
   { start: 0x813A, end: 0x8168, contenido: "TABLA_DESCONOCIDA_GAME_OVER -- valores con progresiones aritmeticas (+/-6, +/-14, +/-40 segun tramo), posibles umbrales de puntuacion/bonus", usado_por: "sin CALL conocido todavia", confianza: "baja" },
-  { start: 0x8168, end: 0x816D, contenido: "VARIABLES_INICIO_ENTIDADES -- CONTADOR_ENTIDADES puesto a 6 en el arranque (encaja con \"6 enemigos/coleccionables\") + 2 flags puestos a 0", usado_por: "arranque $6054-$605D", confianza: "media-alta" },
+  { start: 0x8168, end: 0x816D, contenido: "FLAG_PEDIR_NOMBRE ($8168) / CONTADOR_ENTIDADES ($8169) / NUM_VIDAS ($816A) / sin uso ($816B) / INDICE_ENTIDAD_ACTUAL ($816C) -- antes VARIABLES_INICIO_ENTIDADES sin desglosar. Sesion 22: los 4 bytes con uso se descomponen en variables individuales con llamador confirmado cada una (FLAG_PEDIR_NOMBRE controla el bucle de tecleo de nombre; CONTADOR_ENTIDADES = num. de entidades del nivel; NUM_VIDAS confirmado que SI se decrementa en PROCESAR_ENCUENTROS_ENTIDADES; INDICE_ENTIDAD_ACTUAL = orden de la entidad actual)", usado_por: "cabecera, PREPARAR_NIVEL, INICIALIZAR_ENTIDADES, ACTUALIZAR_HUD_VIDAS, ACTUALIZAR_TABLA_PUNTUACIONES, PROCESAR_ENCUENTROS_ENTIDADES", confianza: "alta (Sesion 22, antes media-alta)" },
   { start: 0x816D, end: 0x818B, contenido: "ARRAY_ENTIDADES -- 6 registros de 5 bytes, hipotesis: enemigos/coleccionables. Todo a 0 en el fichero (se rellena en tiempo de ejecucion)", usado_por: "INICIALIZAR_UNA_ENTIDAD/COLOCAR_ENTIDAD/HAY_COLISION", confianza: "media" },
   { start: 0x818B, end: 0x8610, contenido: "ESTADO_PARTIDA + VENTANA_TEXTO_HUD + MAPA_CASILLAS -- 1157 bytes a 0, borrados enteros por BORRAR_BLOQUE_ESTADO junto con el resto de ARRAY_ENTIDADES. VENTANA_TEXTO_HUD (40 B, hipotesis: buffer de texto) y MAPA_CASILLAS (1040 B, hipotesis: mapa del laberinto, entradas de 42 B) referenciadas por su propio codigo", usado_por: "BORRAR_BLOQUE_ESTADO / BORRAR_RECTANGULO_VENTANA / HAY_COLISION / CONSULTAR_CASILLA_MAPA", confianza: "media" },
   { start: 0x8611, end: 0x8645, contenido: "TABLA_POSICIONES_INICIALES_ENTIDADES (antes TABLA_OFFSETS_DIAMANTE) -- 26 direcciones de pantalla de 16 bits usadas como posicion inicial de cada entidad", usado_por: "INICIALIZAR_UNA_ENTIDAD ($7987), puntero base fijado en $61E5/$632E/$66CF", confianza: "alta (Sesion 22, antes 'sin CALL conocido')" },
   { start: 0x8645, end: 0x864B, contenido: "VARIABLE_TEMPORAL_HL_1 ($8645) / PUNTERO_FILA_PANTALLA_BLIT ($8647) / VARIABLE_TEMPORAL_A_1 ($8649) / MASCARA_RELLENO_ACTUAL ($864A) -- antes VARIABLES_DIBUJO_MARCO. Bloque de RAM reciclada: los dos ultimos tienen un papel unico (puntero de fila de pantalla en VOLCAR_SPRITE_A_PANTALLA/RELLENAR_FILAS_MASCARA/COPIAR_BLOQUE_A_LIENZO; byte de relleno en RELLENAR_MARCO_*); los dos primeros tienen cada uno DOS papeles sin relacion (puntero a TABLA_POSICIONES_INICIALES_ENTIDADES vs. posicion de pantalla en DIBUJAR_ICONO_*; ancho de fila de relleno vs. contador de caracteres del nombre)", usado_por: "INICIALIZAR_UNA_ENTIDAD / DIBUJAR_ICONO_SARCOFAGO..TESORO / VOLCAR_SPRITE_A_PANTALLA / RELLENAR_FILAS_MASCARA / COPIAR_BLOQUE_A_LIENZO / RELLENAR_MARCO_* / BUCLE_LEER_NOMBRE", confianza: "alta (Sesion 22)" },
-  { start: 0x864B, end: 0x866D, contenido: "TABLA_PARAMETROS_TRANSICION_PUNTUACIONES -- grupos cortos repetidos, hipotesis: animacion/temporizado de la transicion a HI-SCORE-TABLE. Limite recortado en Sesion 21 (los bytes desde $866D pertenecen a COLA_TEXTO_PRE_PUNTUACIONES, no aqui)", usado_por: "sin CALL conocido todavia", confianza: "baja" },
+  { start: 0x864B, end: 0x8653, contenido: "TABLA_NORMALIZAR_DIRECCION_ENTIDAD (antes mal llamada TABLA_PARAMETROS_TRANSICION_PUNTUACIONES) -- Sesion 22 (correccion, tras un bug de script en la comprobacion anterior): tabla de normalizacion ciclica modulo 4 del campo direccion de una entidad, indices 1-6 ($864C-$8651) confirmados en NORMALIZAR_POSICION_ENTIDAD; indices 0 y 7 ($864B/$8652) sin uso confirmado", usado_por: "NORMALIZAR_POSICION_ENTIDAD ($79F9/$7A02, dentro de COLOCAR_ENTIDAD)", confianza: "alta en indices 1-6 (Sesion 22), baja en 0 y 7" },
+  { start: 0x8653, end: 0x866D, contenido: "DATOS_INICIALIZACION_PANTALLA_ATRACCION -- Sesion 22: decodifica COMPLETO y sin ningun hueco con la tabla CTRL_TXT_* como FIJAR_COLOR_BORDE(24,24) + FIJAR_COLOR_TINTA(0,24,24)/(1,0,0)/(2,15,15)/(3,11,11) + FIJAR_PAPEL(0) + MODO_PANTALLA(1) + FIJAR_TINTA(1) -- fija la paleta y el modo de pantalla al arrancar el modo atraccion", usado_por: "IMPRIMIR_BYTES_CON_LONGITUD ($6066, cabecera del programa)", confianza: "alta (Sesion 22)" },
   { start: 0x866D, end: 0x86E8, contenido: "COLA_TEXTO_PRE_PUNTUACIONES + TEXTO_TABLA_PUNTUACIONES -- \"HI-SCORE-TABLE\" + 5 rangos con umbral en 16 bits (leido por IMPRIMIR_NUMERO_HL): Stupendous=2500, Excellent=2000, Very Good=1500, Quite Good=1000, Not Bad=500. Reescrito Sesion 21 con CTRL_TXT_*; 9 puntos de entrada reales confirmados", usado_por: "IMPRIMIR_BYTES_CON_LONGITUD, 9 CALL reales desde BUCLE_SELECCIONAR_JUGADORES ($622B..$6346)", confianza: "alta (texto, umbrales y CALL verificados byte a byte)" },
   { start: 0x86E8, end: 0x8738, contenido: "TEXTO_MENU_PRINCIPAL -- \"I-Instructions  O-Options  P-Play  ?\" + \"Well done !!  Please enter your name\". Reescrito Sesion 21 con CTRL_TXT_*; CORRIGE la nota previa (\"sin CALL conocido\"): 2 CALL reales confirmados", usado_por: "IMPRIMIR_BYTES_CON_LONGITUD ($636F/REANUDAR_MENU_TRAS_NOMBRE y $6349)", confianza: "alta (texto y CALL verificados byte a byte)" },
   { start: 0x8738, end: 0x8740, contenido: "TABLA_POSICIONES_DECIMALES -- 4 valores de 16 bits: 10000,1000,100,10. Corrige la hipotesis previa (databa el inicio en $8736, que en realidad es el final de TEXTO_MENU_PRINCIPAL)", usado_por: "IMPRIMIR_NUMERO_HL (LD IY,$8736 + 2x INC IY)", confianza: "media-alta" },
@@ -348,6 +365,7 @@ const KIND_VAR = {
   niveles: "--accent-niveles",
   unknown: "--accent-unknown",
   sistema: "--accent-sistema",
+  pantalla: "--accent-pantalla",
   pisadas: "--accent-pisadas",
   personajes: "--accent-personajes",
 };

@@ -3517,3 +3517,297 @@ Edge en modo headless (URL `file://`), sin errores de JS.
 - El reparto exacto demo/nivel/partida real entre los dos punteros base
   de `TABLA_POSICIONES_INICIALES_ENTIDADES` es confianza media-alta,
   no verificado en emulador.
+
+## Sesión 22 (continuación) — 2026-09-12: auditoría de 24 etiquetas "sin invocador aparente" -- casi todas SI lo tienen (por dirección literal o por caída natural)
+
+El usuario dio una lista de 24 etiquetas que le parecían sin
+invocadores ("lo que no tiene sentido") y pidió analizarlas y
+descomponer en variables reales las que fueran contenedores de datos.
+Se auditó cada una por separado, contando TODAS sus apariciones por
+nombre en el fichero y, cuando salía en 1-2 (solo su propia
+definición/comentario), buscando la dirección literal equivalente.
+
+### Resultado por categorías
+
+**8 etiquetas de código, TODAS con invocador real por caída natural**
+(`FIN_INTRODUCIR_NOMBRE`, `PREPARAR_TESOROS_NIVEL`,
+`ACTUALIZAR_HUD_VIDAS`, `LIMPIAR_PANELES_NIVEL`,
+`SELECCIONAR_DIAGONAL_MARCO_NIVEL`, `COLOCAR_JUGADOR_INICIAL`,
+`ACTUALIZAR_TABLA_PUNTUACIONES`) -- verificado leyendo la instrucción
+inmediatamente anterior a cada una: en los 7 casos es la última
+instrucción de un `DJNZ`/`JR` condicional que NO salta, o cae
+directamente sin salto ninguno. Es el mismo patrón ya documentado y
+deliberado del fichero ("nombrar tramos grandes aunque solo tengan un
+llamador" -- caída natural cuenta como invocación real, ver
+`PREPARAR_TESOROS_NIVEL`). Ninguna requiere cambio.
+
+**La octava, `RELLENAR_MARCO_VACIO`, es el ÚNICO caso genuinamente sin
+invocador** dentro de todo el motor ya reconstruido: no hay caída
+natural (la instrucción anterior es un `JP` incondicional a otra
+rutina) ni ningún `CALL`/`JP`/`JR` por nombre o por dirección literal
+($7DF5) en ningún punto del fichero. Se corrige además un comentario
+obsoleto de la Sesión 7 que afirmaba lo mismo también de
+`RELLENAR_MARCO_DIAGONAL_1..6` -- las 6 variantes SÍ tienen invocador
+confirmado desde las Sesiones 12-14 (llamadas directas en la cabecera
+de atracción y despacho por nivel en `SELECCIONAR_DIAGONAL_MARCO_
+NIVEL`), solo que el comentario nunca se actualizó. Queda como
+pendiente real: puede ser código simétrico nunca conectado por el
+programador original, o un llamador que se nos sigue escapando.
+
+**12 etiquetas de datos con invocador real confirmado, pero referenciado
+por dirección literal en vez de por nombre** -- se sustituye la
+dirección literal por el nombre de la etiqueta en cada punto de
+llamada real (mismo patrón que `TABLA_POSICIONES_INICIALES_ENTIDADES`
+en la sesión anterior): `TEXTO_MENU_OPCIONES`, `TEXTO_HISTORIA_
+ATRACCION`, `VARIABLE_CASILLA_APARICION_MOMIA` (4 sitios),
+`TABLA_FILAS_VALIDAS_CASILLAS`, `TABLA_COLUMNAS_VALIDAS_CASILLAS`,
+`TABLA_TECLAS_DIRECCION+7` (el extremo `$814C` del escaneo inverso en
+`PROCESAR_MOVIMIENTO_JUGADOR`), `COLA_TEXTO_PRE_PUNTUACIONES`,
+`TEXTO_TABLA_PUNTUACIONES`, `TEXTO_MENU_PRINCIPAL`, `DATOS_MARCO_Y_
+TEXTO_CONTINUAR`, `TABLA_ESPACIO` (2 sitios) y `TABLA_BASE` (que ya
+tenía invocador via el nombre del contenedor `TABLAS_SPRITE_CASILLA`,
+misma dirección -- se precisa al nombre especifico por claridad).
+
+**1 etiqueta contenedora descompuesta en sus variables reales**:
+`VARIABLES_INICIO_ENTIDADES` (5 bytes, `$8168`-`$816C`) se descompone
+en `FLAG_PEDIR_NOMBRE` ($8168, confirmado: controla si
+`BUCLE_LEER_NOMBRE`/`REANUDAR_MENU_TRAS_NOMBRE` siguen pidiendo
+nombre), `CONTADOR_ENTIDADES` ($8169, ya nombrado en prosa desde hace
+sesiones, ahora etiqueta real), `NUM_VIDAS` ($816A, confirmado que SÍ
+se decrementa en `PROCESAR_ENCUENTROS_ENTIDADES` -- resuelve un
+pendiente citado desde la Sesión 13/14), 1 byte sin ningún uso
+localizado ($816B) e `INDICE_ENTIDAD_ACTUAL` ($816C). Las ~28
+instrucciones que usaban estas direcciones en crudo se sustituyen por
+las etiquetas nuevas.
+
+**3 etiquetas genuinamente sin invocador, correctamente clasificadas
+como relleno/reserva** (no son contenedores con contenido que
+descomponer -- ya son la unidad mínima): `RELLENO_FLAGS_OPCIONES` (4
+bytes entre `FLAG_EFECTOS_SONIDO` y `ENVOLVENTE_AMPLITUD_1`),
+`RELLENO_TRAS_ESTADO` (1 byte) y `ESTADO_PARTIDA` (77 bytes -- se
+borra como parte de un rango mayor que arranca en
+`ARRAY_ENTIDADES+5`, pero ningún campo individual dentro de él se
+lee/escribe por su propia dirección en este tramo del motor).
+
+### Cambio adicional: `TABLA_POSICIONES_INICIALES_ENTIDADES` a `DW`
+
+El usuario preguntó si los datos de esta tabla debían ir en hexadecimal
+o decimal (hexadecimal, como toda dirección en este fichero). De paso
+se aplicó la misma correccion que a los bloques de texto: son 26
+palabras de 16 bits (direcciones de pantalla), no 52 bytes sueltos --
+se reescribe con `DW $B804,$B84A,...` en vez de `DB $04,$B8,$4A,$B8,...`,
+igual que ya hace `TABLA_POSICIONES_DECIMALES` mas abajo en el mismo
+fichero.
+
+### Verificación
+
+- `python tools/build_all.py`: **0 diferencias** (verificado
+  incremental tras cada bloque de cambios).
+- `python tools/dsk_build.py`: **0 diferencias**.
+- Barrido final con un script Python que ignora comentarios y confirma
+  que ninguna dirección literal de las etiquetas tratadas queda en
+  código real (todas las menciones restantes son comentarios).
+
+### Cambios en `recursos/*.html`
+
+`mapa_memoria.html` y `flujo_detallado.html` actualizados: la entrada
+de `VARIABLES_INICIO_ENTIDADES` se reescribe con las 4 variables
+nuevas, y se corrige la nota obsoleta que decia que
+`RELLENAR_MARCO_DIAGONAL_2` no tenia llamador (si lo tiene, `$61D9`,
+cabecera de atraccion). Verificados con Microsoft Edge en modo
+headless (URL `file://`), sin errores de JS.
+
+### Pendiente
+
+- `RELLENAR_MARCO_VACIO`: sigue siendo el único caso real sin invocador
+  en todo el motor reconstruido.
+- El byte sin uso en `$816B` sigue sin ningún `CALL`/`LD` que lo
+  referencie.
+
+## Sesión 22 (continuación 2) — 2026-09-12: `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` -- 22 de sus 34 bytes decodifican limpios como códigos VDU, pero sigue sin llamador confirmado
+
+El usuario preguntó si esta tabla (justo antes de `COLA_TEXTO_PRE_
+PUNTUACIONES`/`TEXTO_TABLA_PUNTUACIONES`) estaba ya analizada. No lo
+estaba -- seguía como "hipótesis baja, sin descifrar" desde la Sesión
+8. Se comprobó exhaustivamente (script Python sobre las 34 direcciones
+del rango `$864B`-`$866C`) que **ningún** `CALL`/`LD` de todo el motor
+reconstruido referencia ninguna de ellas, ni por nombre ni por
+dirección literal -- a diferencia de los casos resueltos en esta misma
+sesión (Sesión 22, primera parte), aquí no hay ningún llamador
+escondido que encontrar por ese camino.
+
+Se probó entonces decodificar los propios bytes con la tabla
+`CTRL_TXT_*` (Appendix VII), igual que se hizo con los bloques de texto
+de la Sesión 21. Resultado:
+
+- Los **últimos 22 de los 34 bytes** (`$8657`-`$866C`) decodifican
+  **completos, sin ningún hueco ni byte sobrante**, como una secuencia
+  perfectamente formada de códigos de control real:
+  `FIJAR_COLOR_TINTA(0,24,24)` `FIJAR_COLOR_TINTA(1,0,0)`
+  `FIJAR_COLOR_TINTA(2,15,15)` `FIJAR_COLOR_TINTA(3,11,11)`
+  `FIJAR_PAPEL(0)` `MODO_PANTALLA(1)` `FIJAR_TINTA(1)` -- es decir,
+  fija las 4 tintas de la paleta de Modo 1 (todas sólidas, sin
+  parpadeo, mismo color en los 2 parámetros de cada una) y prepara
+  papel/modo/tinta, justo lo que se esperaría antes de dibujar la
+  pantalla HI-SCORE que sigue a continuación en memoria. Estructura
+  demasiado limpia y completa (encaja exacto en el espacio disponible)
+  para ser casualidad -- confianza **media** (sube de "baja"), pero
+  sigue sin confirmar por ausencia total de llamador.
+- Los **primeros 12 bytes** (`$864B`-`$8656`: `$03,$04,$01,$02`
+  repetido dos veces + `$19,$1D,$18,$18`) **no** decodifican igual de
+  limpio -- al intentarlo, el séptimo byte (`$19`) pediría 9
+  parámetros (`EM`/matriz de carácter) y solo quedan 3 bytes
+  disponibles. Siguen siendo un misterio genuino, confianza baja.
+
+Se reagrupa la tabla en el fuente en 3 líneas `DB` que respetan esta
+estructura (12+12+10 bytes, mismo contenido byte a byte) con el
+desglose completo en el comentario, en vez de las 2 líneas de 16 bytes
+arbitrarias de antes.
+
+### Verificación
+
+- `python tools/build_all.py`: **0 diferencias** (solo cambia
+  agrupación/comentarios, ningún byte).
+
+### Cambios en `recursos/*.html`
+
+`mapa_memoria.html` y `flujo_detallado.html` actualizados con el
+desglose de los 22+12 bytes y la confianza revisada. Verificados con
+Microsoft Edge en modo headless (`file://`), sin errores de JS.
+
+### Pendiente
+
+- Sigue sin localizarse ningún llamador real de
+  `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (ni de los 22 bytes con
+  hipótesis media, ni de los 12 con hipótesis baja) -- candidato a
+  código muerto (preparado por el programador original pero nunca
+  conectado), o a un punto de entrada que se nos sigue escapando.
+
+## Sesión 22 (corrección) — 2026-09-12: bug de script en la comprobación anterior -- `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` SÍ tiene 2 llamadores reales, y no tiene nada que ver con la tabla de puntuaciones
+
+Durante una tarea no relacionada (revisar qué literales del código
+"deberían" estar en decimal), leyendo `NORMALIZAR_POSICION_ENTIDAD`
+apareció una referencia real a `$864B` -- la misma dirección que la
+entrada de arriba acababa de dar por "sin ningún llamador en todo el
+motor, comprobado exhaustivamente". Investigado el porqué: el script
+de esa comprobación generaba las 34 direcciones con Python y las
+canalizaba a un `while read` de Bash; en este entorno Python emite
+`\r\n`, así que cada dirección le quedaba un `\r` pegado al final, y
+el `grep -F "\$864B\r"` resultante no coincidía con nada del fichero
+(que usa `\n`) -- **para las 34 direcciones, sin excepción**. El "0
+resultados" no era una comprobación negativa fiable, era un fallo
+sistemático del propio script. Repetido con un bucle de Bash directo
+(sin pasar por Python), aparecieron los llamadores reales de
+inmediato. **Lección para el futuro**: nunca canalizar salida de
+Python a `while read` en este entorno para comparar contra literales
+exactos -- usar un bucle de Bash nativo (`for x in a b c`) o comprobar
+`\r` explícitamente antes de confiar en un resultado vacío.
+
+### Los llamadores reales
+
+Simulando a mano `NORMALIZAR_POSICION_ENTIDAD` ($79F9-$7A0F, dentro de
+`COLOCAR_ENTIDAD`) contra el código real: el campo "dirección" de una
+entidad (`IX+0`/`IX+1`, valor 1-4, confirmado en `INICIALIZAR_UNA_
+ENTIDAD`) se incrementa o decrementa en 1 y se relee de esta tabla
+para volver a encajarlo en el rango 1-4 (envuelve 5→1, 0→4). Esto usa
+los índices 1-6 de la tabla (`$864C`-`$8651`) — nunca los índices 0 y
+7 (`$864B`/`$8652`). **No tiene relación alguna con "transición a la
+pantalla de puntuaciones"**: es una tabla de normalización cíclica del
+campo dirección/personalidad de las entidades (enemigos/coleccionables).
+
+Además, `$6066` (cabecera del programa) hace `LD HL,$864B+8` (offset
+literal, ahora resuelto como el byte en `$8653`) + `CALL IMPRIMIR_
+BYTES_CON_LONGITUD` -- un llamador real que ya se había visto en
+sesiones anteriores pero nunca se había decodificado su destino con la
+tabla `CTRL_TXT_*`. Con el límite correcto ($8653, no $8657 como se
+probó en la corrección anterior de esta misma sesión), los 25 bytes de
+datos decodifican **completos, sin ningún hueco ni sobrante**:
+`FIJAR_COLOR_BORDE(24,24)` + `FIJAR_COLOR_TINTA(0,24,24)/(1,0,0)/
+(2,15,15)/(3,11,11)` + `FIJAR_PAPEL(0)` + `MODO_PANTALLA(1)` +
+`FIJAR_TINTA(1)` -- inicializa la paleta y el modo de pantalla al
+arrancar el modo atracción. Termina exacto en `$866C`, justo antes de
+`COLA_TEXTO_PRE_PUNTUACIONES` (`$866D`).
+
+Solo quedan 2 bytes sin uso confirmado en todo el bloque de 34:
+`$864B` (índice 0) y `$8652` (índice 7).
+
+### Cambios en `src/mummy1_body.asm`
+
+- `TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (nombre erróneo desde la
+  Sesión 8) se sustituye por dos etiquetas reales:
+  `TABLA_NORMALIZAR_DIRECCION_ENTIDAD` (8 bytes, `$864B`-`$8652`) y
+  `DATOS_INICIALIZACION_PANTALLA_ATRACCION` (26 bytes, `$8653`-`$866C`,
+  reescrito con las constantes `CTRL_TXT_*` de la Sesión 21).
+- `$6066` pasa de `LD HL,TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8` a
+  `LD HL,DATOS_INICIALIZACION_PANTALLA_ATRACCION` (sin aritmética de
+  offset, apunta directo a la etiqueta correcta).
+- Las 2 referencias de `NORMALIZAR_POSICION_ENTIDAD` pasan de
+  `LD HL,$864B` a `LD HL,TABLA_NORMALIZAR_DIRECCION_ENTIDAD`.
+
+### Verificación
+
+- `python tools/build_all.py` y `python tools/dsk_build.py`: **0
+  diferencias** en ambos.
+
+### Pendiente
+
+- Los 2 bytes sin uso confirmado (`$864B`/`$8652`) quedan como
+  hipótesis baja -- podrían ser relleno de alineación, o un tercer
+  llamador no localizado.
+
+## Sesión 22 (continuación 3) — 2026-09-12: literales hexadecimales reescritos en decimal donde el significado es una cantidad de juego
+
+El usuario observó que todos los literales del código están en
+hexadecimal, pero que algunos, por su significado, probablemente el
+programador original los escribiera en decimal (puntuaciones, vidas,
+conteos...). Se revisó el fichero completo (código, no bloques `DB` de
+datos/gráficos/sonido) buscando literales cuyo significado ya estaba
+confirmado en comentarios previos como una cantidad "humana" -- vidas,
+entidades, tesoros, puntos, tamaños de registro, tolerancias de
+colisión -- dejando en hexadecimal todo lo que es genuinamente
+hexadecimal por naturaleza: direcciones, strides de pantalla,
+máscaras de bits, códigos ASCII/de control, valores centinela ($60
+"vacío", $FF/$00 en máscaras) y los saltos de $10 en $10 de los
+tesoros (redondos en hex, no en decimal).
+
+### Convertidos a decimal (49 sustituciones, verificadas 1 a 1)
+
+Vidas y entidades: `NUM_VIDAS`=5 y su tope de 7;
+`CONTADOR_ENTIDADES`=6 (demo y arranque); tamaño de registro de
+entidad=5 bytes (con `ARRAY_ENTIDADES`); rango aleatorio de
+"dirección" de entidad=4; rango aleatorio de decisión=2.
+
+Tablero y colisiones: dimensiones de la rejilla de fondo (4 filas x 5
+columnas); tamaño de las tablas `TABLA_FILAS_VALIDAS_CASILLAS`(5)/
+`TABLA_COLUMNAS_VALIDAS_CASILLAS`(6) en los `CPIR`; tolerancias de
+colisión `PROCESAR_ENCUENTROS_ENTIDADES` reescritas como **decimal con
+signo** (`CP -8`/`CP 8` fila, `CP -2`/`CP 2` columna -- coincide
+exacto con el comentario ya existente "+/-8 en fila, +/-2 en
+columna"); offset `+8` de redibujado de mapa; división por 7 y resto
++7 del cálculo de tramo de marco.
+
+Puntuación y premios: 200 puntos de bonus en STOP PRESS; 50 puntos de
+Momia Real; 5 puntos de tesoro; retardo de 200 iteraciones (2
+apariciones, mismo patrón "bombea sonido"); tamaño de entrada de la
+tabla HI-SCORE=18 bytes (y su doble, 36); 5 entradas de la tabla;
+filas de redibujado 10/12/14/16/18; hueco de nombre=11 espacios;
+tesoros del nivel=14, rango aleatorio de casilla=26, offset+8; letras
+de "GAME OVER"=9.
+
+### Verificación
+
+- `python tools/build_all.py` y `python tools/dsk_build.py`: **0
+  diferencias** tras las 49 sustituciones (incluidos los 2 casos con
+  literal negativo, `-8`/`-2` -- SjASMPlus los codifica exactos al
+  complemento a 2 original).
+
+### Pendiente
+
+- Quedan sin tocar deliberadamente: coordenadas de cursor/ventana
+  (tratadas como hex en todo el fichero, incluidos los parámetros
+  `CTRL_TXT_POSICIONAR_CURSOR` de las Sesiones 21-22), strides de
+  pantalla ($28/$2800, delta de columna/fila en direcciones de
+  pantalla), las progresiones de tesoros de $10 en $10 (redondas en
+  hex), y los pares de coordenadas empaquetados en un solo `BC`/`DE`
+  (p.ej. `LD BC,$0708` en `SUMAR_LADO_MARCO`) por no poder decimalizar
+  sin romper el empaquetado de 2 bytes en una instrucción.

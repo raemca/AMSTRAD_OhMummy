@@ -138,11 +138,11 @@ REINICIAR_MODO_ATRACCION:
     CALL BORRAR_BLOQUE_ESTADO                   ; 604B: cdab7e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;604E: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6051: cdd178
-    LD A,$06                     ; 6054: 3e06
-    LD ($8169),A                 ; 6056: 326981
+    LD A,6                       ; 6054: 3e06
+    LD (CONTADOR_ENTIDADES),A                 ; 6056: 326981
     XOR A                        ; 6059: af
-    LD ($816C),A                 ; 605A: 326c81
-    LD ($8168),A                 ; 605D: 326881
+    LD (INDICE_ENTIDAD_ACTUAL),A                 ; 605A: 326c81
+    LD (FLAG_PEDIR_NOMBRE),A                 ; 605D: 326881
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6060: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6063: cdd178
 ; $7EF4 (IMPRIMIR_BYTES_CON_LONGITUD, nombre corregido en Sesion 19 --
@@ -150,17 +150,17 @@ REINICIAR_MODO_ATRACCION:
 ; era incorrecta): lee (HL)=longitud, y saca por FIRM_TXT_OUTPUT los
 ; "longitud" bytes siguientes uno a uno, avanzando el puntero en cada
 ; uno -- formato "longitud + secuencia de bytes", no "cuenta+caracter
-; fijo". Aqui imprime bytes de TABLA_PARAMETROS_TRANSICION_PUNTUACIONES
-; (mezcla de codigos de control VDU y/o mascara, sin decodificar a
-; texto en este punto). Ver FINDINGS.md Sesiones 3 y 19.
-    LD HL,TABLA_PARAMETROS_TRANSICION_PUNTUACIONES+8 ; 6066: 215386
+; fijo". Aqui prepara la paleta/modo de pantalla del modo atraccion
+; (Sesion 22: CONFIRMADO, ver DATOS_INICIALIZACION_PANTALLA_ATRACCION
+; mas abajo). Ver FINDINGS.md Sesiones 3, 19 y 22.
+    LD HL,DATOS_INICIALIZACION_PANTALLA_ATRACCION ; 6066: 215386
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 6069: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;606C: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;606F: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6072: cdd178
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6075: cdd178
     LD IX,TABLA_DIRECCIONES_PANTALLA ; 6078: dd21ca8e
-    LD B,$C8                     ; 607C: 06c8
+    LD B,200                     ; 607C: 06c8
 ; Bucle $607E-$6093: confirmado (Sesion 8) -- 200 iteraciones (B=$C8),
 ; cada una calcula con el firmware FIRM_SCR_DOT_POSITION la direccion
 ; de pantalla de una fila y la guarda en TABLA_DIRECCIONES_PANTALLA
@@ -281,7 +281,7 @@ BUCLE_CALCULAR_DIRECCIONES_PANTALLA:
     LD HL,$5008                  ; 6191: 210850
     CALL RELLENAR_MARCO_DIAGONAL_6                   ; 6194: cd297e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6197: cdd178
-    LD HL,$889D                  ; 619A: 219d88
+    LD HL,DATOS_MARCO_Y_TEXTO_CONTINUAR                  ; 619A: 219d88
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 619D: cdf47e
     LD HL,$5040                  ; 61A0: 214050
     CALL RELLENAR_MARCO_DIAGONAL_6                   ; 61A3: cd297e
@@ -348,14 +348,14 @@ PREPARAR_ENTRADA_NOMBRE:
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6223: cdd178
     CALL FIRM_KM_READ_CHAR                   ; 6226: cd09bb
     JR C,PREPARAR_ENTRADA_NOMBRE                   ; 6229: 38f8
-    LD HL,$866D                  ; 622B: 216d86
+    LD HL,COLA_TEXTO_PRE_PUNTUACIONES                  ; 622B: 216d86
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 622E: cdf47e
     CALL BORRAR_BLOQUE_ESTADO                   ; 6231: cdab7e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;6234: cdd178
     XOR A                        ; 6237: af
-    LD ($816C),A                 ; 6238: 326c81
-    LD A,$06                     ; 623B: 3e06
-    LD ($8169),A                 ; 623D: 326981
+    LD (INDICE_ENTIDAD_ACTUAL),A                 ; 6238: 326c81
+    LD A,6                       ; 623B: 3e06
+    LD (CONTADOR_ENTIDADES),A                 ; 623D: 326981
     LD HL,$0803                  ; 6240: 210308
     LD DE,$1F14                  ; 6243: 11141f
     CALL FIRM_TXT_WIN_ENABLE                   ; 6246: cd66bb
@@ -402,7 +402,7 @@ PREPARAR_ENTRADA_NOMBRE:
     LD HL,$0000                  ; 62BC: 210000
     LD DE,$2718                  ; 62BF: 111827
     CALL FIRM_TXT_WIN_ENABLE                   ; 62C2: cd66bb
-    LD HL,$8676                  ; 62C5: 217686
+    LD HL,TEXTO_TABLA_PUNTUACIONES                  ; 62C5: 217686
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 62C8: cdf47e
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;62CB: cdd178
     LD HL,$0C0A                  ; 62CE: 210a0c
@@ -443,7 +443,7 @@ PREPARAR_ENTRADA_NOMBRE:
     LD HL,$6828                  ; 6337: 212868
     LD ($8155),HL                ; 633A: 225581
     CALL ACTUALIZAR_SECUENCIA_SONIDO ;633D: cdd178
-    LD A,($8168)                 ; 6340: 3a6881
+    LD A,(FLAG_PEDIR_NOMBRE)                 ; 6340: 3a6881
     OR A                         ; 6343: b7
     JR Z,REANUDAR_MENU_TRAS_NOMBRE ; 6344: 2826
     LD HL,$8710                  ; 6346: 211087
@@ -476,14 +476,14 @@ ESPERAR_PRIMERA_TECLA_NOMBRE:
 ; ($6404) -- confianza alta en el flujo, media en el papel visual
 ; exacto de $86E8. Ver FINDINGS.md Sesion 12.
 REANUDAR_MENU_TRAS_NOMBRE:
-    LD HL,$86E8                  ; 636C: 21e886
+    LD HL,TEXTO_MENU_PRINCIPAL                  ; 636C: 21e886
     CALL IMPRIMIR_BYTES_CON_LONGITUD                   ; 636F: cdf47e
 BUCLE_LEER_NOMBRE:
     LD B,$01                     ; 6372: 0601
     CALL ANIMAR_OPCION_MENU                   ; 6374: cdb778
     LD B,$02                     ; 6377: 0602
     CALL ANIMAR_OPCION_MENU                   ; 6379: cdb778
-    LD A,($8168)                 ; 637C: 3a6881
+    LD A,(FLAG_PEDIR_NOMBRE)                 ; 637C: 3a6881
     OR A                         ; 637F: b7
     JP Z,DESPACHAR_MENU_PRINCIPAL ; 6380: ca0464
     CALL FIRM_KM_READ_CHAR                   ; 6383: cd09bb
@@ -541,7 +541,7 @@ CONFIRMAR_NOMBRE_JUGADOR:
     LD A,$20                     ; 63F3: 3e20
     CALL FIRM_TXT_OUTPUT                   ; 63F5: cd5abb
     XOR A                        ; 63F8: af
-    LD ($8168),A                 ; 63F9: 326881
+    LD (FLAG_PEDIR_NOMBRE),A                 ; 63F9: 326881
     LD A,$03                     ; 63FC: 3e03
     CALL FIRM_TXT_SET_PAPER                   ; 63FE: cd96bb
 
@@ -633,7 +633,7 @@ DESPACHAR_MENU_PRINCIPAL:
 PANTALLA_OPCIONES:
     CALL FIRM_KM_READ_CHAR           ; 642B: cd09bb
     JR C,PANTALLA_OPCIONES           ; 642E: 38fb  ; vacia el buffer de teclado antes de dibujar
-    LD HL,$7EFD                      ; 6430: 21fd7e  ; TEXTO_MENU_OPCIONES (titulo)
+    LD HL,TEXTO_MENU_OPCIONES                      ; 6430: 21fd7e  ; TEXTO_MENU_OPCIONES (titulo)
     CALL IMPRIMIR_BYTES_CON_LONGITUD            ; 6433: cdf47e
 ; -- "SPEED OF GAME (1-5) ?": lee un digito '1'-'5', lo eco a pantalla
 ; y calcula ($8153) = $0100 + digito*$00E0 --
@@ -783,8 +783,8 @@ BUCLE_CONFIRMAR_SALIDA_OPCIONES:
 ; en PREPARAR_NIVEL. Confianza alta en el papel de entrada; alta en
 ; puntuacion/vidas (ver comentario de PREPARAR_NIVEL mas abajo).
 INICIAR_PARTIDA:
-    LD A,$05                          ; 6529: 3e05
-    LD ($816A),A                      ; 652B: 326a81
+    LD A,5                            ; 6529: 3e05
+    LD (NUM_VIDAS),A                      ; 652B: 326a81
     LD HL,$0000                       ; 652E: 210000
     LD ($815A),HL                     ; 6531: 225a81
 
@@ -810,7 +810,7 @@ INICIAR_PARTIDA:
 PREPARAR_NIVEL:
     XOR A                             ; 6534: af
     LD ($815C),A                      ; 6535: 325c81
-    LD ($8169),A                      ; 6538: 326981
+    LD (CONTADOR_ENTIDADES),A                      ; 6538: 326981
     LD HL,($815A)                     ; 653B: 2a5a81
     LD A,H                            ; 653E: 7c
     OR L                              ; 653F: b5
@@ -825,7 +825,7 @@ PREPARAR_NIVEL:
 ; otros retardos fijos del fichero.
 LIMPIAR_ESTADO_NIVEL:
     CALL BORRAR_BLOQUE_ESTADO         ; 654C: cdab7e
-    LD DE,$00C8                       ; 654F: 11c800
+    LD DE,200                         ; 654F: 11c800
 BUCLE_RETARDO_PREPARAR_NIVEL:
     PUSH DE                           ; 6552: d5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6553: cdd178
@@ -843,13 +843,13 @@ BUCLE_RETARDO_PREPARAR_NIVEL:
 ; Confianza alta en nivel/tope; media en el papel exacto de ($8169)
 ; aqui (structuralmente identico al nivel, sin uso propio localizado
 ; en este tramo mas alla de alimentar INICIALIZAR_ENTIDADES mas abajo).
-    LD A,($8169)                      ; 655C: 3a6981
+    LD A,(CONTADOR_ENTIDADES)                      ; 655C: 3a6981
     INC A                             ; 655F: 3c
-    LD ($8169),A                      ; 6560: 326981
+    LD (CONTADOR_ENTIDADES),A                      ; 6560: 326981
     LD A,($815C)                      ; 6563: 3a5c81
     INC A                             ; 6566: 3c
     LD ($815C),A                      ; 6567: 325c81
-    CP $06                            ; 656A: fe06
+    CP 6                              ; 656A: fe06
     JP Z,PANTALLA_STOP_PRESS          ; 656C: ca3967
 
 ; Limpia a mano el indice de entidades ($816C) y los 5 bytes de la
@@ -858,7 +858,7 @@ BUCLE_RETARDO_PREPARAR_NIVEL:
 ; fotograma de animacion ($8158). Confianza alta (encaja exactamente
 ; con el limite documentado de BORRAR_BLOQUE_ESTADO, Sesion 8).
     XOR A                             ; 656F: af
-    LD ($816C),A                      ; 6570: 326c81
+    LD (INDICE_ENTIDAD_ACTUAL),A                      ; 6570: 326c81
     LD ($816D),A                      ; 6573: 326d81
     LD ($816E),A                      ; 6576: 326e81
     LD ($816F),A                      ; 6579: 326f81
@@ -891,7 +891,7 @@ PREPARAR_TESOROS_NIVEL:
     LD A,$60                          ; 6588: 3e60
     LD (HL),A                         ; 658A: 77
     LD DE,$81DF                       ; 658B: 11df81
-    LD BC,$0019                       ; 658E: 011900
+    LD BC,25                          ; 658E: 011900
     LDIR                              ; 6591: edb0
     XOR A                             ; 6593: af
     LD IY,$81D6                       ; 6594: fd21d681
@@ -902,15 +902,15 @@ PREPARAR_TESOROS_NIVEL:
     LD (IY+27),A                      ; 65A4: fd771b
     LD (IY+28),A                      ; 65A7: fd771c
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 65AA: cdd178
-    LD B,$0E                          ; 65AD: 060e
+    LD B,14                           ; 65AD: 060e
     LD A,$10                          ; 65AF: 3e10
 BUCLE_COLOCAR_TESOROS_NIVEL:
     PUSH BC                           ; 65B1: c5
     PUSH AF                           ; 65B2: f5
 BUSCAR_CASILLA_TESORO_LIBRE:
-    LD A,$1A                          ; 65B3: 3e1a
+    LD A,26                           ; 65B3: 3e1a
     CALL GENERAR_ALEATORIO            ; 65B5: cd537d
-    LD B,$08                          ; 65B8: 0608
+    LD B,8                            ; 65B8: 0608
     ADD A,B                           ; 65BA: 80
     LD HL,$81D6                       ; 65BB: 21d681
     LD B,$00                          ; 65BE: 0600
@@ -949,7 +949,7 @@ ACTUALIZAR_HUD_VIDAS:
     CALL IMPRIMIR_PUNTUACION_HUD      ; 65DB: cd6378
     LD A,$01                          ; 65DE: 3e01
     CALL FIRM_TXT_SET_PAPER           ; 65E0: cd96bb
-    LD A,($816A)                      ; 65E3: 3a6a81
+    LD A,(NUM_VIDAS)                      ; 65E3: 3a6a81
     LD B,A                            ; 65E6: 47
     LD A,$02                          ; 65E7: 3e02
     LD ($8157),A                      ; 65E9: 325781
@@ -1052,12 +1052,12 @@ SELECCIONAR_VARIANTE_MARCO_6:
     LD HL,RELLENAR_MARCO_DIAGONAL_6   ; 66A8: 21297e
 PARCHEAR_LLAMADA_MARCO_DIAGONAL:
     LD ($66BA),HL                     ; 66AB: 22ba66
-    LD B,$04                          ; 66AE: 0604
+    LD B,4                            ; 66AE: 0604
     LD HL,$2808                       ; 66B0: 210828
 BUCLE_DIBUJAR_FONDO_FILA:
     PUSH BC                           ; 66B3: c5
     PUSH HL                           ; 66B4: e5
-    LD B,$05                          ; 66B5: 0605
+    LD B,5                            ; 66B5: 0605
 BUCLE_DIBUJAR_FONDO_COLUMNA:
     PUSH BC                           ; 66B7: c5
     PUSH HL                           ; 66B8: e5
@@ -1168,7 +1168,7 @@ INICIO_TURNO_JUGADOR1:
 ; juego compilado, no una hipotesis.
 PANTALLA_STOP_PRESS:
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 6739: cdd178
-    LD HL,$801B                       ; 673C: 211b80
+    LD HL,TEXTO_HISTORIA_ATRACCION                       ; 673C: 211b80
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 673F: cdf47e
     LD HL,$8040                       ; 6742: 214080
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6745: cdf47e
@@ -1185,7 +1185,7 @@ PANTALLA_STOP_PRESS:
     JR Z,COMPROBAR_VIDA_EXTRA_STOP_PRESS ; 6763: 2819
 DAR_BONUS_PUNTOS_STOP_PRESS:
     LD HL,($815A)                     ; 6765: 2a5a81
-    LD BC,$00C8                       ; 6768: 01c800
+    LD BC,200                         ; 6768: 01c800
     ADD HL,BC                         ; 676B: 09
     LD ($815A),HL                     ; 676C: 225a81
     LD HL,$80B8                       ; 676F: 21b880
@@ -1194,11 +1194,11 @@ DAR_BONUS_PUNTOS_STOP_PRESS:
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 6778: cdf47e
     JP MOSTRAR_CONFIRMACION_STOP_PRESS ; 677B: c39567
 COMPROBAR_VIDA_EXTRA_STOP_PRESS:
-    LD A,($816A)                      ; 677E: 3a6a81
-    CP $07                            ; 6781: fe07
+    LD A,(NUM_VIDAS)                      ; 677E: 3a6a81
+    CP 7                              ; 6781: fe07
     JR Z,DAR_BONUS_PUNTOS_STOP_PRESS  ; 6783: 28e0
     INC A                             ; 6785: 3c
-    LD ($816A),A                      ; 6786: 326a81
+    LD (NUM_VIDAS),A                      ; 6786: 326a81
     LD HL,$80E0                       ; 6789: 21e080
     CALL IMPRIMIR_BYTES_CON_LONGITUD             ; 678C: cdf47e
     LD HL,$80EA                       ; 678F: 21ea80
@@ -1240,7 +1240,7 @@ PANTALLA_GAME_OVER:
     LD HL,$0D0E                       ; 67CE: 210e0d
     CALL FIRM_TXT_SET_CURSOR          ; 67D1: cd75bb
     LD HL,$812D                       ; 67D4: 212d81
-    LD B,$09                          ; 67D7: 0609
+    LD B,9                            ; 67D7: 0609
 BUCLE_IMPRIMIR_GAME_OVER:
     PUSH BC                           ; 67D9: c5
     PUSH HL                           ; 67DA: e5
@@ -1301,11 +1301,11 @@ ACTUALIZAR_TABLA_PUNTUACIONES:
     SBC HL,BC                         ; 680B: ed42
     JP C,REINICIAR_MODO_ATRACCION                        ; 680D: da3960
     LD A,$01                          ; 6810: 3e01
-    LD ($8168),A                      ; 6812: 326881
-    LD DE,$0012                       ; 6815: 111200
+    LD (FLAG_PEDIR_NOMBRE),A                      ; 6812: 326881
+    LD DE,18                          ; 6815: 111200
     LD IX,$86D4                       ; 6818: dd21d486
     XOR A                             ; 681C: af
-    LD B,$05                          ; 681D: 0605
+    LD B,5                            ; 681D: 0605
 BUCLE_CALCULAR_RANGO_PUNTUACION:
     PUSH BC                           ; 681F: c5
     LD HL,($815A)                     ; 6820: 2a5a81
@@ -1331,7 +1331,7 @@ FIJAR_RANGO_PUNTUACION:
     LD L,A                            ; 6841: 6f
     LD ($7FC6),HL                     ; 6842: 22c67f
     LD HL,$86D4                       ; 6845: 21d486
-    LD A,$05                          ; 6848: 3e05
+    LD A,5                            ; 6848: 3e05
     CP B                              ; 684A: b8
     JR Z,ESCRIBIR_PUNTUACION_EN_TABLA ; 684B: 2846
     SUB B                             ; 684D: 90
@@ -1343,10 +1343,10 @@ FIJAR_RANGO_PUNTUACION:
     LD DE,$86D4                       ; 6857: 11d486
 BUCLE_DESPLAZAR_TABLA_PUNTUACIONES:
     PUSH BC                           ; 685A: c5
-    LD BC,$0012                       ; 685B: 011200
+    LD BC,18                          ; 685B: 011200
     LDIR                              ; 685E: edb0
     XOR A                             ; 6860: af
-    LD BC,$0024                       ; 6861: 012400
+    LD BC,36                          ; 6861: 012400
     SBC HL,BC                         ; 6864: ed42
     EX DE,HL                          ; 6866: eb
     SBC HL,BC                         ; 6867: ed42
@@ -1356,23 +1356,23 @@ BUCLE_DESPLAZAR_TABLA_PUNTUACIONES:
     PUSH HL                           ; 686D: e5
     CALL ACTUALIZAR_SECUENCIA_SONIDO  ; 686E: cdd178
     POP HL                            ; 6871: e1
-    LD BC,$0012                       ; 6872: 011200
+    LD BC,18                          ; 6872: 011200
     ADD HL,BC                         ; 6875: 09
     PUSH HL                           ; 6876: e5
     LD HL,$8691                       ; 6877: 219186
-    LD A,$0A                          ; 687A: 3e0a
+    LD A,10                           ; 687A: 3e0a
     LD (HL),A                         ; 687C: 77
     ADD HL,BC                         ; 687D: 09
-    LD A,$0C                          ; 687E: 3e0c
+    LD A,12                           ; 687E: 3e0c
     LD (HL),A                         ; 6880: 77
     ADD HL,BC                         ; 6881: 09
-    LD A,$0E                          ; 6882: 3e0e
+    LD A,14                           ; 6882: 3e0e
     LD (HL),A                         ; 6884: 77
     ADD HL,BC                         ; 6885: 09
-    LD A,$10                          ; 6886: 3e10
+    LD A,16                           ; 6886: 3e10
     LD (HL),A                         ; 6888: 77
     ADD HL,BC                         ; 6889: 09
-    LD A,$12                          ; 688A: 3e12
+    LD A,18                           ; 688A: 3e12
     LD (HL),A                         ; 688C: 77
     LD HL,$86D6                       ; 688D: 21d686
     DEC A                             ; 6890: 3d
@@ -1383,7 +1383,7 @@ ESCRIBIR_PUNTUACION_EN_TABLA:
     LD (HL),E                         ; 6897: 73
     INC HL                            ; 6898: 23
     LD (HL),D                         ; 6899: 72
-    LD BC,$0005                       ; 689A: 010500
+    LD BC,5                           ; 689A: 010500
     ADD HL,BC                         ; 689D: 09
     LD ($7FC8),HL                     ; 689E: 22c87f
     LD A,$20                          ; 68A1: 3e20
@@ -1391,7 +1391,7 @@ ESCRIBIR_PUNTUACION_EN_TABLA:
     PUSH HL                           ; 68A4: e5
     POP DE                            ; 68A5: d1
     INC DE                            ; 68A6: 13
-    LD BC,$000B                       ; 68A7: 010b00
+    LD BC,11                          ; 68A7: 010b00
     LDIR                              ; 68AA: edb0
     JP PREPARAR_ENTRADA_NOMBRE                          ; 68AC: c32362
 
@@ -1904,7 +1904,7 @@ ANIMAR_APARICION_MOMIA_GUARDIANA:
     EX DE,HL                          ; 751F: eb
     LD IY,$8CB9                       ; 7520: fd21b98c
     ADD IY,DE                         ; 7524: fd19
-    LD HL,($8136)                     ; 7526: 2a3681
+    LD HL,(VARIABLE_CASILLA_APARICION_MOMIA)                     ; 7526: 2a3681
     ADD A,H                           ; 7529: 84
     LD H,A                            ; 752A: 67
     CALL CASILLA_A_DIRECCION_PANTALLA ; 752B: cd927e
@@ -1918,7 +1918,7 @@ BUCLE_COPIAR_SPRITE_MOMIA_GUARDIANA:
     LD A,($816D)            ; 7539: 3a6d81
     OR A                              ; 753C: b7
     RET NZ                            ; 753D: c0
-    LD DE,($8136)                     ; 753E: ed5b3681
+    LD DE,(VARIABLE_CASILLA_APARICION_MOMIA)                     ; 753E: ed5b3681
     CALL CONSULTAR_CASILLA_MAPA       ; 7542: cd3e7d
     LD A,$20                          ; 7545: 3e20
     LD (HL),A                         ; 7547: 77
@@ -1929,11 +1929,11 @@ BUCLE_COPIAR_SPRITE_MOMIA_GUARDIANA:
     LD (HL),A                         ; 754E: 77
     DEC HL                            ; 754F: 2b
     LD (HL),A                         ; 7550: 77
-    LD A,($8169)                      ; 7551: 3a6981
+    LD A,(CONTADOR_ENTIDADES)                      ; 7551: 3a6981
     INC A                             ; 7554: 3c
-    LD ($8169),A                      ; 7555: 326981
+    LD (CONTADOR_ENTIDADES),A                      ; 7555: 326981
     CALL INICIALIZAR_UNA_ENTIDAD      ; 7558: cd5b79
-    LD DE,($8136)                     ; 755B: ed5b3681
+    LD DE,(VARIABLE_CASILLA_APARICION_MOMIA)                     ; 755B: ed5b3681
     LD (IX+2),D                       ; 755F: dd7202
     LD (IX+3),E                       ; 7562: dd7303
     RET                               ; 7565: c9
@@ -1983,29 +1983,29 @@ COMPROBAR_SALIDA_NIVEL:
 PROCESAR_ENCUENTROS_ENTIDADES:
     LD DE,($8155)                     ; 7578: ed5b5581
     LD IY,ARRAY_ENTIDADES             ; 757C: fd216d81
-    LD A,($816C)                      ; 7580: 3a6c81
+    LD A,(INDICE_ENTIDAD_ACTUAL)                      ; 7580: 3a6c81
     LD B,A                            ; 7583: 47
 PROCESAR_ENCUENTROS_ENTIDADES_BUCLE:
     PUSH BC                           ; 7584: c5
-    LD BC,$0005                       ; 7585: 010500
+    LD BC,5                           ; 7585: 010500
     ADD IY,BC                         ; 7588: fd09
     LD A,(IY+0)                       ; 758A: fd7e00
     OR (IY+1)                         ; 758D: fdb601
     JP Z,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 7590: ca3076
     LD A,(IY+2)                       ; 7593: fd7e02
     SUB D                             ; 7596: 92
-    CP $F8                            ; 7597: fef8
+    CP -8                             ; 7597: fef8
     JR Z,COMPROBAR_COLUMNA_ENCUENTRO  ; 7599: 2808
-    CP $08                            ; 759B: fe08
+    CP 8                              ; 759B: fe08
     JR Z,COMPROBAR_COLUMNA_ENCUENTRO  ; 759D: 2804
     OR A                              ; 759F: b7
     JP NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75A0: c23076
 COMPROBAR_COLUMNA_ENCUENTRO:
     LD A,(IY+3)                       ; 75A3: fd7e03
     SUB E                             ; 75A6: 93
-    CP $FE                            ; 75A7: fefe
+    CP -2                             ; 75A7: fefe
     JR Z,PROCESAR_ENCUENTRO_CONFIRMADO ; 75A9: 2807
-    CP $02                            ; 75AB: fe02
+    CP 2                              ; 75AB: fe02
     JR Z,PROCESAR_ENCUENTRO_CONFIRMADO ; 75AD: 2803
     OR A                              ; 75AF: b7
     JR NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 75B0: 207e
@@ -2023,7 +2023,7 @@ PROCESAR_ENCUENTRO_CONFIRMADO:
     CALL CONSULTAR_CASILLA_MAPA       ; 75C8: cd3e7d
     LD A,(HL)                         ; 75CB: 7e
     CALL DIBUJAR_CASILLA_MAPA                        ; 75CC: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
-    LD A,$08                          ; 75CF: 3e08
+    LD A,8                            ; 75CF: 3e08
     ADD A,D                           ; 75D1: 82
     LD D,A                            ; 75D2: 57
     CALL CONSULTAR_CASILLA_MAPA       ; 75D3: cd3e7d
@@ -2034,7 +2034,7 @@ PROCESAR_ENCUENTRO_CONFIRMADO:
     CALL CONSULTAR_CASILLA_MAPA       ; 75DC: cd3e7d
     LD A,(HL)                         ; 75DF: 7e
     CALL DIBUJAR_CASILLA_MAPA                        ; 75E0: cde67c  ; entrada intermedia en DIBUJAR_CASILLA_MAPA (linea 'CP $02'), ver arriba
-    LD HL,$8169                       ; 75E3: 216981
+    LD HL,CONTADOR_ENTIDADES          ; 75E3: 216981
     DEC (HL)                          ; 75E6: 35
     LD DE,($8155)                     ; 75E7: ed5b5581
     LD A,$41                          ; 75EB: 3e41
@@ -2052,7 +2052,7 @@ PROCESAR_ENCUENTRO_CONFIRMADO:
     POP IY                            ; 7607: fde1
     JR PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 7609: 1825
 PROCESAR_ENCUENTROS_ENTIDADES_PERDER_VIDA:
-    LD HL,$816A                       ; 760B: 216a81
+    LD HL,NUM_VIDAS                   ; 760B: 216a81
     DEC (HL)                          ; 760E: 35
     LD A,(HL)                         ; 760F: 7e
     ADD A,A                           ; 7610: 87
@@ -2066,7 +2066,7 @@ PROCESAR_ENCUENTROS_ENTIDADES_PERDER_VIDA:
     LD A,($7FC5)                      ; 761F: 3ac57f
     CP $59                            ; 7622: fe59
     CALL Z,FIRM_SOUND_QUEUE           ; 7624: ccaabc
-    LD A,($816A)                      ; 7627: 3a6a81
+    LD A,(NUM_VIDAS)                      ; 7627: 3a6a81
     OR A                              ; 762A: b7
     JR NZ,PROCESAR_ENCUENTROS_ENTIDADES_SIGUIENTE; 762B: 2003
     POP BC                            ; 762D: c1
@@ -2098,19 +2098,19 @@ ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
     LD E,L                            ; 7640: 5d
     SBC HL,BC                         ; 7641: ed42
     RET Z                             ; 7643: c8
-    LD HL,$813A                       ; 7644: 213a81
-    LD BC,$0005                       ; 7647: 010500
+    LD HL,TABLA_FILAS_VALIDAS_CASILLAS                       ; 7644: 213a81
+    LD BC,5                           ; 7647: 010500
     CPIR                              ; 764A: edb1
     RET NZ                            ; 764C: c0
     LD D,C                            ; 764D: 51
     LD A,E                            ; 764E: 7b
-    LD HL,$813F                       ; 764F: 213f81
-    LD BC,$0006                       ; 7652: 010600
+    LD HL,TABLA_COLUMNAS_VALIDAS_CASILLAS                       ; 764F: 213f81
+    LD BC,6                           ; 7652: 010600
     CPIR                              ; 7655: edb1
     RET NZ                            ; 7657: c0
     LD HL,($8155)                     ; 7658: 2a5581
     LD ($8138),HL                     ; 765B: 223881
-    LD A,$04                          ; 765E: 3e04
+    LD A,4                            ; 765E: 3e04
     SUB D                             ; 7660: 92
     LD D,A                            ; 7661: 57
     ADD A,A                           ; 7662: 87
@@ -2118,7 +2118,7 @@ ACTUALIZAR_MARCO_TRAS_MOVIMIENTO:
     ADD A,A                           ; 7664: 87
     SUB D                             ; 7665: 92
     LD D,A                            ; 7666: 57
-    LD A,$05                          ; 7667: 3e05
+    LD A,5                            ; 7667: 3e05
     SUB C                             ; 7669: 91
     ADD A,D                           ; 766A: 82
     LD H,A                            ; 766B: 67
@@ -2207,19 +2207,19 @@ CALCULAR_TRAMO_MARCO_DESDE_CONTENIDO:
     DEC A                             ; 76EE: 3d
     LD B,$00                          ; 76EF: 0600
 BUCLE_DIVIDIR_INDICE_TRAMO_MARCO:
-    SUB $07                           ; 76F1: d607
+    SUB 7                             ; 76F1: d607
     JR C,RESTAURAR_RESTO_TRAMO_MARCO  ; 76F3: 3803
     INC B                             ; 76F5: 04
     JR BUCLE_DIVIDIR_INDICE_TRAMO_MARCO             ; 76F6: 18f9
 RESTAURAR_RESTO_TRAMO_MARCO:
-    ADD A,$07                         ; 76F8: c607
+    ADD A,7                           ; 76F8: c607
     ADD A,A                           ; 76FA: 87
     LD C,A                            ; 76FB: 4f
     ADD A,A                           ; 76FC: 87
     ADD A,A                           ; 76FD: 87
     ADD A,A                           ; 76FE: 87
     SUB C                             ; 76FF: 91
-    ADD A,$08                         ; 7700: c608
+    ADD A,8                           ; 7700: c608
     LD L,A                            ; 7702: 6f
     LD A,B                            ; 7703: 78
     ADD A,A                           ; 7704: 87
@@ -2290,7 +2290,7 @@ MARCO_CONTENIDO_MOMIA_REAL:
     LD ($8170),A                      ; 7764: 327081
     PUSH HL                           ; 7767: e5
     LD HL,($815A)                     ; 7768: 2a5a81
-    LD BC,$0032                       ; 776B: 013200
+    LD BC,50                          ; 776B: 013200
     ADD HL,BC                         ; 776E: 09
     LD ($815A),HL                     ; 776F: 225a81
     CALL IMPRIMIR_PUNTUACION_HUD      ; 7772: cd6378
@@ -2337,7 +2337,7 @@ APARICION_MOMIA_DESPLAZAMIENTO_C:
     LD DE,$0800                       ; 77AC: 110008
 APLICAR_DESPLAZAMIENTO_APARICION_MOMIA:
     ADD HL,DE                         ; 77AF: 19
-    LD ($8136),HL                     ; 77B0: 223681
+    LD (VARIABLE_CASILLA_APARICION_MOMIA),HL                     ; 77B0: 223681
     RET                               ; 77B3: c9
 
 ; MARCO_CONTENIDO_TESORO ($77B4): valor exacto $5F (caso "generico"/
@@ -2346,7 +2346,7 @@ APLICAR_DESPLAZAMIENTO_APARICION_MOMIA:
 MARCO_CONTENIDO_TESORO:
     PUSH HL                           ; 77B4: e5
     LD HL,($815A)                     ; 77B5: 2a5a81
-    LD BC,$0005                       ; 77B8: 010500
+    LD BC,5                           ; 77B8: 010500
     ADD HL,BC                         ; 77BB: 09
     LD ($815A),HL                     ; 77BC: 225a81
     CALL IMPRIMIR_PUNTUACION_HUD      ; 77BF: cd6378
@@ -2379,7 +2379,7 @@ PROCESAR_MOVIMIENTO_JUGADOR:
     LD ($814D),HL                     ; 77D4: 224d81
     LD ($814F),HL                     ; 77D7: 224f81
     LD IX,$8150                       ; 77DA: dd215081
-    LD DE,$814C                       ; 77DE: 114c81
+    LD DE,TABLA_TECLAS_DIRECCION+7                       ; 77DE: 114c81
     LD B,$04                          ; 77E1: 0604
 BUCLE_LEER_TECLAS_DIRECCION:
     LD A,(DE)                         ; 77E3: 1a
@@ -2625,7 +2625,7 @@ REDIBUJAR_INDICADOR_MENU:
     CALL DIBUJAR_ENTIDAD             ; 794B: cd397b
     RET                              ; 794E: c9
 INICIALIZAR_ENTIDADES:
-    LD A,($8169)                     ; 794F: 3a6981
+    LD A,(CONTADOR_ENTIDADES)                     ; 794F: 3a6981
     LD B,A                           ; 7952: 47
 BUCLE_INICIALIZAR_ENTIDADES:
     PUSH BC                          ; 7953: c5
@@ -2634,25 +2634,25 @@ BUCLE_INICIALIZAR_ENTIDADES:
     DJNZ BUCLE_INICIALIZAR_ENTIDADES                       ; 7958: 10f9
     RET                              ; 795A: c9
 INICIALIZAR_UNA_ENTIDAD:
-    LD A,($816C)                     ; 795B: 3a6c81
+    LD A,(INDICE_ENTIDAD_ACTUAL)                     ; 795B: 3a6c81
     INC A                            ; 795E: 3c
-    LD ($816C),A                     ; 795F: 326c81
+    LD (INDICE_ENTIDAD_ACTUAL),A                     ; 795F: 326c81
     LD B,A                           ; 7962: 47
     LD IX,ARRAY_ENTIDADES             ; 7963: dd216d81
-    LD DE,$0005                      ; 7967: 110500
+    LD DE,5                          ; 7967: 110500
 BUCLE_AVANZAR_ENTIDAD_NUEVA:
     ADD IX,DE                        ; 796A: dd19
     DJNZ BUCLE_AVANZAR_ENTIDAD_NUEVA                       ; 796C: 10fc
-    LD A,$04                         ; 796E: 3e04
+    LD A,4                           ; 796E: 3e04
     CALL GENERAR_ALEATORIO           ; 7970: cd537d
     INC A                            ; 7973: 3c
     LD (IX+0),A                      ; 7974: dd7700
-    LD A,$04                         ; 7977: 3e04
+    LD A,4                           ; 7977: 3e04
     CALL GENERAR_ALEATORIO           ; 7979: cd537d
     INC A                            ; 797C: 3c
     LD (IX+1),A                      ; 797D: dd7701
     LD H,$00                         ; 7980: 2600
-    LD A,($816C)                     ; 7982: 3a6c81
+    LD A,(INDICE_ENTIDAD_ACTUAL)                     ; 7982: 3a6c81
     LD L,A                           ; 7985: 6f
     ADD HL,HL                        ; 7986: 29
     LD DE,(VARIABLE_TEMPORAL_HL_1)                    ; 7987: ed5b4586
@@ -2665,7 +2665,7 @@ BUCLE_AVANZAR_ENTIDAD_NUEVA:
     RET                              ; 7995: c9
 COLOCAR_ENTIDAD:
     LD IX,ARRAY_ENTIDADES             ; 7996: dd216d81
-    LD DE,$0005                      ; 799A: 110500
+    LD DE,5                          ; 799A: 110500
 BUCLE_AVANZAR_ENTIDAD_COLOCAR:
     ADD IX,DE                        ; 799D: dd19
     DJNZ BUCLE_AVANZAR_ENTIDAD_COLOCAR                       ; 799F: 10fc
@@ -2691,7 +2691,7 @@ GUARDAR_PUNTERO_ENTIDAD_COLOCAR:
     INC HL                           ; 79D0: 23
     CALL HAY_COLISION                ; 79D1: cd107a
     JP NZ,PREPARAR_DIBUJAR_ENTIDAD   ; 79D4: c2f27a
-    LD A,$02                         ; 79D7: 3e02
+    LD A,2                           ; 79D7: 3e02
     CALL GENERAR_ALEATORIO           ; 79D9: cd537d
     OR A                             ; 79DC: b7
     JR NZ,OBTENER_POSICION_ACTUAL_ENTIDAD            ; 79DD: 200b
@@ -2711,13 +2711,13 @@ INCREMENTAR_POSICION_ENTIDAD:
     INC B                            ; 79F7: 04
     INC C                            ; 79F8: 0c
 NORMALIZAR_POSICION_ENTIDAD:
-    LD HL,$864B                      ; 79F9: 214b86
+    LD HL,TABLA_NORMALIZAR_DIRECCION_ENTIDAD ; 79F9: 214b86
     LD D,$00                         ; 79FC: 1600
     LD E,B                           ; 79FE: 58
     INC E                            ; 79FF: 1c
     ADD HL,DE                        ; 7A00: 19
     LD B,(HL)                        ; 7A01: 46
-    LD HL,$864B                      ; 7A02: 214b86
+    LD HL,TABLA_NORMALIZAR_DIRECCION_ENTIDAD ; 7A02: 214b86
     LD E,C                           ; 7A05: 59
     INC E                            ; 7A06: 1c
     ADD HL,DE                        ; 7A07: 19
@@ -2734,11 +2734,11 @@ HAY_COLISION:
     XOR A                            ; 7A19: af
     LD ($8610),A                     ; 7A1A: 321086
     LD IY,ARRAY_ENTIDADES             ; 7A1D: fd216d81
-    LD A,($816C)                     ; 7A21: 3a6c81
+    LD A,(INDICE_ENTIDAD_ACTUAL)                     ; 7A21: 3a6c81
     LD B,A                           ; 7A24: 47
 BUCLE_COMPROBAR_COLISION_ENTIDADES:
     PUSH BC                          ; 7A25: c5
-    LD BC,$0005                      ; 7A26: 010500
+    LD BC,5                          ; 7A26: 010500
     ADD IY,BC                        ; 7A29: fd09
     LD A,(IY+0)                      ; 7A2B: fd7e00
     OR (IY+1)                        ; 7A2E: fdb601
@@ -2924,10 +2924,10 @@ DIBUJAR_ENTIDAD:
     JP Z,DIBUJAR_ENTIDAD_LETRA_A     ; 7B4F: ca2f7c
     CP $4F                           ; 7B52: fe4f
     JP Z,DIBUJAR_ENTIDAD_LETRA_O     ; 7B54: ca7c7c
-    LD IY,TABLAS_SPRITE_CASILLA       ; 7B57: fd211989
+    LD IY,TABLA_BASE       ; 7B57: fd211989
     JP VOLCAR_SPRITE_A_PANTALLA      ; 7B5B: c3c47c
 DIBUJAR_ENTIDAD_CARACTER_ESPACIO:
-    LD IY,$8959                      ; 7B5E: fd215989
+    LD IY,TABLA_ESPACIO                      ; 7B5E: fd215989
     JP VOLCAR_SPRITE_A_PANTALLA      ; 7B62: c3c47c
 DIBUJAR_ENTIDAD_LETRA_T:
     LD A,($8157)                     ; 7B65: 3a5781
@@ -3132,7 +3132,7 @@ DIBUJAR_CASILLA_MAPA:
     CP $08                           ; 7CF8: fe08
     JR C,DIBUJAR_CASILLA_PISADA_8    ; 7CFA: 380e
     JR Z,DIBUJAR_CASILLA_PISADA_7    ; 7CFC: 2806
-    LD IY,$8959                      ; 7CFE: fd215989
+    LD IY,TABLA_ESPACIO                      ; 7CFE: fd215989
     JR CONFIGURAR_VOLCADO_CASILLA_MAPA            ; 7D02: 182e
 DIBUJAR_CASILLA_PISADA_7:
     LD IY,LOSETA_MAPA_PISADA_7        ; 7D04: fd21898a
@@ -3280,13 +3280,21 @@ DIBUJAR_ICONO_TESORO:
 ; el nivel actual, ver SELECCIONAR_DIAGONAL_MARCO_NIVEL). Identidad del
 ; icono en si confirmada visualmente por el usuario con el explorador
 ; de recursos/sprites.html; el patron de fondo (solido/vacio/diagonal)
-; sigue sin confirmar en emulador. RELLENAR_MARCO_MEDIO y
-; RELLENAR_MARCO_SOLIDO son las unicas llamadas desde codigo ya
-; conocido (DIBUJAR_ICONO_TESORO y DIBUJAR_ICONO_SARCOFAGO/LLAVE/
-; PERGAMINO); RELLENAR_MARCO_VACIO y las 6 variantes
-; RELLENAR_MARCO_DIAGONAL_1..6 no tienen todavia un llamador conocido
-; dentro de lo ya reconstruido -- pendiente localizarlo en uno de los
-; huecos INCBIN restantes. Ver FINDINGS.md Sesion 7.
+; sigue sin confirmar en emulador. CORRECCION Sesion 22 a esta nota de
+; la Sesion 7 (obsoleta): RELLENAR_MARCO_MEDIO/_SOLIDO se llaman desde
+; DIBUJAR_ICONO_TESORO y DIBUJAR_ICONO_SARCOFAGO/LLAVE/PERGAMINO como ya
+; se documentaba, pero las 6 variantes RELLENAR_MARCO_DIAGONAL_1..6 SI
+; tienen llamador confirmado desde hace varias sesiones (resuelto en la
+; Sesion 13/14): la cabecera de atraccion las llama directamente
+; ($6176/$6185/$61D9/$61CA -- variantes 1/3/2/4) y
+; SELECCIONAR_DIAGONAL_MARCO_NIVEL las despacha segun el nivel actual
+; (variantes 1/3/4/5/6, mas la variante 6 tambien desde la demo de fondo
+; del menu, $66B9). El UNICO que sigue realmente sin ningun llamador
+; localizado en todo el motor ya reconstruido es RELLENAR_MARCO_VACIO --
+; pendiente real, no una etiqueta a la que le falte analisis: puede ser
+; codigo simetrico nunca conectado por el programador original (dead
+; code), o un llamador que se nos sigue escapando. Ver FINDINGS.md
+; Sesiones 7 y 22.
 RELLENAR_MARCO_MEDIO:
     LD A,$0F                         ; 7DE5: 3e0f
     LD (MASCARA_RELLENO_ACTUAL),A                     ; 7DE7: 324a86
@@ -3486,7 +3494,7 @@ BUCLE_IMPRIMIR_BYTE:
 ; ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3 / TEXTO_HISTORIA_ATRACCION /
 ; TABLA_DESCONOCIDA_GAME_OVER / VARIABLES_INICIO_ENTIDADES / ARRAY_ENTIDADES /
 ; ESTADO_PARTIDA / TABLA_POSICIONES_INICIALES_ENTIDADES / VARIABLE_TEMPORAL_HL_1..2 /
-; TABLA_PARAMETROS_TRANSICION_PUNTUACIONES / TEXTO_TABLA_PUNTUACIONES /
+; TABLA_NORMALIZAR_DIRECCION_ENTIDAD / DATOS_INICIALIZACION_PANTALLA_ATRACCION / TEXTO_TABLA_PUNTUACIONES /
 ; TEXTO_MENU_PRINCIPAL / TABLA_POSICIONES_DECIMALES / TEXTO_COPYRIGHT_Y_HUD /
 ; SPRITE_ICONO_SARCOFAGO..TESORO / DATOS_MARCO_Y_TEXTO_CONTINUAR / TABLAS_SPRITE_CASILLA /
 ; TABLA_DIRECCIONES_PANTALLA / PUNTERO_GUION_SONIDO / GUION_SONIDO_CIRCULAR ----
@@ -3602,7 +3610,7 @@ ENVOLVENTE_TONO_3:
 ; EXACTO a un CALL real de PANTALLA_STOP_PRESS (10 puntos de entrada
 ; distintos, no una unica tirada continua -- ver FINDINGS.md Sesion 21).
 ; CORRECCION Sesion 21 al limite de ENVOLVENTE_TONO_3: la etiqueta
-; estaba 2 bytes tarde -- el CALL real ($673C, LD HL,$801B) demuestra
+; estaba 2 bytes tarde -- el CALL real ($673C, LD HL,TEXTO_HISTORIA_ATRACCION) demuestra
 ; que el bloque empieza en $801B, no en $801D como se documentaba
 ; (los 2 bytes "$24,$0E" pertenecian aqui, no al final de la envolvente
 ; de sonido). Contenido de bytes sin cambios, solo el limite.
@@ -3691,14 +3699,44 @@ TABLA_TECLAS_DIRECCION:
 ; DE,($8151)"). Resto sin desglosar variable a variable.
     DB $00,$00,$00,$00,$00,$00,$00,$04,$00,$00,$00,$00,$00     ; 814D
     DB $00,$00,$00,$00,$00,$00,$00,$1F,$00,$00,$00,$00,$00,$00 ; 815A
-; Confirmado por el arranque ($6054-$605D): LD A,$06:LD ($8169),A
-; (CONTADOR_ENTIDADES=6, confianza media-alta -- encaja con "6
-; enemigos/coleccionables" de ARRAY_ENTIDADES) + XOR A:LD ($816C),A +
-; LD ($8168),A (dos flags puestos a 0, confianza baja en su papel
-; exacto). Los bytes de fichero no tienen por que coincidir con el
-; valor real de arranque (se sobrescriben antes de leerse).
+; CORRECCION Sesion 22: localizados y confirmados los usos reales de
+; cada uno de los 5 bytes -- se descompone en variables individuales
+; (antes solo "VARIABLES_INICIO_ENTIDADES", sin desglosar). Los bytes
+; de fichero no tienen por que coincidir con el valor real de arranque
+; (se sobrescriben antes de leerse, salvo donde se indica lo contrario).
 VARIABLES_INICIO_ENTIDADES:
-    DB $00,$04,$00,$00,$00                           ; 8168
+FLAG_PEDIR_NOMBRE:
+; Confirmado por 5 usos en la cabecera y en ACTUALIZAR_TABLA_
+; PUNTUACIONES: se pone a 1 cuando la puntuacion final SI entra en la
+; tabla HI-SCORE ($6812), y a 0 cuando se confirma el nombre tecleado
+; ($63F9) o cuando no hace falta pedirlo ($605D, arranque). Leido por
+; BUCLE_LEER_NOMBRE/REANUDAR_MENU_TRAS_NOMBRE ($6340/$637C) para saber
+; si hay que seguir tecleando o pasar a DESPACHAR_MENU_PRINCIPAL.
+; Confianza alta.
+    DB $00                                            ; 8168
+CONTADOR_ENTIDADES:
+; Confirmado por el arranque ($6054-$605D, =6 para la demo de fondo del
+; menu -- encaja con "6 enemigos/coleccionables" de ARRAY_ENTIDADES) y
+; por PREPARAR_NIVEL/INICIALIZAR_ENTIDADES (numero de entidades a
+; colocar en el nivel actual). Confianza alta.
+    DB $04                                            ; 8169
+NUM_VIDAS:
+; Confirmado: se inicializa a 5 en INICIAR_PARTIDA, se dibuja en el HUD
+; (ACTUALIZAR_HUD_VIDAS) y puede subir hasta un tope de 7 como premio en
+; PANTALLA_STOP_PRESS. Confianza alta en el papel de "vidas restantes
+; visibles en el HUD"; media en que sea el clasico contador que se
+; decrementa al ser atrapado por una momia (ver ACTUALIZAR_MARCO_TRAS_
+; MOVIMIENTO, linea ~1979).
+    DB $00                                            ; 816A
+; $816B: 1 byte sin ningun uso localizado en todo el motor ya
+; reconstruido (ni lectura ni escritura). Confianza baja.
+    DB $00                                            ; 816B
+INDICE_ENTIDAD_ACTUAL:
+; Confirmado: incrementado en INICIALIZAR_UNA_ENTIDAD (numero de orden
+; de la entidad que se esta inicializando) y leido en varios puntos del
+; bucle principal para localizar la entidad actual dentro de
+; ARRAY_ENTIDADES. Confianza alta.
+    DB $00                                            ; 816C
 ; Confirmado por 3 referencias directas ya reconstruidas: LD IX,$816D
 ; en INICIALIZAR_UNA_ENTIDAD/COLOCAR_ENTIDAD, LD IY,$816D en
 ; HAY_COLISION. Hipotesis (media): 6 registros de 5 bytes -- entidades
@@ -3746,11 +3784,14 @@ RELLENO_TRAS_ESTADO:
 ; en la estructura (verificada por el codigo que la consume); el
 ; reparto exacto demo/nivel/partida sigue siendo hipotesis media-alta.
 ; Ver FINDINGS.md Sesion 22.
+; Igual que TABLA_POSICIONES_DECIMALES mas abajo: son 26 palabras de 16
+; bits (direcciones de pantalla), no bytes sueltos -- se escriben con
+; DW en vez de 52 DB, como lo habria hecho el programador original.
 TABLA_POSICIONES_INICIALES_ENTIDADES:
-    DB $04,$B8,$4A,$B8,$0A,$B8,$44,$B8,$10,$B8,$3E,$B8,$16,$B8,$38,$B8 ; 8611
-    DB $1C,$B8,$32,$B8,$22,$B8,$2C,$B8,$0A,$90,$44,$90,$10,$90,$3E,$90 ; 8621
-    DB $16,$90,$38,$90,$1C,$90,$32,$90,$16,$A8,$38,$A8,$1C,$A8,$32,$A8 ; 8631
-    DB $22,$A8,$2C,$A8                               ; 8641
+    DW $B804,$B84A,$B80A,$B844,$B810,$B83E,$B816,$B838 ; 8611
+    DW $B81C,$B832,$B822,$B82C,$900A,$9044,$9010,$903E ; 8621
+    DW $9016,$9038,$901C,$9032,$A816,$A838,$A81C,$A832 ; 8631
+    DW $A822,$A82C                                     ; 8641
 ; VARIABLE_TEMPORAL_HL_1/_2 y VARIABLE_TEMPORAL_A_1: bloque de 6 bytes
 ; de RAM que 3 familias de rutinas SIN RELACION ENTRE SI reutilizan como
 ; almacenamiento temporal (nunca coinciden en el tiempo de ejecucion --
@@ -3780,18 +3821,50 @@ VARIABLE_TEMPORAL_A_1:
     DB $00                                            ; 8649
 MASCARA_RELLENO_ACTUAL:
     DB $00                                            ; 864A -- byte que RELLENAR_FILAS_MASCARA escribe en cada fila; fijado por RELLENAR_MARCO_SOLIDO/_VACIO/_DIAGONAL_1..6 ($7DEF-$7E48)
-; Hipotesis baja: pequena tabla de parametros justo antes de
-; TEXTO_TABLA_PUNTUACIONES, con grupos cortos repetidos -- posible
-; animacion/temporizado de la transicion a la pantalla de
-; puntuaciones, sin descifrar.
-TABLA_PARAMETROS_TRANSICION_PUNTUACIONES:
-    DB $03,$04,$01,$02,$03,$04,$01,$02,$19,$1D,$18,$18,$1C,$00,$18,$18 ; 864B
-    DB $1C,$01,$00,$00,$1C,$02,$0F,$0F,$1C,$03,$0B,$0B,$0E,$00,$04,$01 ; 865B
-    DB $0F,$01                                       ; 866B
+; CORRECCION Sesion 22 (segunda vuelta -- la primera correccion de esta
+; misma sesion tenia un bug de script: un pipe Python->bash colaba un
+; retorno de carro que rompia el grep de comprobacion y hacia parecer
+; que NINGUNA direccion de este rango tenia llamador; no era cierto).
+; Localizados 2 llamadores reales, y de paso queda claro que el nombre
+; anterior ("transicion a la pantalla de puntuaciones") era erroneo:
+; -- Indices 1-6 ($864C-$8651): tabla de normalizacion ciclica modulo 4,
+;    confirmada leyendo NORMALIZAR_POSICION_ENTIDAD ($79F9/$7A02, dentro
+;    de COLOCAR_ENTIDAD) y simulando el codigo a mano: el campo
+;    "direccion" de una entidad (IX+0/IX+1, valor 1-4, ver INICIALIZAR_
+;    UNA_ENTIDAD) se suma o resta 1 y se relee de esta tabla para volver
+;    a encajarlo en 1-4 (envuelve 5->1, 0->4; los valores ya validos se
+;    devuelven tal cual). Los indices 0 y 7 (bytes $864B/$8652) NUNCA se
+;    leen por este camino (la entrada siempre es 1-4, +-1 da 0-5, +1 de
+;    indexado da 1-6) -- sin uso confirmado. Confianza alta.
+; -- $8653 en adelante: CONFIRMADO que $6066 hace "LD HL,DATOS_
+;    INICIALIZACION_PANTALLA_ATRACCION" + CALL IMPRIMIR_BYTES_CON_
+;    LONGITUD -- longitud $19=25, decodifica COMPLETO y sin ningun
+;    hueco con la tabla CTRL_TXT_*: fija el color de borde, las 4
+;    tintas de la paleta de Modo 1 (solidas, sin parpadeo) y papel/modo/
+;    tinta, justo al arrancar el modo atraccion. Termina EXACTO en
+;    $866C, justo antes de COLA_TEXTO_PRE_PUNTUACIONES ($866D).
+;    Confianza alta. (La correccion anterior de esta sesion decodificaba
+;    esto con el limite equivocado, $8657 en vez de $8653 -- por eso le
+;    faltaba el FIJAR_COLOR_BORDE inicial y sobraban bytes sin encajar.)
+; Ver FINDINGS.md Sesion 22 (correccion) para el detalle completo.
+TABLA_NORMALIZAR_DIRECCION_ENTIDAD:
+    DB $03                     ; 864B -- indice 0, sin uso confirmado
+    DB $04,$01,$02,$03,$04,$01 ; 864C -- indices 1-6: tabla real (ciclo 1-4)
+    DB $02                     ; 8652 -- indice 7, sin uso confirmado
+DATOS_INICIALIZACION_PANTALLA_ATRACCION:
+    DB 25                                      ; 8653 longitud
+    DB CTRL_TXT_FIJAR_COLOR_BORDE,$18,$18      ; 8654
+    DB CTRL_TXT_FIJAR_COLOR_TINTA,$00,$18,$18  ; 8657
+    DB CTRL_TXT_FIJAR_COLOR_TINTA,$01,$00,$00  ; 865B
+    DB CTRL_TXT_FIJAR_COLOR_TINTA,$02,$0F,$0F  ; 865F
+    DB CTRL_TXT_FIJAR_COLOR_TINTA,$03,$0B,$0B  ; 8663
+    DB CTRL_TXT_FIJAR_PAPEL,$00                ; 8667
+    DB CTRL_TXT_MODO_PANTALLA,$01              ; 8669
+    DB CTRL_TXT_FIJAR_TINTA,$01                ; 866B
 ; CORRECCION Sesion 21: los siguientes bytes ($866D en adelante) NO son
 ; parte de esta tabla de hipotesis -- son la cola real de
 ; IMPRIMIR_BYTES_CON_LONGITUD que llama BUCLE_SELECCIONAR_JUGADORES
-; ($622B, LD HL,$866D), confirmado byte a byte (longitud+datos encajan
+; ($622B, LD HL,COLA_TEXTO_PRE_PUNTUACIONES), confirmado byte a byte (longitud+datos encajan
 ; exacto hasta $8676, la siguiente entrada real). Ver FINDINGS.md
 ; Sesion 21.
 COLA_TEXTO_PRE_PUNTUACIONES:
@@ -3806,7 +3879,7 @@ COLA_TEXTO_PRE_PUNTUACIONES:
 ; LONGITUD (ver $62D4-$6328 en BUCLE_SELECCIONAR_JUGADORES). Bloque
 ; confirmado por 9 puntos de entrada reales -- confianza alta.
 TEXTO_TABLA_PUNTUACIONES:
-; -- entrada real: $62C5 LD HL,$8676 --
+; -- entrada real: $62C5 LD HL,TEXTO_TABLA_PUNTUACIONES --
     DB 21                             ; 8676 longitud
     DB CTRL_TXT_FIJAR_PAPEL,$00       ; 8677
     DB CTRL_TXT_FIJAR_TINTA,$01       ; 8679
@@ -3844,7 +3917,7 @@ TEXTO_TABLA_PUNTUACIONES:
 ; ranking). CORRIGE Sesion 21 la nota previa ("sin CALL localizado"):
 ; SI hay 2 CALL reales, ver entradas de abajo.
 TEXTO_MENU_PRINCIPAL:
-; -- entrada real: $636F/$636C LD HL,$86E8 (REANUDAR_MENU_TRAS_NOMBRE) --
+; -- entrada real: $636F/$636C LD HL,TEXTO_MENU_PRINCIPAL (REANUDAR_MENU_TRAS_NOMBRE) --
     DB 39                             ; 86E8 longitud
     DB CTRL_TXT_POSICIONAR_CURSOR,$03,$19 ; 86E9
     DB "I-Instructions  O-Options  P-Play  ?" ; 86EC
@@ -3940,7 +4013,7 @@ SPRITE_ICONO_TESORO:
 ; aritmetica exacta de direcciones); el significado de cada codigo de
 ; control individual sigue sin decodificar. Ver FINDINGS.md Sesion 19.
 DATOS_MARCO_Y_TEXTO_CONTINUAR:
-; -- entrada real: $619A LD HL,$889D --
+; -- entrada real: $619A LD HL,DATOS_MARCO_Y_TEXTO_CONTINUAR --
     DB 104                            ; 889D longitud
     DB CTRL_TXT_POSICIONAR_CURSOR,$0C,$0B ; 889E
     DB CTRL_TXT_FIJAR_PAPEL,$00       ; 88A1
