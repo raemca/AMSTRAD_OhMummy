@@ -25,9 +25,20 @@ autorización. Ver `AVISO-LEGAL.md` para el detalle completo.
 
 Estado actual
 -------------
-**Sesión 14 — el motor está COMPLETAMENTE reconstruido, sin ningún
-hueco `INCBIN` de código pendiente**: firmware identificado, `.dsk`
-completo regenerado desde cero. El catálogo AMSDOS del disco
+**El motor está COMPLETAMENTE reconstruido desde la Sesión 14, sin
+ningún hueco `INCBIN` de código pendiente**, y las Sesiones 15-25 han
+llevado el trabajo más allá del código: **cero direcciones "mágicas"
+en todo el motor** (las 227 instrucciones `CALL`/`JP`/`JR` con destino
+literal quedan etiquetadas una a una, Sesiones 19-20), la identidad de
+los 4 iconos de contenido de casilla queda **corregida** (sarcófago,
+llave, pergamino y tesoro — hasta la Sesión 16 se creían parte del
+"marco decorativo" del nivel, Sesión 17), y **todos los recursos
+gráficos y de sonido ya identificados viven en fichero individual**,
+extraídos programáticamente del binario y verificados byte a byte
+(losetas de pisadas y sprites de icono, Sesiones 15/18; música de
+fondo y los 3 efectos de sonido puntuales, con herramientas propias de
+decodificación y reproducción, Sesiones 23-25). Firmware identificado,
+`.dsk` completo regenerado desde cero. El catálogo AMSDOS del disco
 (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes, formato CPCEMU
 estándar, 40 pistas x 1 cara, formato de datos 9x512, IDs de sector
 `C1`-`C9`) solo tiene **2 ficheros**:
@@ -134,6 +145,71 @@ ensamblador, sin ningún hueco `INCBIN` de código sin analizar** — ver
 `FINDINGS.md` para el mapa de llamadas completo, la tabla de confianza
 por rutina/dato, y la metodología usada.
 
+Con el motor ya completo, las **Sesiones 15-18** extrajeron a fichero
+individual los últimos gráficos que quedaban como `DB` inline: las 14
+losetas de la familia de pisadas (Sesión 15, `src/data/img/tiles/`) y,
+sobre todo, se corrigió una identidad equivocada desde la Sesión 3: las
+4 tablas `TABLA_MARCO_1..4`/rutinas `DIBUJAR_TRAMO_MARCO_1..4`, dadas
+por hechas como "tramos del marco decorativo del nivel" sin haber
+verificado nunca su contenido a nivel de píxel, resultaron ser (Sesión
+16, explorador parametrizable en `recursos/sprites.html`; Sesión 17,
+identificación visual del usuario corroborada por el único llamador
+real de cada rutina) los **4 iconos de contenido de casilla**:
+sarcófago (Momia Real), llave, pergamino y tesoro. Renombradas a
+`TABLA_ICONO_*`/`DIBUJAR_ICONO_*` y, ya confirmada su naturaleza de
+sprite, a `SPRITE_ICONO_*` con extracción a fichero individual (Sesión
+18, `src/data/img/sprites/`).
+
+Las **Sesiones 19-20** revisaron todo el fichero buscando saltos
+"mecánicos" que no tendría un fuente original: 29 bucles `DJNZ`/`JR`
+internos y las 227 instrucciones `CALL`/`JP`/`JR` que saltaban a una
+dirección `$XXXX` literal reciben etiqueta funcional, una a una, tras
+leer el contexto real de cada destino — el barrido final confirma
+**cero** direcciones literales de este tipo en todo
+`src/mummy1_body.asm`, incluido el punto de entrada más citado del
+fichero, `VOLCAR_SPRITE_A_PANTALLA` ($7CC4, 26+ llamadores). De paso se
+corrigió una hipótesis dada por buena desde la Sesión 3:
+`REPETIR_CARACTER` no repite un carácter fijo, imprime una secuencia de
+bytes con longitud — renombrada `IMPRIMIR_BYTES_CON_LONGITUD`, con el
+mecanismo verificado con aritmética exacta de direcciones contra los
+rótulos reales de `PANTALLA_OPCIONES`.
+
+La **Sesión 21** localizó la tabla oficial completa de códigos de
+control del Text VDU del firmware (Appendix VII del manual del CPC) y
+reescribió los bloques de texto mixto (control+ASCII) del juego —menú
+de opciones, historia del modo atracción, tabla de puntuaciones, menú
+principal, copyright— con 32 constantes `CTRL_TXT_*` con nombre, tal y
+como las habría escrito el programador original, en vez de hexadecimal
+en bruto. La **Sesión 22** localizó los llamadores reales de
+`TABLA_OFFSETS_DIAMANTE`/`VARIABLES_DIBUJO_MARCO` (renombradas
+`TABLA_POSICIONES_INICIALES_ENTIDADES` y descompuestas en 4 variables
+individuales) y auditó 24 etiquetas que parecían "sin invocador
+aparente" — casi todas sí lo tenían (por caída natural o por dirección
+literal sin sustituir); resolvió también `TABLA_PARAMETROS_
+TRANSICION_PUNTUACIONES` (nombre erróneo: no tiene nada que ver con la
+tabla de puntuaciones, son datos de inicialización de paleta/modo de
+pantalla con 2 llamadores reales) y pasó a decimal los literales
+hexadecimales cuyo significado real es una cantidad de juego (vidas,
+puntos, tamaños de tabla...).
+
+Las **Sesiones 23-25** hicieron el mismo trabajo con el sonido. La
+música de fondo (`GUION_SONIDO_CIRCULAR`, 90 registros de 9 bytes) se
+decodificó campo a campo contra el formato `SOUND QUEUE` del firmware
+CPC (Sesión 23) y los 3 efectos de sonido puntuales (perder una vida,
+tesoro, objeto encontrado) resultaron usar exactamente el mismo
+formato, combinado con las 6 envolventes de volumen/tono ya conocidas
+desde la Sesión 3 (Sesión 24 — de paso corrige el límite real de
+`ENVOLVENTE_TONO_3`, que llevaba mezclados esos 3 bloques). Los 9
+ficheros (música + 6 envolventes + 3 efectos) quedan extraídos a
+`src/data/sound/*.bin`, con su `.txt` editable (round-trip byte a byte
+verificado) y su `.wav` de referencia, usando herramientas propias
+nuevas (`tools/guion_sonido_tool.py`/`_player.py`,
+`tools/envolvente_sonido_tool.py`/`_player.py`, Sesiones 23 y 25).
+Algunos detalles de bajo nivel del formato (el significado exacto de
+una duración negativa en `SOUND QUEUE`, o del bit "Rendezvous") quedan
+como hipótesis razonada a partir de los datos, sin confirmar en
+emulador — ver `FINDINGS.md` Sesiones 23-25 para el detalle completo.
+
 Compilar
 --------
 ```
@@ -178,9 +254,22 @@ Estructura del repositorio
 - `src/data/` — recursos ya identificados y extraídos a fichero
   individual, incluidos en la fuente vía `INCBIN`: `img/sprites/`
   (Sesión 8: los 16 sprites de `DIBUJAR_ENTIDAD` — `sprite_jugador_*`/
-  `sprite_momia_*`, 64 bytes cada uno), `img/tiles/`, `img/logo/`,
-  `img/marco_decorativo/`, `img/texto/`, `niveles/`, `sound/` (estos
-  vacíos por ahora). `mummy1_resto_sin_analizar.bin` ya NO tiene ningun
+  `sprite_momia_*`, 64 bytes cada uno; Sesión 18: + 4
+  `sprite_icono_sarcofago`/`_llave`/`_pergamino`/`_tesoro`, los iconos
+  de contenido de casilla cuya identidad corrige la Sesión 17) e
+  `img/tiles/` (Sesión 15: las 14 losetas de la familia de pisadas).
+  `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/` siguen
+  vacíos por ahora. `sound/guion_sonido_circular.bin` (Sesión 23: los 810 bytes
+  de `GUION_SONIDO_CIRCULAR`, música de fondo, con su `.txt` gemelo
+  editable y su `.wav` de referencia — ver `tools/guion_sonido_tool.py`
+  más abajo). `sound/envolvente_amplitud_1/2/3.bin` y
+  `sound/envolvente_tono_1/2/3.bin` (Sesión 25: las 6 envolventes de
+  volumen/tono, con `.txt` editable y `.wav` de demo de su forma) y
+  `sound/sonido_perder_vida.bin`/`sonido_tesoro.bin`/
+  `sonido_objeto_encontrado.bin` (Sesión 25: los 3 efectos puntuales,
+  mismo bloque `SOUND QUEUE` de 9 bytes que la música pero combinado
+  con una envolvente, con `.txt` editable y `.wav` real — ver
+  `tools/envolvente_sonido_tool.py` más abajo). `mummy1_resto_sin_analizar.bin` ya NO tiene ningun
   `INCBIN` que lo referencie desde la Sesión 14 (el motor entero está
   reconstruido como fuente) — se deja en el árbol como referencia
   histórica del binario en bruto.
@@ -196,7 +285,17 @@ Estructura del repositorio
   `z80_disasm.py` (desensamblador Z80 mecánico), `build_all.py`
   (compilar y verificar cada fichero por separado), `dsk_build.py`
   (reconstruir el `.dsk` completo desde cero y verificarlo byte a
-  byte contra el original).
+  byte contra el original), `guion_sonido_tool.py` (Sesión 23:
+  decodificar/codificar `GUION_SONIDO_CIRCULAR` -- binario <-> texto
+  editable por notas musicales, con round-trip byte a byte),
+  `guion_sonido_player.py` (sintetiza esa tabla a un `.wav` para poder
+  escucharla), `envolvente_sonido_tool.py` (Sesión 25: decodificar/
+  codificar las 6 envolventes de amplitud/tono y los 3 efectos de
+  sonido puntuales -- binario <-> texto editable, con round-trip byte
+  a byte) y `envolvente_sonido_player.py` (Sesión 25: sintetiza un
+  `.wav` de demo para cada envolvente suelta y el `.wav` real de cada
+  efecto puntual, combinando el registro `SOUND QUEUE` con su
+  envolvente de amplitud/tono).
 - `manuales/` — manuales técnicos de referencia, uno por subsistema,
   redactados al cerrar cada pieza (aún sin contenido).
 - `recursos/` — páginas HTML autocontenidas (visores/inventarios):
@@ -210,10 +309,14 @@ Estructura del repositorio
   `portada.html` (el logo "AMSOFT" ya renderizado a partir de los 191
   trazos reales del BASIC) tienen contenido real desde la Sesión 3.
   `sprites.html` (Sesión 8: explorador interactivo de
-  `TABLAS_SPRITE_CASILLA` con ancho/alto/modo CPC ajustables — el
-  formato real todavía no está confirmado). `graficos.html` (losetas)
-  sigue vacío — no se ha extraído ningún gráfico de tiles todavía. También
-  `ohmummy_referencia_binario.html`: documento de apoyo
+  `TABLAS_SPRITE_CASILLA` con ancho/alto/modo CPC ajustables; Sesión
+  16/17/18: explorador parametrizable y hoja completa que confirmó la
+  identidad de los 4 iconos de contenido de casilla y los 16 sprites de
+  jugador/momia — de los 1457 bytes de `TABLAS_SPRITE_CASILLA`, solo
+  quedan 17 bytes genuinamente sin identificar, ver Sesión 21).
+  `graficos.html` sigue vacío (las losetas de pisadas ya extraídas en
+  la Sesión 15 se documentan en `sprites.html`/`mapa_memoria.html`, no
+  ahí). También `ohmummy_referencia_binario.html`: documento de apoyo
   (aportado por el autor, no derivado del binario) con la hipótesis
   genérica de qué subsistemas esperar en un arcade de laberinto de
   CPC de 1984 — orienta la búsqueda, no sustituye la verificación

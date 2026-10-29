@@ -1,0 +1,102 @@
+; GUION_SONIDO_CIRCULAR -- musica de fondo de Oh Mummy
+; 90 registros x 9 bytes = 810 bytes, $905C-$9385
+; Formato de bloque SOUND QUEUE del firmware CPC (ver docstring de este
+; fichero / FINDINGS.md Sesion 23). frecuencia_Hz = 125000/periodo.
+; Edita 'nota=NOMBRE(periodo)': si cambias solo el NOMBRE (p.ej. C4 -> D4)
+; el periodo se recalcula con la formula; si dejas el numero entre
+; parentesis tal cual, se usa exacto (permite reconstruccion byte a byte).
+; vol=0-15, ruido=0 (sin ruido) o 1-31 (periodo de ruido), dur en centesimas
+; de segundo (con su equivalente en segundos entre parentesis).
+; canal/sync son mascaras A/B/C (letras concatenadas o '-' si ninguna);
+; hold/flush solo aparecen si estan activos; env/ent solo si no son 0.
+
+000 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 DE 01 00 0C 20 00
+001 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+002 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+003 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+004 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+005 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+006 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+007 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+008 canal=B nota=C#3(894) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 03 00 00 08 00
+009 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00
+010 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+011 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+012 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+013 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+014 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 DE 01 00 0C 20 00
+015 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+016 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=31cs(0.31s)  ; 11 00 00 DE 01 00 0C 1F 00
+017 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+018 canal=B nota=G3(638) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 00 08 00
+019 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00
+020 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 DE 01 00 0C 20 00
+021 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+022 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+023 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+024 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+025 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+026 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 3F 01 00 0C 20 00
+027 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+028 canal=B nota=G3(638) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 00 08 00
+029 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00
+030 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+031 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+032 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+033 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+034 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 DE 01 00 0C 20 00
+035 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+036 canal=A sync=B nota=C4(478) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 DE 01 00 0C 20 00
+037 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+038 canal=B nota=G3(638) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 00 08 00
+039 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00
+040 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+041 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+042 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 66 01 00 0C 20 00
+043 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+044 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 3F 01 00 0C 0F 00
+045 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+046 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+047 canal=A nota=G4(319) vol=12 ruido=0 dur=15cs(0.15s)  ; 01 00 00 3F 01 00 0C 0F 00
+048 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+049 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 3F 01 00 0C 0F 00
+050 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+051 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+052 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 3F 01 00 0C 0F 00
+053 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+054 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+055 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 3F 01 00 0C 20 00
+056 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+057 canal=A sync=B nota=G#4(301) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 2D 01 00 0C 20 00
+058 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+059 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 3F 01 00 0C 20 00
+060 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+061 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 66 01 00 0C 20 00
+062 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+063 canal=B nota=G3(638) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 00 08 00
+064 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00
+065 canal=A sync=B nota=D4(426) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 AA 01 00 0C 20 00
+066 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+067 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+068 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+069 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 66 01 00 0C 0F 00
+070 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+071 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+072 canal=A nota=F4(358) vol=12 ruido=0 dur=15cs(0.15s)  ; 01 00 00 66 01 00 0C 0F 00
+073 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+074 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 66 01 00 0C 0F 00
+075 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+076 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+077 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=15cs(0.15s)  ; 11 00 00 66 01 00 0C 0F 00
+078 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+079 canal=A nota=G4(319) vol=0 ruido=0 dur=1cs(0.01s)  ; 01 00 00 3F 01 00 00 01 00
+080 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 66 01 00 0C 20 00
+081 canal=B sync=A nota=G2(1276) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 FC 04 00 0C 08 00
+082 canal=A sync=B nota=G4(319) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 3F 01 00 0C 20 00
+083 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+084 canal=A sync=B nota=F4(358) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 66 01 00 0C 20 00
+085 canal=B sync=A nota=C3(956) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 BC 03 00 0C 08 00
+086 canal=A sync=B nota=D#4(402) vol=12 ruido=0 dur=32cs(0.32s)  ; 11 00 00 92 01 00 0C 20 00
+087 canal=B sync=A nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 0A 00 00 7E 02 00 0C 08 00
+088 canal=B nota=G3(638) vol=0 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 00 08 00
+089 canal=B nota=G3(638) vol=12 ruido=0 dur=8cs(0.08s)  ; 02 00 00 7E 02 00 0C 08 00

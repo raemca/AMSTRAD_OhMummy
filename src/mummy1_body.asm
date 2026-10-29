@@ -2062,7 +2062,7 @@ PROCESAR_ENCUENTROS_ENTIDADES_PERDER_VIDA:
     LD E,A                            ; 7616: 5f
     LD A,$20                          ; 7617: 3e20
     CALL DIBUJAR_ENTIDAD              ; 7619: cd397b
-    LD HL,$8000                       ; 761C: 210080
+    LD HL,SONIDO_PERDER_VIDA           ; 761C: 210080
     LD A,($7FC5)                      ; 761F: 3ac57f
     CP $59                            ; 7622: fe59
     CALL Z,FIRM_SOUND_QUEUE           ; 7624: ccaabc
@@ -2276,7 +2276,7 @@ MARCO_CONTENIDO_PERGAMINO:
 MARCO_CONTENIDO_LLAVE:
     LD ($816F),A                      ; 7751: 326f81
     PUSH HL                           ; 7754: e5
-    LD HL,$8012                       ; 7755: 211280
+    LD HL,SONIDO_OBJETO_ENCONTRADO     ; 7755: 211280
     LD A,($7FC5)                      ; 7758: 3ac57f
     CP $59                            ; 775B: fe59
     CALL Z,FIRM_SOUND_QUEUE           ; 775D: ccaabc
@@ -2294,7 +2294,7 @@ MARCO_CONTENIDO_MOMIA_REAL:
     ADD HL,BC                         ; 776E: 09
     LD ($815A),HL                     ; 776F: 225a81
     CALL IMPRIMIR_PUNTUACION_HUD      ; 7772: cd6378
-    LD HL,$8012                       ; 7775: 211280
+    LD HL,SONIDO_OBJETO_ENCONTRADO     ; 7775: 211280
     LD A,($7FC5)                      ; 7778: 3ac57f
     CP $59                            ; 777B: fe59
     CALL Z,FIRM_SOUND_QUEUE           ; 777D: ccaabc
@@ -2350,7 +2350,7 @@ MARCO_CONTENIDO_TESORO:
     ADD HL,BC                         ; 77BB: 09
     LD ($815A),HL                     ; 77BC: 225a81
     CALL IMPRIMIR_PUNTUACION_HUD      ; 77BF: cd6378
-    LD HL,$8009                       ; 77C2: 210980
+    LD HL,SONIDO_TESORO                ; 77C2: 210980
     LD A,($7FC5)                      ; 77C5: 3ac57f
     CP $59                            ; 77C8: fe59
     CALL Z,FIRM_SOUND_QUEUE           ; 77CA: ccaabc
@@ -3583,24 +3583,57 @@ RELLENO_FLAGS_OPCIONES:
     DB $00,$00,$00,$00                               ; 7FC6
 ; Confirmado: $6005 LD HL,$7FCA + LD A,$01 + CALL FIRM_SOUND_AMPL_ENV
 ENVOLVENTE_AMPLITUD_1:
-    DB $03,$00,$05,$01,$0A,$01,$02,$00,$00,$0A       ; 7FCA
+    INCBIN "data/sound/envolvente_amplitud_1.bin"  ; 7FCA, 10 bytes
 ; Confirmado: $6015 LD HL,$7FD4 + LD A,$02 + CALL FIRM_SOUND_AMPL_ENV
 ENVOLVENTE_AMPLITUD_2:
-    DB $03,$00,$0A,$01,$05,$01,$01,$05,$FD,$01       ; 7FD4
+    INCBIN "data/sound/envolvente_amplitud_2.bin"  ; 7FD4, 10 bytes
 ; Confirmado: $6025 LD HL,$7FDE + LD A,$03 + CALL FIRM_SOUND_AMPL_ENV
 ENVOLVENTE_AMPLITUD_3:
-    DB $02,$00,$0A,$01,$05,$01,$02                   ; 7FDE
+    INCBIN "data/sound/envolvente_amplitud_3.bin"  ; 7FDE, 7 bytes
 ; Confirmado: $600D LD HL,$7FE5 + LD A,$01 + CALL FIRM_SOUND_TONE_ENV
 ENVOLVENTE_TONO_1:
-    DB $05,$F1,$7B,$1E,$F1,$92,$1E,$F1,$AA,$1E,$F1,$C3,$1E,$F1,$DE,$1E ; 7FE5
+    INCBIN "data/sound/envolvente_tono_1.bin"  ; 7FE5, 16 bytes
 ; Confirmado: $601D LD HL,$7FF5 + LD A,$02 + CALL FIRM_SOUND_TONE_ENV
 ENVOLVENTE_TONO_2:
-    DB $01,$0A,$FB,$01                               ; 7FF5
-; Confirmado: $602D LD HL,$7FF9 + LD A,$03 + CALL FIRM_SOUND_TONE_ENV
+    INCBIN "data/sound/envolvente_tono_2.bin"  ; 7FF5, 4 bytes
+; Confirmado: $602D LD HL,$7FF9 + LD A,$03 + CALL FIRM_SOUND_TONE_ENV.
+; CORRECCION Sesion 24: el limite real de esta envolvente es de 7 bytes
+; (cabecera $02 = 2 pasos software; paso1 $F0,$8C,$01 en modo frecuencia
+; directa -- byte0>=$F0 -- tono=$08C=140, 892.9 Hz, dur 1cs; paso2
+; $0A,$FB,$01 en modo relativo -- cuenta=10, paso=-5, dur 1cs: un barrido
+; descendente rapido). Los 27 bytes siguientes NO son parte de la
+; envolvente: son 3 bloques SOUND QUEUE de 9 bytes para efectos de
+; sonido puntuales (confirmado: encajan exactos con los 4 "LD HL,$80xx"
+; + CALL Z,FIRM_SOUND_QUEUE ya reconstruidos en PROCESAR_ENCUENTROS_
+; ENTIDADES/MARCO_CONTENIDO_LLAVE/MOMIA_REAL/TESORO). Los 3 referencian
+; ENV/ENT 1/2/3 -- las mismas ENVOLVENTE_AMPLITUD_*/TONO_* de mas arriba
+; -- a diferencia de GUION_SONIDO_CIRCULAR (musica de fondo), que nunca
+; usa envolventes. Resuelve una de las 2 hipotesis pendientes de la
+; Sesion 23: la "duracion negativa" de SOUND QUEUE aparece exactamente
+; cuando ENV/ENT!=0 y tono/volumen=0 -- consistente con "repetir la
+; envolvente -N veces" en vez de usar duracion fija. Ver FINDINGS.md
+; Sesion 24.
 ENVOLVENTE_TONO_3:
-    DB $02,$F0,$8C,$01,$0A,$FB,$01,$04,$01,$01,$00,$00,$00,$00,$FA,$FF ; 7FF9
-    DB $04,$02,$02,$64,$00,$00,$00,$00,$00,$04,$03,$03,$00,$00,$00,$00 ; 8009
-    DB $FC,$FF                                       ; 8019
+    INCBIN "data/sound/envolvente_tono_3.bin"  ; 7FF9, 7 bytes
+; SONIDO_PERDER_VIDA: unico llamador confirmado, PROCESAR_ENCUENTROS_
+; ENTIDADES ($761C) justo tras decrementar NUM_VIDAS -- el efecto de
+; "la Momia Guardiana te alcanza". canal=C, ENV=1, ENT=1, tono=0,
+; vol=0, dur=-6 (repite la envolvente, no usa tono/duracion propios).
+SONIDO_PERDER_VIDA:
+    INCBIN "data/sound/sonido_perder_vida.bin"  ; 8000, 9 bytes
+; SONIDO_TESORO: unico llamador confirmado, MARCO_CONTENIDO_TESORO
+; ($77C2). canal=C, ENV=2, ENT=2, tono=$064=100 (1250 Hz, un "ping"
+; agudo), vol=0 (controlado por la envolvente), dur=0.
+SONIDO_TESORO:
+    INCBIN "data/sound/sonido_tesoro.bin"  ; 8009, 9 bytes
+; SONIDO_OBJETO_ENCONTRADO: 2 llamadores confirmados, compartido entre
+; MARCO_CONTENIDO_LLAVE ($7755) y MARCO_CONTENIDO_MOMIA_REAL ($7775) --
+; la misma "melodia" de hallazgo para ambos. canal=C, ENV=3, ENT=3,
+; tono=0, vol=0, dur=-4 (repite la envolvente de tono $F0,$8C,$01 +
+; barrido descendente ya descrita arriba: un "ding" descendente tipico
+; de recompensa).
+SONIDO_OBJETO_ENCONTRADO:
+    INCBIN "data/sound/sonido_objeto_encontrado.bin"  ; 8012, 9 bytes
 ; Texto literal confirmado (attract mode / pantalla "periodico"):
 ; "STOP PRESS!! British Museum today announced successful excavation
 ; of ancient Egyptian pyramid. Leader of team given bonus for his
@@ -4234,99 +4267,21 @@ PUNTERO_GUION_SONIDO:
 ; GUION_SONIDO_ULTIMO_REGISTRO ($937D), y llama a FIRM_SOUND_QUEUE
 ; cuando ($7FC4)=FLAG_MUSICA_FONDO='Y'. 90 registros de 9 bytes
 ; exactos (810 bytes = el resto justo hasta el final del motor,
-; $9385). Hipotesis media-alta: cada registro es un bloque de
-; parametros de SOUND QUEUE del firmware (estado 2B + tono 2B +
-; volumen/envolvente 1B + duracion 2B + envolventes 2B), formato sin
-; desglosar campo a campo.
+; $9385). Formato de bloque SOUND QUEUE del firmware CPC resuelto
+; campo a campo (Sesion 23, ver tools/guion_sonido_tool.py y
+; FINDINGS.md -- fuente: oldwiki.cpcwiki.eu/index.php/BIOS_Sound_Functions):
+; byte0 canal/flags (bits0-2 mascara canal A/B/C, bits3-5 mascara
+; "Rendezvous" A/B/C, bit6 Hold, bit7 Flush) + byte1 ENV + byte2 ENT +
+; bytes3-4 tono (periodo de 12 bits) + byte5 ruido + byte6 volumen +
+; bytes7-8 duracion (centesimas de segundo, 16 bits). ENV/ENT/ruido
+; son siempre 0 en esta tabla concreta -- no se usa ninguna envolvente
+; de hardware ni ruido, solo tono+volumen+duracion por canal. Extraido
+; a data/sound/guion_sonido_circular.bin (810 bytes), INCBIN partido en
+; dos tramos para que GUION_SONIDO_ULTIMO_REGISTRO conserve su propia
+; etiqueta a mitad del fichero (mismo patron de INCBIN con
+; offset/longitud ya usado para sprites/losetas, ver comentario al
+; principio del fichero).
 GUION_SONIDO_CIRCULAR:
-    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 905C
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9065
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 906E
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9077
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9080
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9089
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9092
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 909B
-    DB $02,$00,$00,$7E,$03,$00,$00,$08,$00 ; 90A4
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90AD
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 90B6
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 90BF
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 90C8
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90D1
-    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 90DA
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 90E3
-    DB $11,$00,$00,$DE,$01,$00,$0C,$1F,$00 ; 90EC
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 90F5
-    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 90FE
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9107
-    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 9110
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9119
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 9122
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 912B
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9134
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 913D
-    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 9146
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 914F
-    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9158
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9161
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 916A
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9173
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 917C
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9185
-    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 918E
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9197
-    DB $11,$00,$00,$DE,$01,$00,$0C,$20,$00 ; 91A0
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91A9
-    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 91B2
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91BB
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 91C4
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 91CD
-    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 91D6
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 91DF
-    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 91E8
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 91F1
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 91FA
-    DB $01,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9203
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 920C
-    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9215
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 921E
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9227
-    DB $11,$00,$00,$3F,$01,$00,$0C,$0F,$00 ; 9230
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9239
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9242
-    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 924B
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9254
-    DB $11,$00,$00,$2D,$01,$00,$0C,$20,$00 ; 925D
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9266
-    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 926F
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9278
-    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 9281
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 928A
-    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9293
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 929C
-    DB $11,$00,$00,$AA,$01,$00,$0C,$20,$00 ; 92A5
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 92AE
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 92B7
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 92C0
-    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92C9
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 92D2
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 92DB
-    DB $01,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92E4
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 92ED
-    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 92F6
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 92FF
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9308
-    DB $11,$00,$00,$66,$01,$00,$0C,$0F,$00 ; 9311
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 931A
-    DB $01,$00,$00,$3F,$01,$00,$00,$01,$00 ; 9323
-    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 932C
-    DB $0A,$00,$00,$FC,$04,$00,$0C,$08,$00 ; 9335
-    DB $11,$00,$00,$3F,$01,$00,$0C,$20,$00 ; 933E
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 9347
-    DB $11,$00,$00,$66,$01,$00,$0C,$20,$00 ; 9350
-    DB $0A,$00,$00,$BC,$03,$00,$0C,$08,$00 ; 9359
-    DB $11,$00,$00,$92,$01,$00,$0C,$20,$00 ; 9362
-    DB $0A,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 936B
-    DB $02,$00,$00,$7E,$02,$00,$00,$08,$00 ; 9374
+    INCBIN "data/sound/guion_sonido_circular.bin",0,801    ; 905C, 801 bytes (89 registros)
 GUION_SONIDO_ULTIMO_REGISTRO:
-    DB $02,$00,$00,$7E,$02,$00,$0C,$08,$00 ; 937D
+    INCBIN "data/sound/guion_sonido_circular.bin",801,9    ; 937D, 9 bytes (ultimo registro)

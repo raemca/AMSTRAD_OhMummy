@@ -1,0 +1,5 @@
+; sonido_tesoro.bin -- bloque SOUND QUEUE de 9 bytes (firmware CPC,
+; mismo formato que GUION_SONIDO_CIRCULAR -- ver guion_sonido_tool.py / FINDINGS
+; Sesion 23/24). frecuencia_Hz = 125000/periodo.
+; env=2 -> envolvente_amplitud_2.bin ; ent=2 -> envolvente_tono_2.bin (referenciadas por numero, no por direccion -- ver FINDINGS Sesion 24)
+000 canal=C env=2 ent=2 nota=D#6(100) vol=0 ruido=0 dur=0cs(0.00s)  ; 04 02 02 64 00 00 00 00 00

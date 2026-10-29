@@ -1,0 +1,11 @@
+; envolvente_amplitud_3.bin -- envolvente de volumen (SOUND_SET_ENV, firmware $BCBC)
+; Fuente del formato: https://oldwiki.cpcwiki.eu/index.php/BIOS_Sound_Functions
+; cabecera: tipo=software|hardware, pasos=numero de pasos de 3 bytes.
+; paso software: reps=repeticiones ($01-$7F; $00 visto en datos reales,
+; caso ESPECIAL/ambiguo, se preserva tal cual -- ver docstring del modulo),
+; incr=incremento de volumen con signo por repeticion, dur=duracion de
+; cada repeticion en centesimas de segundo (y su equivalente en segundos).
+; paso hardware: forma=forma de envolvente HW (0-15), frecuencia=frecuencia HW (0-65535).
+cabecera tipo=software pasos=2  ; 02
+paso 1 reps=0 incr=+10 dur=1cs(0.01s)  ; 00 0A 01 (ESPECIAL: reps=0, fuera del rango $01-$7F documentado, significado sin confirmar)
+paso 2 reps=5 incr=+1 dur=2cs(0.02s)  ; 05 01 02

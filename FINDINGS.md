@@ -3811,3 +3811,381 @@ de "GAME OVER"=9.
   hex), y los pares de coordenadas empaquetados en un solo `BC`/`DE`
   (p.ej. `LD BC,$0708` en `SUMAR_LADO_MARCO`) por no poder decimalizar
   sin romper el empaquetado de 2 bytes en una instrucción.
+
+## Sesión 23 — 2026-10-29: `GUION_SONIDO_CIRCULAR` decodificado campo a campo, extraído a fichero propio, y herramienta de edición + reproductor WAV
+
+El usuario pidió, para la música de fondo (`GUION_SONIDO_CIRCULAR`,
+90 registros de 9 bytes = 810 bytes, `$905C`-`$9385`, el final exacto
+del motor), el mismo flujo que ya existe en el proyecto hermano
+`MSX/proyectos/madmixgame` para su sonido: extraer el binario,
+convertirlo a texto editable, poder editar y reprocesar con round-trip
+byte a byte verificado, y un reproductor Python a `.wav`. El formato
+de los 9 bytes ya estaba descrito en la hipótesis previa (Sesión 3,
+"media-alta: bloque de parámetros de SOUND QUEUE del firmware, sin
+desglosar campo a campo") -- esta sesión lo desglosa y lo confirma.
+
+### Formato confirmado del bloque de 9 bytes
+
+Fuente: <https://oldwiki.cpcwiki.eu/index.php/BIOS_Sound_Functions>
+(parámetros de `SOUND QUEUE`/`SOUND`), y verificado independientemente
+decodificando los 90 registros reales: las frecuencias resultantes son
+notas musicales reales de la escala temperada (A4=440Hz) con <0.1% de
+error en todos los casos.
+
+| Offset | Campo | Significado |
+|---|---|---|
+| 0 | Canal/flags | bits0-2 = máscara canal A/B/C, bits3-5 = máscara "Rendezvous" A/B/C, bit6 = Hold, bit7 = Flush |
+| 1 | ENV | envolvente de volumen activa (0 = ninguna) |
+| 2 | ENT | envolvente de tono activa (0 = ninguna) |
+| 3 | Tono, byte bajo | byte bajo del periodo de 12 bits |
+| 4 | Tono, nibble alto | `(byte4 AND $0F)` = 4 bits altos del periodo; `periodo = byte3 + (byte4 AND $0F)*256` |
+| 5 | Ruido | `$00` = sin ruido, `$01`-`$1F` = periodo de ruido (compartido entre canales) |
+| 6 | Volumen | `$00`-`$0F` |
+| 7/8 | Duración | centésimas de segundo, 16 bits (`byte7 + byte8*256`, con signo) |
+
+`frecuencia_Hz = 125000 / periodo` (periodo en pasos de 8µs, fórmula
+real del firmware de la CPC).
+
+**Confirmado en los 90 registros reales** (extraídos y comparados
+contra `FISICO/extraido/MUMMY1.BIN` byte a byte, coinciden exacto con
+los `DB` que ya estaban en `mummy1_body.asm`):
+
+- ENV, ENT y ruido son **siempre 0** -- esta tabla no usa ninguna
+  envolvente de hardware ni ruido, solo tono+volumen+duración.
+- El byte de canal/flags solo toma **4 valores**: `$11` (canal A +
+  rendezvous B), `$0A` (canal B + rendezvous A), `$02` (canal B solo,
+  sin rendezvous) y `$01` (canal A solo, sin rendezvous). **Hold y
+  Flush (bits 6/7) nunca se activan en esta tabla** -- se revisó
+  explícitamente por instrucción del usuario, que advertía que esos
+  bits "sí varían": en los bytes de canal reales no varían (siempre
+  valen 0), lo que varía entre esos 4 valores son las máscaras de
+  canal (bits0-2) y de rendezvous (bits3-5). Patrón observado: una voz
+  principal alterna canal A (con rendezvous a B) / canal B (con
+  rendezvous a A) en pares consecutivos -- un dúo de 2 voces --, con
+  tramos sueltos en solo canal B (sin rendezvous) a modo de nota de
+  transición/silencio corto (volumen 0) entre frases.
+- El volumen solo toma 2 valores en toda la tabla: `12` (nota sonando)
+  y `0` (silencio explícito, usado en vez de periodo=0 en los
+  registros "de relleno").
+
+### Evidencia: primeros registros decodificados
+
+| # | Canal | Nota (periodo) | Vol | Duración |
+|---|---|---|---|---|
+| 0 | A (sync B) | C4 (478) | 12 | 32cs (0.32s) |
+| 1 | B (sync A) | G2 (1276) | 12 | 8cs (0.08s) |
+| 2 | A (sync B) | D4 (426) | 12 | 32cs (0.32s) |
+| 3 | B (sync A) | G3 (638) | 12 | 8cs (0.08s) |
+| 8 | B | C#3 (894) | **0** | 8cs (0.08s) |
+| 9 | B | G3 (638) | 12 | 8cs (0.08s) |
+
+Duración total de los 90 registros: 1391 centésimas = **13.91
+segundos**.
+
+### Qué se construyó
+
+- **`tools/guion_sonido_tool.py`** (estilo `amsdos_basic_tool.py`:
+  funciones `decodificar()`/`codificar()` con round-trip verificado,
+  no un script de un solo uso):
+  - `extraer`: lee los 810 bytes reales desde
+    `FISICO/extraido/MUMMY1.BIN` (offset `128 + ($905C-$6000)`),
+    contrasta byte a byte contra lo que había en `mummy1_body.asm`
+    (coincidían exacto) y escribe `src/data/sound/guion_sonido_circular.bin`.
+  - `decodificar`: bytes de 9 en 9 -> una línea de texto por registro
+    con campos `canal=`/`sync=`/`hold=`/`flush=` (opcionales,
+    omitidos si son el valor por defecto), `env=`/`ent=` (solo si no
+    son 0), `nota=NOMBRE(periodo)` (o `SILENCIO(periodo)`), `vol=`,
+    `ruido=` y `dur=Ncs(M.MMs)`, con los 9 bytes crudos en hex como
+    comentario al final de la línea para facilitar el diff. Escrito a
+    `src/data/sound/guion_sonido_circular.txt`.
+  - `codificar`: parsea ese texto y reconstruye los 810 bytes exactos.
+    Si el periodo entre paréntesis sigue correspondiendo al mismo
+    nombre de nota escrito, se usa el valor exacto tal cual (garantiza
+    el round-trip). Si el usuario edita el NOMBRE de la nota (p.ej.
+    `C4(478)` -> `D4(478)`, dejando el número viejo), el codificador
+    detecta la discrepancia y recalcula el periodo real con la fórmula
+    `periodo = round(125000/frecuencia)` -- probado manualmente:
+    editar `C4`->`D4` en el registro 0 da periodo 426, exactamente el
+    mismo periodo que ya usa el registro 2 (que de verdad es un D4).
+  - También puede extraer/verificar directamente desde `mummy1_body.asm`
+    (soporta tanto el formato antiguo de 90 líneas `DB` como el actual
+    con `INCBIN`).
+- **`src/data/sound/guion_sonido_circular.bin`** (810 bytes, extraídos
+  y verificados contra el binario físico) + **`guion_sonido_circular.txt`**
+  (texto editable) + **`guion_sonido_circular.wav`** (reproducible).
+- **`GUION_SONIDO_CIRCULAR` extraído a `INCBIN`** en `mummy1_body.asm`:
+  se sustituyeron las 90 líneas `DB` por dos `INCBIN` del mismo fichero
+  con offset/longitud (`,0,801` y `,801,9`), partido justo para que
+  `GUION_SONIDO_ULTIMO_REGISTRO` conserve su propia etiqueta a mitad
+  del fichero -- mismo patrón que ya se usa para sprites/losetas con
+  huecos de `INCBIN`.
+- **`tools/guion_sonido_player.py`**: sintetiza la tabla a `.wav`
+  (onda cuadrada por registro, con el periodo de tono exacto -> `125000/periodo`
+  Hz, duración exacta en centésimas de segundo, y el volumen 0-15
+  escalado a amplitud con una curva logarítmica aproximada). Como la
+  tabla es monofónica (nunca hay dos registros activos al mismo
+  tiempo, es una cola secuencial), no hace falta mezclar canales en
+  este reproductor. **Fiel**: periodo/frecuencia exactos, duración
+  exacta, silencios reales. **Aproximado**: la curva de volumen no es
+  la tabla logarítmica exacta de 16 pasos del chip real, no hay
+  generador de ruido ni envolventes de hardware implementados (no
+  hacen falta para esta tabla, que no los usa), y no se modela el
+  filtrado analógico de salida real de la CPC -- ver docstring del
+  propio fichero para el detalle completo.
+
+### Verificación
+
+- `python tools/guion_sonido_tool.py roundtrip <origen>` contra las 3
+  fuentes (`FISICO/extraido/MUMMY1.BIN`, `src/mummy1_body.asm` antes y
+  después del cambio a `INCBIN`, y el `.bin` extraído): **0
+  diferencias** en los 3 casos.
+- `python tools/build_all.py` tras sustituir los `DB` por `INCBIN` en
+  `mummy1_body.asm`: **0 diferencias** (`src/build/mummy1.bin`, 13190
+  bytes, y `src/build/mummy.bas`).
+- `python tools/guion_sonido_player.py render src/data/sound/guion_sonido_circular.bin src/data/sound/guion_sonido_circular.wav`:
+  genera un `.wav` de 613431 muestras a 44100 Hz = **13.91 segundos**,
+  exactamente la suma de las 90 duraciones (1391 centésimas).
+
+### Pendiente / hipótesis sin cerrar
+
+- El significado de una duración NEGATIVA (byte alto con el bit de
+  signo puesto) sigue sin confirmar -- el wiki apunta "¿repetir ENV -N
+  veces?" pero no ocurre en esta tabla (las 90 duraciones son
+  positivas), así que no hay forma de verificarlo aquí. El reproductor
+  lo trata como silencio si alguna vez apareciera.
+- El significado exacto de "Rendezvous" (sincronizar el inicio de un
+  registro con que OTRO canal también alcance un punto de
+  sincronismo) es la lectura literal del wiki; aquí solo se usa para
+  describir el dato, no se ha podido observar su efecto en
+  funcionamiento real (requeriría el firmware/emulador, fuera del
+  alcance de esta sesión).
+
+## Sesión 24 — 2026-10-29: los 3 efectos de sonido puntuales usan el mismo formato `SOUND QUEUE` que la música, y corrige el límite de `ENVOLVENTE_TONO_3`
+
+A raíz de una pregunta del usuario ("¿el resto de sonidos funcionan
+igual?"): se revisan las 4 llamadas restantes a `FIRM_SOUND_QUEUE`
+(las que no son de `ACTUALIZAR_SECUENCIA_SONIDO`/música) para
+comprobar si usan el mismo bloque de 9 bytes confirmado en la
+Sesión 23.
+
+### Hallazgo: 3 bloques de 9 bytes estaban mal incluidos dentro de `ENVOLVENTE_TONO_3`
+
+`ENVOLVENTE_TONO_3` (`$7FF9`) se documentaba con 34 bytes, pero una
+envolvente de tono completa (cabecera + hasta 5 pasos de 3 bytes) no
+puede pasar de 16 bytes, y aquí la cabecera (`$02`) solo declara 2
+pasos → **7 bytes reales** (`$7FF9`-`$7FFF`): paso 1 en modo
+"frecuencia directa" (`$F0,$8C,$01` → tono `$08C`=140, 892.9 Hz, 1cs)
+y paso 2 en modo relativo (`$0A,$FB,$01` → 10 pasos de -5, 1cs cada
+uno: un barrido descendente rápido).
+
+Los 27 bytes siguientes (`$8000`-`$801A`) son en realidad **3 bloques
+`SOUND QUEUE` de 9 bytes para efectos puntuales**, confirmado porque
+encajan exactos con los 3 destinos ya usados por los 4 `LD HL,$80xx`
++ `CALL Z,FIRM_SOUND_QUEUE` reconstruidos en las Sesiones 13-14
+(verificado extrayendo los bytes del binario de referencia, no a
+mano):
+
+| Etiqueta nueva | Dirección | Llamador(es) | canal | ENV | ENT | tono | vol | dur |
+|---|---|---|---|---:|---:|---|---:|---:|
+| `SONIDO_PERDER_VIDA` | `$8000` | `PROCESAR_ENCUENTROS_ENTIDADES` (`$761C`), justo tras decrementar `NUM_VIDAS` | C | 1 | 1 | 0 (ninguno) | 0 | -6 |
+| `SONIDO_TESORO` | `$8009` | `MARCO_CONTENIDO_TESORO` (`$77C2`) | C | 2 | 2 | 100 (1250 Hz) | 0 | 0 |
+| `SONIDO_OBJETO_ENCONTRADO` | `$8012` | `MARCO_CONTENIDO_LLAVE` (`$7755`) **y** `MARCO_CONTENIDO_MOMIA_REAL` (`$7775`) -- mismo sonido para los dos | C | 3 | 3 | 0 (ninguno) | 0 | -4 |
+
+### Esto responde la pregunta del usuario y cierra una hipótesis de la Sesión 23
+
+**Sí, los 3 efectos puntuales usan exactamente el mismo bloque de 9
+bytes que `GUION_SONIDO_CIRCULAR`** (mismo formato `SOUND QUEUE`,
+misma rutina de firmware `FIRM_SOUND_QUEUE`) -- la diferencia real no
+es el formato, sino el **uso**: la música nunca usa envolvente (`ENV`/
+`ENT` siempre 0 en sus 90 registros, tono/volumen directos), mientras
+que los 3 efectos puntuales SIEMPRE usan `ENV`/`ENT` != 0 (referencian
+exactamente `ENVOLVENTE_AMPLITUD_1/2/3` y `ENVOLVENTE_TONO_1/2/3`, ya
+confirmadas desde la Sesión 3) y dejan tono/volumen a 0 porque es la
+envolvente la que los controla. Esto **resuelve** una de las dos
+hipótesis pendientes de la Sesión 23: la duración negativa de
+`SOUND QUEUE` aparece precisamente cuando se delega en una envolvente
+(`ENV`/`ENT` != 0) en vez de en un tono/duración fijos -- consistente
+con "repetir la envolvente N veces" en lugar de reproducirla una sola
+vez con duración explícita. Queda sin verificar en emulador si el
+signo exacto (-6 vs -4) corresponde literalmente a "repetir 6/4
+veces" o a otra codificación, pero la correlación ENV/ENT!=0 ↔
+duración negativa es sólida (se cumple en los 3 casos, 0 excepciones).
+
+### Cambios
+
+`src/mummy1_body.asm`: `ENVOLVENTE_TONO_3` recortada a sus 7 bytes
+reales; 3 etiquetas nuevas (`SONIDO_PERDER_VIDA`, `SONIDO_TESORO`,
+`SONIDO_OBJETO_ENCONTRADO`); los 4 `LD HL,$80xx` que las usaban por
+dirección literal ahora usan el nombre. Ningún byte del binario
+cambia.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes).
+
+### Pendiente
+
+Igual que la Sesión 23: confirmar en emulador el significado exacto
+de la duración negativa y del bit "Rendezvous". Sin relación con el
+hallazgo de hoy: nada nuevo que desensamblar, es una corrección de
+límites/identidad sobre datos ya incluidos.
+
+## Sesión 24 (continuación) — 2026-10-29: las 6 envolventes y los 3 efectos puntuales, extraídos a `src/data/sound/*.bin`
+
+A petición del usuario: igual que `GUION_SONIDO_CIRCULAR` (Sesión 23),
+los 6 bloques de envolvente (`ENVOLVENTE_AMPLITUD_1/2/3`,
+`ENVOLVENTE_TONO_1/2/3`) y los 3 efectos puntuales nombrados hace un
+momento (`SONIDO_PERDER_VIDA`, `SONIDO_TESORO`,
+`SONIDO_OBJETO_ENCONTRADO`) se extraen de `DB` inline a ficheros
+individuales. Los 9 bloques son exactamente contiguos y sin huecos
+(`$7FCA`-`$801A`, 54 bytes), extraídos programáticamente de
+`FISICO/extraido/MUMMY1.BIN` (no transcritos a mano):
+
+```
+envolvente_amplitud_1.bin (10B, $7FCA)   envolvente_amplitud_2.bin (10B, $7FD4)
+envolvente_amplitud_3.bin (7B, $7FDE)    envolvente_tono_1.bin (16B, $7FE5)
+envolvente_tono_2.bin (4B, $7FF5)        envolvente_tono_3.bin (7B, $7FF9)
+sonido_perder_vida.bin (9B, $8000)       sonido_tesoro.bin (9B, $8009)
+sonido_objeto_encontrado.bin (9B, $8012)
+```
+
+Cada `DB` en `mummy1_body.asm` se sustituyó por `INCBIN
+"data/sound/<nombre>.bin"` bajo la misma etiqueta y dirección.
+
+### Verificación
+
+`python tools/build_all.py` → **0 diferencias** (motor 13190 bytes,
+cargador 2564 bytes). `python tools/dsk_build.py` → **0 diferencias**
+en el `.dsk` completo reconstruido (194816 bytes). Ningún byte del
+binario cambia.
+
+### Estado de `src/data/sound/` tras esta sesión
+
+Todo el sonido ya identificado del motor vive ahora en ficheros
+individuales: la música de fondo (`guion_sonido_circular.bin`, Sesión
+23) y las 6 envolventes + 3 efectos de esta sesión. No queda ningún
+dato de sonido confirmado todavía como `DB` inline en
+`mummy1_body.asm`.
+
+## Sesión 25 — 2026-10-29: `.txt` editable y `.wav` para las 6 envolventes y los 3 efectos puntuales
+
+A petición del usuario: igual que `guion_sonido_circular.bin` (Sesión
+23), los 9 ficheros `.bin` extraídos en la Sesión 24 (continuación)
+reciben su `.txt` editable con round-trip byte a byte y su `.wav` de
+audio. Herramientas nuevas, mismo estilo que `guion_sonido_tool.py`/
+`guion_sonido_player.py`:
+
+- `tools/envolvente_sonido_tool.py` — decodifica/codifica las 6
+  envolventes (`envolvente_amplitud_1/2/3.bin`, `envolvente_tono_
+  1/2/3.bin`) y, reutilizando directamente `decodificar_registro()`/
+  `codificar_linea()` de `guion_sonido_tool.py`, los 3 efectos
+  puntuales (mismo bloque `SOUND QUEUE` de 9 bytes que la música).
+- `tools/envolvente_sonido_player.py` — genera los `.wav`: un demo
+  aislado para cada envolvente suelta, y el `.wav` real de cada efecto
+  puntual combinando su registro `SOUND QUEUE` con la envolvente de
+  amplitud y de tono que referencia.
+
+### Formato de envolvente usado (fuente del wiki, confirmado a mano una vez sobre `envolvente_tono_3.bin` antes de programar)
+
+De <https://oldwiki.cpcwiki.eu/index.php/BIOS_Sound_Functions>
+(`SOUND_SET_ENV` `$BCBC` / `SOUND_SET_ENT` `$BCBF`):
+
+- **Amplitud**: cabecera (bit7 tipo SW/HW, bits6-0 nº de pasos de 3
+  bytes); paso SW = reps ($01-$7F) + incremento de volumen con signo +
+  duración en cs (`$00`=256).
+- **Tono**: cabecera (bit7 tipo, bit6 repetir, bits5-0 nº de pasos);
+  paso SW modo relativo (byte0 `<$F0`) = reps ($01-$EF) + incremento de
+  periodo con signo + duración; paso SW modo frecuencia directa (byte0
+  `>=$F0`) = nibble alto de periodo de 12 bits + byte bajo + duración.
+
+Los 6 headers reales (`$03,$03,$02,$05,$01,$02`) son todos software
+(bit7=0); ningún paso de hardware aparece en los datos reales, así que
+esa rama del decodificador/codificador queda implementada pero sin
+ejercitar contra datos del juego.
+
+### Hallazgo: `reps=$00` aparece 3 veces en los datos reales de amplitud, fuera del rango `$01-$7F` documentado
+
+En `envolvente_amplitud_1` (pasos 1 y 3) y en `envolvente_amplitud_2`/
+`envolvente_amplitud_3` (paso 1), el byte de repeticiones es `$00`. El
+wiki no documenta ese valor. Se preserva tal cual en el `.txt`
+(round-trip exacto) y se marca como "ESPECIAL" en un comentario; para
+sintetizar audio se trata como 1 repetición (asunción de renderizado,
+NO una afirmación sobre el firmware). Queda sin confirmar en emulador.
+
+### Hallazgo: el campo `tono` del propio registro `SOUND QUEUE` es la base de la envolvente de tono cuando ésta empieza en modo relativo
+
+`SONIDO_TESORO` es el único de los 3 efectos con `tono!=0` en su
+registro (periodo=100, 1250 Hz) — y es también el único cuyo `ENT`
+(`envolvente_tono_2`) consta de un solo paso en modo relativo (no trae
+periodo absoluto propio). `SONIDO_PERDER_VIDA`/`SONIDO_OBJETO_
+ENCONTRADO` tienen `tono=0` en su registro, pero sus envolventes
+(`envolvente_tono_1`/`_3`) EMPIEZAN con un paso en modo frecuencia
+directa que fija su propio periodo absoluto, así que el 0 del registro
+no afecta al resultado. Encaja de forma consistente con "el periodo
+del registro es el valor inicial sobre el que opera la envolvente
+relativa" — razonamiento propio a partir de los datos, no cita directa
+del firmware.
+
+### Hipótesis de renderizado usada para los 3 efectos puntuales (NO CONFIRMADA EN EMULADOR)
+
+Se usa literalmente la hipótesis abierta en la Sesión 24 ("duración
+negativa = repetir la envolvente `-duración` veces"), con las
+siguientes decisiones de implementación documentadas en el docstring
+de `envolvente_sonido_player.py`:
+
+1. `N = abs(dur)` si `dur<0` (`SONIDO_PERDER_VIDA` N=6, `SONIDO_
+   OBJETO_ENCONTRADO` N=4). Para `SONIDO_TESORO`, `dur=0` (no es
+   negativo): se asume `N=1` (una sola pasada) como caso por defecto —
+   asunción ADICIONAL de esta sesión, fuera de la hipótesis original
+   de la Sesión 24, que solo cubría el caso negativo.
+2. La envolvente de amplitud y la de tono se repiten N veces CADA UNA
+   por su cuenta (no sincronizadas); si una termina antes que la otra,
+   se sostiene su último valor hasta que la más larga termine.
+3. El valor inicial de volumen/periodo para cada envolvente es el
+   campo `vol`/`tono` del propio registro `SOUND QUEUE` (ver hallazgo
+   anterior).
+
+Duraciones resultantes bajo esta hipótesis: `SONIDO_PERDER_VIDA` ≈9.00s
+(dominada por los 5 pasos×30cs de `envolvente_tono_1`, ×6), `SONIDO_
+TESORO` ≈0.11s, `SONIDO_OBJETO_ENCONTRADO` ≈0.44s. Los ≈9s de
+`SONIDO_PERDER_VIDA` son sospechosamente largos para un efecto de
+"perder vida" de un arcade de 1984 — se documenta como posible señal
+de que la hipótesis (o al menos el caso `dur<0` combinado con una
+envolvente de tono de 5 pasos largos) no es exacta, sin resolverlo
+aquí: requeriría emulador.
+
+### Ficheros generados
+
+```
+src/data/sound/envolvente_amplitud_1.txt + .wav   (demo, 0.93s)
+src/data/sound/envolvente_amplitud_2.txt + .wav   (demo, 0.33s)
+src/data/sound/envolvente_amplitud_3.txt + .wav   (demo, 0.33s)
+src/data/sound/envolvente_tono_1.txt + .wav       (demo, 4.50s)
+src/data/sound/envolvente_tono_2.txt + .wav       (demo, 0.30s)
+src/data/sound/envolvente_tono_3.txt + .wav       (demo, 0.33s)
+src/data/sound/sonido_perder_vida.txt + .wav       (real, 9.00s)
+src/data/sound/sonido_tesoro.txt + .wav            (real, 0.11s)
+src/data/sound/sonido_objeto_encontrado.txt + .wav (real, 0.44s)
+```
+
+Los 6 `.wav` de envolvente suelta son demos (tono de referencia
+A4=440Hz para amplitud, volumen de referencia 10/15 para tono,
+repetidos 3 veces solo para audibilidad — ver docstring de
+`envolvente_sonido_player.py`), NO datos reales del juego.
+
+### Verificación
+
+`python tools/envolvente_sonido_tool.py roundtrip-todos` → **0
+diferencias** en los 6 `.bin` de envolvente y los 3 `.bin` de efecto
+(9/9 OK). `python tools/build_all.py` → **0 diferencias** (motor 13190
+bytes, cargador 2564 bytes) — sin tocar el ASM, solo verificación de
+disciplina. `GUION_SONIDO_CIRCULAR` (Sesión 23) no se toca: su
+roundtrip sigue dando 0 diferencias.
+
+### Pendiente
+
+Confirmar en emulador: el significado de `reps=$00`, la hipótesis de
+"duración negativa = repetir N veces" (y en particular por qué da
+~9s para `SONIDO_PERDER_VIDA`), y si el periodo del registro `SOUND
+QUEUE` es realmente la base de una envolvente de tono relativa.

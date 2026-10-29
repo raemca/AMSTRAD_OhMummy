@@ -181,11 +181,27 @@
   Complementa a <code>recursos/flujo_programa.html</code> (inventario plano de rutinas) con el
   <strong>grafo real de llamadas</strong> entre ellas. Punto de entrada confirmado: <code>$6000</code>
   (<code>src/load_disk/mummy_bas.bas</code>, linea 570-580: <code>LOAD"!mummy1",&amp;6000:CALL &amp;6000</code>).
-  Ultima actualizacion: <strong>Sesion 19, 2026-09-12</strong> (29 bucles
-  <code>DJNZ</code> con direccion literal reciben etiqueta funcional, y se corrige
+  Ultima actualizacion de este grafo: <strong>Sesion 22, 2026-09-12</strong>
+  (localizados los llamadores reales de <code>TABLA_OFFSETS_DIAMANTE</code>/
+  <code>VARIABLES_DIBUJO_MARCO</code> -- renombradas y descompuestas en
+  variables individuales -- y resuelta la identidad de
+  <code>TABLA_PARAMETROS_TRANSICION_PUNTUACIONES</code>, sin relacion con la
+  tabla de puntuaciones). Sesiones 19-20 etiquetaron una a una las 227
+  instrucciones <code>CALL</code>/<code>JP</code>/<code>JR</code> con
+  destino literal (incluidos 29 bucles <code>DJNZ</code>/<code>JR</code>
+  internos) -- cero direcciones "magicas" en todo el motor, sin alterar
+  ninguna arista de este grafo (el nodo que antes se citaba como
+  "<code>$7CC4</code>" se cita ahora por su nombre,
+  <code>VOLCAR_SPRITE_A_PANTALLA</code>) -- y de paso se corrige
   <code>IMPRIMIR_BYTES_CON_LONGITUD</code> -- antes <code>REPETIR_CARACTER</code>: no
   repite un caracter fijo, imprime una secuencia de bytes con longitud, confirmado
-  con aritmetica exacta contra <code>TEXTO_MENU_OPCIONES</code>). Sesion 17 renombrado
+  con aritmetica exacta contra <code>TEXTO_MENU_OPCIONES</code>. La Sesion 21
+  reescribio los bloques de texto con constantes <code>CTRL_TXT_*</code> con
+  nombre (sin alterar el grafo: es relabeling puro de datos). Las Sesiones
+  23-25 decodificaron el formato de sonido (<code>GUION_SONIDO_CIRCULAR</code>
+  y las 6 envolventes + 3 efectos puntuales) y los extrajeron a fichero
+  individual -- tampoco alteran este grafo, ver <code>FINDINGS.md</code>.
+  Sesion 17 renombrado
   <code>DIBUJAR_ICONO_SARCOFAGO</code>/<code>LLAVE</code>/<code>PERGAMINO</code>/<code>TESORO</code>, antes
   <code>DIBUJAR_TRAMO_MARCO_1..4</code>: identidad visual confirmada por el usuario con el explorador
   parametrizable de <code>recursos/sprites.html</code> y corroborada por su unico llamador de cada una
@@ -331,7 +347,8 @@
 
 <footer>
   Fuentes: <code>src/mummy1_body.asm</code> (verificado byte a byte contra <code>src/build/mummy1.bin</code>
-  via <code>python tools/build_all.py</code>), <code>FINDINGS.md</code> (Sesiones 1-9),
+  via <code>python tools/build_all.py</code>), <code>FINDINGS.md</code> (grafo creado en la Sesion 9,
+  actualizado hasta la Sesion 22 -- las Sesiones 23-25 no alteran el flujo de llamadas, ver nota de alcance arriba),
   <code>recursos/flujo_programa.html</code> y <code>recursos/flujo_secuencial.html</code>.
   Ver tambien <code>recursos/mapa_memoria.html</code> para las regiones/subregiones de memoria y
   <code>recursos/sprites.html</code> para el explorador visual de <code>TABLAS_SPRITE_CASILLA</code>.
@@ -368,7 +385,7 @@ const NODOS = [
     evidencia: "src/load_disk/mummy_bas.bas: MEMORY 15000:LOAD\"!mummy1\",&6000:CALL &6000. Sesion 2.", sesion: "2" },
   { id: "ENTRADA_MOTOR", addr: "$6000", addrFin: "$6400", nombre: "$6000-$6400 (arranque + menu, sin nombre propio)", subsistema: "arranque", tipo: "codigo",
     estado: "confirmado", confianza: "alta en estructura -- sin nombre semantico propio (reconstruccion mecanica de primera pasada)",
-    evidencia: "Desensamblado a mano y verificado byte a byte desde la Sesion 2. Llama a rutinas ya nombradas en tramos posteriores por direccion literal en varios puntos (ver panel de relaciones indirectas). Sesion 12: se le anade la etiqueta REANUDAR_MENU_TRAS_NOMBRE en $636C (sin cambiar ningun byte) -- destino real de JR Z,$636C ($6344) y del nuevo JP $636C ($6401), nunca alcanzado por caida natural.", sesion: "2" },
+    evidencia: "Desensamblado a mano y verificado byte a byte desde la Sesion 2. Llamaba a rutinas ya nombradas en tramos posteriores por direccion literal en varios puntos (ver panel de relaciones indirectas) -- RESUELTO en las Sesiones 19-20: las 227 instrucciones CALL/JP/JR con destino literal de todo el fichero quedan etiquetadas, esta cabecera incluida. Sesion 12: se le anade la etiqueta REANUDAR_MENU_TRAS_NOMBRE en $636C (sin cambiar ningun byte) -- destino real de JR Z,$636C ($6344) y del nuevo JP $636C ($6401), nunca alcanzado por caida natural.", sesion: "2" },
   { id: "BORRAR_BLOQUE_ESTADO", addr: "$7EAB", addrFin: "$7EB8", nombre: "BORRAR_BLOQUE_ESTADO", subsistema: "arranque", tipo: "codigo",
     estado: "confirmado", confianza: "alta",
     evidencia: "Borra a 0 desde ARRAY_ENTIDADES+5 ($8172) hasta el final de MAPA_CASILLAS ($860F), 1182 bytes, con LDIR origen=destino-1. Sesion 3/8.", sesion: "3" },
@@ -532,8 +549,8 @@ const NODOS = [
   { id: "PROCESAR_MOVIMIENTO_JUGADOR", addr: "$77D1", addrFin: "$7862", nombre: "PROCESAR_MOVIMIENTO_JUGADOR", subsistema: "entrada", tipo: "codigo",
     estado: "hipotesis", confianza: "alta en estructura, media en el mapeo exacto de teclas", evidencia: "Lee 8 codigos de tecla de firmware (TABLA_TECLAS_DIRECCION, 2 por direccion -- hipotesis alta: teclado+joystick, coherente con TEXTO_INSTR_20), reordena la prioridad de direccion segun la orientacion del jugador ($8157), y mueve saltando a mitad de MOVER_INDICADOR_MENU -- confirma que esa rutina (nombrada en la Sesion 6 pensando en el cursor del menu) se reutiliza tambien durante la partida real. Sesion 14.", sesion: "14" },
   // ---- datos (capa opcional, oculta por defecto) ----
-  { id: "DATO_ENVOLVENTES", addr: "$7FCA", addrFin: "$801A", nombre: "Envolventes de sonido (6 tablas)", subsistema: "datos", tipo: "dato",
-    estado: "confirmado", confianza: "alta (limites); formato de campos sin desglosar", evidencia: "ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3, direcciones confirmadas por las LD HL previas a cada CALL FIRM_SOUND_*_ENV en ENTRADA_MOTOR. Limite final corregido 2 bytes antes en la Sesion 21 (los ultimos 2 bytes que se atribuian aqui son el arranque real de TEXTO_HISTORIA_ATRACCION, confirmado por el CALL de PANTALLA_STOP_PRESS). Sesion 3/8/21.", sesion: "3" },
+  { id: "DATO_ENVOLVENTES", addr: "$7FCA", addrFin: "$7FFF", nombre: "Envolventes de sonido (6 tablas)", subsistema: "datos", tipo: "dato",
+    estado: "confirmado", confianza: "alta, formato completo", evidencia: "ENVOLVENTE_AMPLITUD_1..3 / ENVOLVENTE_TONO_1..3, direcciones confirmadas por las LD HL previas a cada CALL FIRM_SOUND_*_ENV en ENTRADA_MOTOR. Sesion 24 CORRIGE el limite de ENVOLVENTE_TONO_3: son 7 bytes reales ($7FF9-$7FFF), no 34 -- los 27 bytes siguientes ($8000-$801A) son 3 bloques SOUND QUEUE de 9 bytes para efectos puntuales (SONIDO_PERDER_VIDA/_TESORO/_OBJETO_ENCONTRADO, llamados desde PROCESAR_ENCUENTROS_ENTIDADES/MARCO_CONTENIDO_TESORO/_LLAVE/_MOMIA_REAL), no parte de la envolvente. Sesion 25 decodifica el formato completo de cabecera+pasos de las 6 envolventes contra SOUND_SET_ENV/SOUND_SET_ENT del firmware y las extrae a src/data/sound/*.bin con .txt editable y .wav de demo. Sesion 3/8/21/24/25.", sesion: "24" },
   { id: "DATO_TEXTOS", addr: "varias", addrFin: "varias", nombre: "Textos del juego (menu, atraccion, HI-SCORE, copyright)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta (texto literal legible, y desde la Sesion 21 con todos sus puntos de entrada reales verificados)", evidencia: "$7EFD-$7FC5, $801B-$8136, $866D-$8737, $8740-$877C. Incluye el copyright real \"OH MUMMY\" (c) 1984 GEM SOFTWARE. Sesion 21: reescrito con constantes CTRL_TXT_* (Appendix VII del firmware, cpctech.cpcwiki.de/docs/manual/s968ap07.pdf) en vez de hexadecimal en bruto; localizados y verificados los 27 puntos de entrada reales de IMPRIMIR_BYTES_CON_LONGITUD que consumen estos bloques (antes varios se documentaban como \"sin CALL conocido\"). Sesion 8/21.", sesion: "21" },
   { id: "DATO_TABLAS_MARCO", addr: "$877D", addrFin: "$889C", nombre: "SPRITE_ICONO_SARCOFAGO/LLAVE/PERGAMINO/TESORO", subsistema: "datos", tipo: "dato",
@@ -545,7 +562,7 @@ const NODOS = [
   { id: "DATO_DIRECCIONES_PANTALLA", addr: "$8ECA", addrFin: "$9059", nombre: "TABLA_DIRECCIONES_PANTALLA (construida en tiempo de ejecucion)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta", evidencia: "200 entradas x 2 bytes, rellenadas por el bucle de ENTRADA_MOTOR con FIRM_SCR_DOT_POSITION. El fichero la tiene a 0. Sesion 3/8.", sesion: "3" },
   { id: "DATO_GUION_SONIDO", addr: "$905A", addrFin: "$9385", nombre: "PUNTERO_GUION_SONIDO + GUION_SONIDO_CIRCULAR (90 registros x 9 bytes)", subsistema: "datos", tipo: "dato",
-    estado: "confirmado", confianza: "alta en estructura circular; media-alta en el formato de cada registro", evidencia: "Confirmado circular por ACTUALIZAR_SECUENCIA_SONIDO (reinicia al llegar a $937D). Sesion 6/8.", sesion: "6" },
+    estado: "confirmado", confianza: "alta en estructura circular y en el formato de cada registro", evidencia: "Confirmado circular por ACTUALIZAR_SECUENCIA_SONIDO (reinicia al llegar a $937D). Sesion 23: formato de cada registro de 9 bytes decodificado campo a campo contra SOUND QUEUE del firmware (canal/flags, ENV, ENT, tono de 12 bits, ruido, volumen, duracion de 16 bits), verificado con las 90 notas reales (frecuencias exactas, <0.1% error) y extraido a src/data/sound/guion_sonido_circular.bin con .txt editable (round-trip byte a byte) y .wav de referencia (tools/guion_sonido_tool.py/_player.py). Sesion 6/8/23.", sesion: "23" },
   { id: "DATO_POSICIONES_DECIMALES", addr: "$8738", addrFin: "$873F", nombre: "TABLA_POSICIONES_DECIMALES (10000,1000,100,10)", subsistema: "datos", tipo: "dato",
     estado: "confirmado", confianza: "alta", evidencia: "Confirmada y corregida en Sesion 8 (no empezaba en $8736 como se creia -- esos 2 bytes son el final de 'name' de TEXTO_MENU_PRINCIPAL).", sesion: "8" },
   { id: "DATO_GAME_OVER", addr: "$813A", addrFin: "$8167", nombre: "TABLA_FILAS_VALIDAS_CASILLAS / TABLA_COLUMNAS_VALIDAS_CASILLAS / TABLA_TECLAS_DIRECCION", subsistema: "datos", tipo: "dato",
@@ -581,23 +598,23 @@ const ARISTAS = [
   { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_LLAVE", tipo: "call", nota: "$618E" },
   { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_PERGAMINO", tipo: "call", nota: "$61D0" },
   { from: "ENTRADA_MOTOR", to: "DIBUJAR_ICONO_TESORO", tipo: "call", nota: "x3 ($617F/$61C1/$61DF)" },
-  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_1", tipo: "call", nota: "CALL $7DFC ($6176) -- direccion literal, no via etiqueta" },
-  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_2", tipo: "call", nota: "CALL $7E05 ($61D9) -- direccion literal" },
-  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_3", tipo: "call", nota: "CALL $7E0E ($6185) -- direccion literal" },
-  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_4", tipo: "call", nota: "CALL $7E17 ($61CA) -- direccion literal" },
-  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_6", tipo: "call", nota: "CALL $7E29 x4 ($6194/$61A3/$61AC/$61BB) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_1", tipo: "call", nota: "$6176 (CALL RELLENAR_MARCO_DIAGONAL_1 -- antes direccion literal $7DFC sin etiqueta, sustituida en la Sesion 19 continuacion 2)" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_2", tipo: "call", nota: "$61D9 (antes direccion literal $7E05, sustituida Sesion 19 continuacion 2)" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_3", tipo: "call", nota: "$6185 (antes direccion literal $7E0E, sustituida Sesion 19 continuacion 2)" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_4", tipo: "call", nota: "$61CA (antes direccion literal $7E17, sustituida Sesion 19 continuacion 2)" },
+  { from: "ENTRADA_MOTOR", to: "RELLENAR_MARCO_DIAGONAL_6", tipo: "call", nota: "x4 ($6194/$61A3/$61AC/$61BB) (antes direccion literal $7E29, sustituida Sesion 19 continuacion 2)" },
   { from: "ENTRADA_MOTOR", to: "INICIALIZAR_ENTIDADES", tipo: "call", nota: "x2 ($61EB/$6334)" },
   { from: "ENTRADA_MOTOR", to: "FIRM_KM_READ_CHAR", tipo: "call", nota: "varias veces" },
   { from: "ENTRADA_MOTOR", to: "ANIMAR_OPCION_MENU", tipo: "call", nota: "varias veces (1 y 2 jugadores)" },
-  { from: "ENTRADA_MOTOR", to: "MOVER_INDICADOR_MENU", tipo: "call", nota: "CALL $78F7 x2 ($6209/$6214) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "MOVER_INDICADOR_MENU", tipo: "call", nota: "x2 ($6209/$6214) (antes direccion literal $78F7, sustituida Sesion 19 continuacion 2)" },
   { from: "ENTRADA_MOTOR", to: "ESPERAR_TECLA_2C", tipo: "call", nota: "x2 ($620C/$621E)" },
   { from: "ENTRADA_MOTOR", to: "FIRM_KM_TEST_KEY", tipo: "call", nota: "$6219" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_CLEAR_WINDOW", tipo: "call", nota: "x3" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_SET_PAPER", tipo: "call", nota: "varias veces" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_SET_CURSOR", tipo: "call", nota: "varias veces" },
-  { from: "ENTRADA_MOTOR", to: "IMPRIMIR_NUMERO_HL", tipo: "call", nota: "CALL $786C x5 -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "IMPRIMIR_NUMERO_HL", tipo: "call", nota: "x5 (antes direccion literal $786C, sustituida Sesion 19/20)" },
   { from: "ENTRADA_MOTOR", to: "FIRM_TXT_OUTPUT", tipo: "call", nota: "varias veces" },
-  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "CALL $7B39 x2 ($6279/$628A) -- direccion literal" },
+  { from: "ENTRADA_MOTOR", to: "DIBUJAR_ENTIDAD", tipo: "call", nota: "x2 ($6279/$628A) (antes direccion literal $7B39, sustituida Sesion 19/20)" },
   { from: "ENTRADA_MOTOR", to: "DESPACHAR_MENU_PRINCIPAL", tipo: "jpcc", cond: "Z", nota: "JP Z,$6404 ($6380), cuando ($8168)=0. Sesion 12: destino ya resuelto (antes caia en el hueco pendiente)." },
 
   { from: "ENTRADA_MOTOR", to: "FIN_INTRODUCIR_NOMBRE", tipo: "fallthrough", nota: "sin salto: $63FE-$6400 (fin de ENTRADA_MOTOR, CALL FIRM_TXT_SET_PAPER) precede directamente a $6401. Sesion 12." },
@@ -788,7 +805,7 @@ const ARISTAS_DATO = [
 const RELACIONES_ADICIONALES = [
   { origen: "RELLENAR_MARCO_VACIO ($7DF5)", destino: "-- (sin llamador)", tipo: "Rutina sin llamador conocido", detalle: "Ninguna instruccion CALL/JP/JR de todo el codigo ya reconstruido referencia $7DF5 ni la etiqueta RELLENAR_MARCO_VACIO. Candidata a vivir en el hueco pendiente $6401-$786B. Sesion 7." },
   { origen: "RELLENAR_MARCO_DIAGONAL_5 ($7E20)", destino: "SELECCIONAR_DIAGONAL_MARCO_NIVEL", tipo: "Llamador RESUELTO en la Sesion 13", detalle: "Era la unica de las 6 variantes diagonales sin llamador confirmado. La Sesion 13 confirma que SELECCIONAR_DIAGONAL_MARCO_NIVEL ($6685) la elige cuando el nivel de partida ($815C)==3, dentro del despacho por nivel que parchea con codigo automodificable el CALL en $66B9 -- exactamente la pista que dejaba pendiente la Sesion 12. Sesion 7/9/12/13." },
-  { origen: "ENTRADA_MOTOR", destino: "RELLENAR_MARCO_DIAGONAL_1/2/3/4/6", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 7 y recursos/flujo_programa.html afirman 'sin llamador conocido todavia' para las 6 variantes diagonales. Releyendo src/mummy1_body.asm linea a linea para este grafo se confirma que 5 de las 6 (todas menos DIAGONAL_5) SI tienen llamador: el propio bloque ENTRADA_MOTOR ($6000-$6400) las llama por direccion literal (CALL $7DFC/$7E05/$7E0E/$7E17/$7E29) -- ese bloque nunca se renombro tras nombrar las rutinas destino en la Sesion 7, asi que la busqueda de 'llamador conocido' de esa sesion no lo detecto. Se propone actualizar flujo_programa.html y FINDINGS.md en consecuencia (ver la entrada de Sesion 9)." },
+  { origen: "ENTRADA_MOTOR", destino: "RELLENAR_MARCO_DIAGONAL_1/2/3/4/6", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 7 y recursos/flujo_programa.html afirman 'sin llamador conocido todavia' para las 6 variantes diagonales. Releyendo src/mummy1_body.asm linea a linea para este grafo se confirma que 5 de las 6 (todas menos DIAGONAL_5) SI tienen llamador: el propio bloque ENTRADA_MOTOR ($6000-$6400) las llama por direccion literal (CALL $7DFC/$7E05/$7E0E/$7E17/$7E29) -- ese bloque nunca se renombro tras nombrar las rutinas destino en la Sesion 7, asi que la busqueda de 'llamador conocido' de esa sesion no lo detecto. Se propone actualizar flujo_programa.html y FINDINGS.md en consecuencia (ver la entrada de Sesion 9). RESUELTO Sesion 19 continuacion 2: las 5 CALL por direccion literal se sustituyeron por el nombre real de cada etiqueta (ver tabla de ARISTAS arriba) -- ya no queda ninguna direccion literal en todo el fichero." },
   { origen: "DIBUJAR_CASILLA_MAPA ($7CE6)", destino: "DIBUJAR_ENTIDAD, en $7CC4", tipo: "Correccion de esta sesion", detalle: "FINDINGS.md Sesion 6 resume que DIBUJAR_CASILLA_MAPA 'cae directamente (sin RET) en CONSULTAR_CASILLA_MAPA ($7D3E)'. El disassembly real muestra que todas las ramas de DIBUJAR_CASILLA_MAPA terminan en 'JR $7CC4' ($7D3C), una direccion dentro de DIBUJAR_ENTIDAD (el bucle comun de volcado a pantalla), no en CONSULTAR_CASILLA_MAPA. La adyacencia fisica en el fichero (CONSULTAR_CASILLA_MAPA arranca justo en $7D3E, 2 bytes despues) es our probable origen de la confusion en el resumen, pero no hay fall-through real: el JR salta fuera de esa direccion. No se ha corregido el texto de FINDINGS.md de sesiones pasadas (no se reescribe historia), pero este grafo usa el flujo verificado." },
   { origen: "ENTRADA_MOTOR", destino: "DESPACHAR_MENU_PRINCIPAL ($6404)", tipo: "Salto resuelto en la Sesion 12", detalle: "JP Z,$6404 ($6380): hasta la Sesion 11 el destino caia en el hueco sin resolver. La Sesion 12 desensambla y nombra DESPACHAR_MENU_PRINCIPAL -- ya no aparece en este panel como 'salto a zona sin resolver'." },
   { origen: "ENTRADA_MOTOR", destino: "INICIAR_PARTIDA ($6529)", tipo: "Salto resuelto en la Sesion 13", detalle: "JP Z,$6529 x2 (tecla P/p, jugar): hasta la Sesion 12 el destino caia en el hueco sin resolver. La Sesion 13 desensambla y nombra INICIAR_PARTIDA -- ya no aparece en este panel como 'salto a zona sin resolver'." },

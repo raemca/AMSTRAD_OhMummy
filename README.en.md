@@ -25,9 +25,20 @@ notice.
 
 Current status
 ---------------
-**Session 14 — the engine is COMPLETELY reconstructed, with no
-remaining unanalyzed `INCBIN` code stretch**: firmware identified,
-full `.dsk` regenerated from scratch. The disk's
+**The engine has been COMPLETELY reconstructed since Session 14, with
+no remaining unanalyzed `INCBIN` code stretch**, and Sessions 15-25
+took the work beyond the code itself: **zero "magic" literal addresses
+left anywhere in the engine** (all 227 `CALL`/`JP`/`JR` instructions
+with a literal target are individually labeled, Sessions 19-20), the
+identity of the 4 box-content icons is **corrected** (sarcophagus,
+key, scroll and treasure — through Session 16 these were believed to
+be part of the level's "decorative frame", Session 17), and **every
+already-identified graphics and sound resource now lives in its own
+individual file**, programmatically extracted from the binary and
+byte-verified (footprint tiles and icon sprites, Sessions 15/18;
+background music and the 3 one-shot sound effects, with custom
+decode/playback tooling, Sessions 23-25). Firmware identified, full
+`.dsk` regenerated from scratch. The disk's
 AMSDOS catalogue (`FISICO/Oh Mummy (1984)(Amsoft).dsk`, 194816 bytes,
 standard CPCEMU format, 40 tracks x 1 side, 9x512 data format, sector
 IDs `C1`-`C9`) only has **2 files**:
@@ -131,6 +142,71 @@ unanalyzed `INCBIN` code stretch left** — see `FINDINGS.md` for the
 full call map, the per-routine/data confidence table, and the
 methodology used.
 
+With the engine complete, **Sessions 15-18** extracted the last
+graphics that were still inline `DB` data to individual files: the 14
+tiles of the footprint family (Session 15, `src/data/img/tiles/`)
+and, more importantly, corrected a wrong identity that had stood since
+Session 3: the 4 tables `TABLA_MARCO_1..4`/routines
+`DIBUJAR_TRAMO_MARCO_1..4`, long assumed to draw "stretches of the
+level's decorative frame" without ever having actually looked at their
+pixel content, turned out (Session 16, a parametrized explorer added
+to `recursos/sprites.html`; Session 17, the user's visual
+identification corroborated by each routine's single real caller) to
+be the **4 box-content icons**: sarcophagus (Royal Mummy), key, scroll
+and treasure. Renamed to `TABLA_ICONO_*`/`DIBUJAR_ICONO_*` and, once
+confirmed as sprite data, to `SPRITE_ICONO_*` with extraction to
+individual files (Session 18, `src/data/img/sprites/`).
+
+**Sessions 19-20** swept the whole file looking for the kind of
+mechanical jump target an original source would never have: 29
+internal `DJNZ`/`JR` loops and all 227 `CALL`/`JP`/`JR` instructions
+that jumped to a literal `$XXXX` address received a functional label,
+one by one, after reading the real context of each destination — the
+final sweep confirms **zero** literal addresses of this kind left
+anywhere in `src/mummy1_body.asm`, including the file's most-cited
+entry point, `VOLCAR_SPRITE_A_PANTALLA` ($7CC4, 26+ callers). Along
+the way, a hypothesis taken for granted since Session 3 was corrected:
+`REPETIR_CARACTER` doesn't repeat a fixed character, it prints a
+length-prefixed byte sequence — renamed `IMPRIMIR_BYTES_CON_LONGITUD`,
+with the mechanism verified through exact address arithmetic against
+`PANTALLA_OPCIONES`'s real on-screen labels.
+
+**Session 21** located the firmware's complete official Text VDU
+control-code table (Appendix VII of the CPC manual) and rewrote the
+game's mixed text blocks (control codes + ASCII) — the options menu,
+the attract-mode story, the score table, the main menu, the copyright
+notice — with 32 named `CTRL_TXT_*` constants, the way the original
+programmer would have written them, instead of raw hexadecimal.
+**Session 22** located the real callers of
+`TABLA_OFFSETS_DIAMANTE`/`VARIABLES_DIBUJO_MARCO` (renamed
+`TABLA_POSICIONES_INICIALES_ENTIDADES`, decomposed into 4 individual
+variables) and audited 24 labels that looked like they had "no
+apparent caller" — almost all of them did (through natural fall-through
+or an unreplaced literal address); it also resolved
+`TABLA_PARAMETROS_TRANSICION_PUNTUACIONES` (a wrong name: it has
+nothing to do with the score table, it's palette/screen-mode
+initialization data with 2 real callers) and converted hexadecimal
+literals whose real meaning is an in-game quantity (lives, points,
+table sizes...) to decimal.
+
+**Sessions 23-25** did the same work for sound. The background music
+(`GUION_SONIDO_CIRCULAR`, 90 9-byte records) was decoded field by
+field against the CPC firmware's `SOUND QUEUE` format (Session 23),
+and the 3 one-shot sound effects (lose a life, treasure, item found)
+turned out to use exactly the same format, combined with the 6
+volume/tone envelopes already known since Session 3 (Session 24 —
+which also corrects the real boundary of `ENVOLVENTE_TONO_3`, which
+had those 3 blocks mixed into it). The 9 resulting files (music + 6
+envelopes + 3 effects) are extracted to `src/data/sound/*.bin`, each
+with an editable `.txt` twin (byte-exact round-trip verified) and a
+reference `.wav`, using new custom tooling
+(`tools/guion_sonido_tool.py`/`_player.py`,
+`tools/envolvente_sonido_tool.py`/`_player.py`, Sessions 23 and 25).
+Some low-level details of the format (the exact meaning of a negative
+`SOUND QUEUE` duration, or of the "Rendezvous" bit) remain a
+reasoned-from-the-data hypothesis, not confirmed in an emulator — see
+`FINDINGS.md` Sessions 23-25 for the full detail.
+
 Building
 --------
 ```
@@ -175,9 +251,23 @@ Repository structure
 - `src/data/` — resources already identified and extracted to
   individual files, included in the source via `INCBIN`:
   `img/sprites/` (Session 8: the 16 `DIBUJAR_ENTIDAD` sprites —
-  `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each), `img/tiles/`,
-  `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/`,
-  `sound/` (these still empty for now). `mummy1_resto_sin_analizar.bin`
+  `sprite_jugador_*`/`sprite_momia_*`, 64 bytes each; Session 18: + 4
+  `sprite_icono_sarcofago`/`_llave`/`_pergamino`/`_tesoro`, the
+  box-content icons whose identity Session 17 corrected) and
+  `img/tiles/` (Session 15: the 14 tiles of the footprint family).
+  `img/logo/`, `img/marco_decorativo/`, `img/texto/`, `niveles/` are
+  still empty for now. `sound/guion_sonido_circular.bin` (Session 23:
+  the 810 bytes of `GUION_SONIDO_CIRCULAR`, the background music, with
+  its twin editable `.txt` and reference `.wav` — see
+  `tools/guion_sonido_tool.py` below). `sound/envolvente_amplitud_1/2/3.bin`
+  and `sound/envolvente_tono_1/2/3.bin` (Session 25: the 6
+  volume/tone envelopes, with editable `.txt` and a demo `.wav` of
+  their shape) and `sound/sonido_perder_vida.bin`/`sonido_tesoro.bin`/
+  `sonido_objeto_encontrado.bin` (Session 25: the 3 one-shot sound
+  effects, the same 9-byte `SOUND QUEUE` block as the music but
+  combined with an envelope, with editable `.txt` and a real `.wav` —
+  see `tools/envolvente_sonido_tool.py` below).
+  `mummy1_resto_sin_analizar.bin`
   is no longer referenced by any `INCBIN` as of Session 14 (the whole
   engine is now reconstructed as source) — left in the tree as a
   historical reference to the raw binary.
@@ -193,7 +283,17 @@ Repository structure
   `z80_disasm.py` (mechanical Z80 disassembler), `build_all.py`
   (build and verify each file separately), `dsk_build.py` (rebuild
   the full `.dsk` from scratch and verify it byte-for-byte against
-  the original).
+  the original), `guion_sonido_tool.py` (Session 23: decode/encode
+  `GUION_SONIDO_CIRCULAR` — binary <-> editable text by musical note,
+  with byte-exact round-trip), `guion_sonido_player.py` (synthesizes
+  that table to a `.wav` so it can be listened to),
+  `envolvente_sonido_tool.py` (Session 25: decode/encode the 6
+  amplitude/tone envelopes and the 3 one-shot sound effects — binary
+  <-> editable text, with byte-exact round-trip) and
+  `envolvente_sonido_player.py` (Session 25: synthesizes a demo `.wav`
+  for each standalone envelope and the real `.wav` of each one-shot
+  effect, combining the `SOUND QUEUE` register with its
+  amplitude/tone envelope).
 - `manuales/` — technical reference manuals, one per subsystem,
   written as each piece is closed out (no content yet).
 - `recursos/` — self-contained HTML pages (viewers/inventories):
@@ -208,9 +308,13 @@ Repository structure
   (the "AMSOFT" logo now rendered from the BASIC's 191 real strokes)
   have real content since Session 3. `sprites.html` (Session 8:
   interactive explorer for `TABLAS_SPRITE_CASILLA` with adjustable
-  width/height/CPC mode — the real format is not confirmed yet).
-  `graficos.html` (tiles) is still empty — no tile graphics have been
-  extracted yet. Also `ohmummy_referencia_binario.html`: a supporting
+  width/height/CPC mode; Sessions 16/17/18: parametrized explorer and
+  full data sheet that confirmed the identity of the 4 box-content
+  icons and the 16 player/mummy sprites — of `TABLAS_SPRITE_CASILLA`'s
+  1457 bytes, only 17 remain genuinely unidentified, see Session 21).
+  `graficos.html` is still empty (the footprint tiles extracted in
+  Session 15 are documented in `sprites.html`/`mapa_memoria.html`
+  instead). Also `ohmummy_referencia_binario.html`: a supporting
   document (provided
   by the author, not derived from the binary) with a generic
   hypothesis of what subsystems to expect in a 1984 CPC maze arcade

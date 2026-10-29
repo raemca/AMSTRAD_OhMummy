@@ -1,0 +1,12 @@
+; envolvente_tono_3.bin -- envolvente de tono (SOUND_SET_ENT, firmware $BCBF)
+; Fuente del formato: https://oldwiki.cpcwiki.eu/index.php/BIOS_Sound_Functions
+; cabecera: tipo=software|hardware, repetir=SI|NO (repite toda la envolvente),
+; pasos=numero de pasos de 3 bytes.
+; paso software modo=relativo: reps=repeticiones ($01-$EF), incr=incremento
+; de PERIODO de tono con signo por repeticion, dur=duracion en cs.
+; paso software modo=directo: periodo=periodo de tono absoluto de 12 bits
+; (frecuencia_Hz=125000/periodo), dur=duracion en cs.
+; paso hardware: igual que en amplitud (forma/frecuencia) -- no visto en datos reales.
+cabecera tipo=software repetir=NO pasos=2  ; 02
+paso 1 modo=directo periodo=140 freq=892.9Hz dur=1cs(0.01s)  ; F0 8C 01
+paso 2 modo=relativo reps=10 incr=-5 dur=1cs(0.01s)  ; 0A FB 01

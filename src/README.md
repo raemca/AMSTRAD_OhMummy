@@ -86,6 +86,29 @@ código sin analizar**: el motor completo (`$6000`-`$9385`) está
 reconstruido como fuente ensamblador que compila byte a byte idéntico
 al original.
 
+Las Sesiones 15-22 refinaron esa reconstrucción sin tocar ningún byte
+del binario: las Sesiones 19-20 etiquetaron una a una las 227
+instrucciones `CALL`/`JP`/`JR` que saltaban a una dirección `$XXXX`
+literal (incluidos los 29 bucles `DJNZ`/`JR` internos) — **no queda
+ninguna dirección "mágica" sin etiquetar en todo el fichero** — y de
+paso corrigieron `REPETIR_CARACTER` → `IMPRIMIR_BYTES_CON_LONGITUD`
+(no repite un carácter, imprime una secuencia de bytes con longitud).
+La Sesión 21 reescribió los bloques de texto mixto (control+ASCII) con
+32 constantes `CTRL_TXT_*` (Appendix VII del firmware) en vez de
+hexadecimal en bruto. La Sesión 22 localizó los llamadores reales de
+varias tablas de datos que parecían "sin invocador" (la mayoría sí lo
+tenían, por caída natural o por dirección literal sin sustituir),
+descompuso `VARIABLES_DIBUJO_MARCO`/`TABLA_OFFSETS_DIAMANTE` en
+variables con nombre real, y pasó a decimal los literales hexadecimales
+cuyo significado real es una cantidad de juego. Las Sesiones 23-25
+hicieron el mismo trabajo de extracción a fichero individual que ya
+tenían las imágenes (Sesiones 8/15/18) con todo el sonido ya
+identificado del motor: la música de fondo y los 3 efectos puntuales,
+decodificados campo a campo contra el formato `SOUND QUEUE` del
+firmware, con herramientas propias de edición y reproducción — ver
+`data/sound/` más abajo y `../FINDINGS.md` Sesiones 15-25 para el
+detalle completo de cada hallazgo.
+
 ### Rutinas reconstruidas (nombres provisionales, Sesiones 3-6)
 
 | Etiqueta | Subsistema | Confianza |
@@ -206,8 +229,18 @@ en los tres** (los dos ficheros por separado y el disco completo).
   de la Sesión 8, más 4 `SPRITE_ICONO_SARCOFAGO`/`_LLAVE`/`_PERGAMINO`/
   `_TESORO` de la Sesión 18 — los iconos de contenido de casilla,
   identidad confirmada en la Sesión 17) e `img/tiles/` (14 ficheros, la
-  familia completa de losetas de pisadas, Sesión 15); `niveles/` y
-  `sound/` siguen vacíos por ahora. `mummy1_resto_sin_analizar.bin` ya no tiene ningún
+  familia completa de losetas de pisadas, Sesión 15); `niveles/` sigue
+  vacío por ahora. `sound/` (Sesiones 23-25): `guion_sonido_circular.bin`
+  (810 bytes, la música de fondo, formato `SOUND QUEUE` del firmware
+  decodificado campo a campo) más `envolvente_amplitud_1/2/3.bin` /
+  `envolvente_tono_1/2/3.bin` (las 6 envolventes de volumen/tono) y
+  `sonido_perder_vida.bin`/`sonido_tesoro.bin`/`sonido_objeto_
+  encontrado.bin` (los 3 efectos puntuales, mismo formato `SOUND QUEUE`
+  que la música, combinado con una envolvente) — cada uno con su `.txt`
+  editable (round-trip byte a byte verificado con
+  `tools/guion_sonido_tool.py`/`tools/envolvente_sonido_tool.py`) y su
+  `.wav` de referencia (`tools/guion_sonido_player.py`/
+  `tools/envolvente_sonido_player.py`). `mummy1_resto_sin_analizar.bin` ya no tiene ningún
   `INCBIN` que lo referencie desde la Sesión 14 — se deja en el árbol
   como referencia histórica del binario en bruto.
 - `build/` — binarios compilados (gitignored).

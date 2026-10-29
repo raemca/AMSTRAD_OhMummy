@@ -1,0 +1,5 @@
+; sonido_objeto_encontrado.bin -- bloque SOUND QUEUE de 9 bytes (firmware CPC,
+; mismo formato que GUION_SONIDO_CIRCULAR -- ver guion_sonido_tool.py / FINDINGS
+; Sesion 23/24). frecuencia_Hz = 125000/periodo.
+; env=3 -> envolvente_amplitud_3.bin ; ent=3 -> envolvente_tono_3.bin (referenciadas por numero, no por direccion -- ver FINDINGS Sesion 24)
+000 canal=C env=3 ent=3 nota=SILENCIO(0) vol=0 ruido=0 dur=-4cs(negativo, significado sin confirmar)  ; 04 03 03 00 00 00 00 FC FF
